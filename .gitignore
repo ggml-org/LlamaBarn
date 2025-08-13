@@ -1,0 +1,11 @@
+_*
+.claude
+.cursor
+.github
+.vscode
+build
+xcuserdata
+
+.mcp.json
+claude.md
+gemini.md
