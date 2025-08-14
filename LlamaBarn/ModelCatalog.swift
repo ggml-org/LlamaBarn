@@ -468,16 +468,7 @@ enum ModelCatalog {
     return modelsByFamily.compactMap { (_, familyModels) in
       selectRepresentativeModel(from: familyModels)
     }
-    .sorted { lhs, rhs in
-      let lhsCompatible = isModelCompatible(lhs)
-      let rhsCompatible = isModelCompatible(rhs)
-
-      // Compatible models come first, then alphabetical within each group
-      if lhsCompatible != rhsCompatible {
-        return lhsCompatible
-      }
-      return lhs.family < rhs.family
-    }
+    .sorted { lhs, rhs in lhs.family < rhs.family }
   }
 
   /// Selects the best representative model from a family
