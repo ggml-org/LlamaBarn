@@ -119,16 +119,29 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       llamaServer.stop()
     }
 
-    // Remove the main model file
-    try? FileManager.default.removeItem(atPath: model.modelFilePath)
+    // Immediately remove from UI for responsive feedback
+    downloadedModels.removeAll { $0.id == model.id }
 
-    // Safely remove vision file only if no other models depend on it
-    if let visionFilePath = model.visionFilePath, canDeleteVisionFile(model: model) {
-      try? FileManager.default.removeItem(atPath: visionFilePath)
+    // Perform actual file deletion asynchronously
+    Task {
+      do {
+        // Remove the main model file
+        try FileManager.default.removeItem(atPath: model.modelFilePath)
+
+        // Safely remove vision file only if no other models depend on it
+        if let visionFilePath = model.visionFilePath, canDeleteVisionFile(model: model) {
+          try FileManager.default.removeItem(atPath: visionFilePath)
+        }
+      } catch {
+        // If deletion fails, add the model back to the list
+        await MainActor.run {
+          if model.isDownloaded {
+            downloadedModels.append(model)
+          }
+        }
+        print("Failed to delete model: \(error)")
+      }
     }
-
-    // Refresh the downloaded models list to reflect the changes
-    refreshDownloadedModels()
   }
 
   /// Determines if a vision file can be safely deleted by checking reference count
