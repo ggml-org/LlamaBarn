@@ -38,10 +38,6 @@ struct MenuContentView: View {
       .onAppear {
         // Refresh the list of downloaded models when menu appears
         ModelManager.shared.refreshDownloadedModels()
-
-        #if !DEBUG
-          appDelegate.updaterController?.updater.checkForUpdatesInBackground()
-        #endif
       }
   }
 
@@ -110,21 +106,51 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Set up automatic updates using Sparkle framework
     updaterController = SPUStandardUpdaterController(
-      startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+      // Begin automatic update checking immediately
+      startingUpdater: true,
+      // Use default behavior for update process events
+      updaterDelegate: nil,
+      // Use our custom UI handling for gentle reminders
+      userDriverDelegate: self,
+    )
+
+    // Check for updates on app launch (in addition to automatic hourly checks)
+    #if !DEBUG
+      updaterController?.updater.checkForUpdatesInBackground()
+    #endif
 
     // Initialize the shared model library manager to scan for existing models
     _ = ModelManager.shared
   }
 
-  func applicationDidBecomeActive(_ notification: Notification) {
-    // For menu bar apps, this is only called on launch
-    #if !DEBUG
-      updaterController?.updater.checkForUpdatesInBackground()
-    #endif
-  }
-
   func applicationWillTerminate(_ notification: Notification) {
     // Gracefully stop the llama-server process when app quits
     LlamaServer.shared.stop()
+  }
+}
+
+// MARK: - SPUStandardUserDriverDelegate
+
+extension AppDelegate: SPUStandardUserDriverDelegate {
+  // Tells Sparkle this app supports gentle reminders for background update checks.
+  // This prevents intrusive modal dialogs and allows us to show dock badges instead.
+  var supportsGentleScheduledUpdateReminders: Bool {
+    return true
+  }
+
+  // Called when Sparkle is about to show an update dialog.
+  // We use this to switch from menu bar mode to dock app mode so the dialog appears properly.
+  func standardUserDriverWillHandleShowingUpdate(
+    _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
+  ) {
+    // Always show in dock when update dialog will appear
+    NSApp.setActivationPolicy(.regular)
+  }
+
+  // Called when the update process is completely finished (installed, skipped, or dismissed).
+  // We use this to return the app to menu bar mode.
+  func standardUserDriverWillFinishUpdateSession() {
+    // Return to menu bar mode
+    NSApp.setActivationPolicy(.accessory)
   }
 }
