@@ -8,6 +8,7 @@ struct ContentView: View {
   @Environment(ModelManager.self) var modelManager
   @Environment(LlamaServer.self) var llamaServer
   @Environment(UpdaterController.self) var updaterController
+  @Environment(\.dismiss) private var dismiss
 
   @State private var isServerStatusHovered = false
   @State private var isMoreMenuHovered = false
@@ -176,6 +177,7 @@ struct ContentView: View {
       ServerStatusView(llamaServer: llamaServer, isHovered: $isServerStatusHovered) {
         if llamaServer.isRunning {
           openURL("http://localhost:\(LlamaServer.defaultPort)/")
+          dismiss()
         }
       }
       .padding(.vertical, 8)
