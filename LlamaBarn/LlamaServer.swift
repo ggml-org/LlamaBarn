@@ -143,8 +143,6 @@ class LlamaServer {
     activeModelPath = modelPath
 
     let llamaServerPath = libFolderPath + "/llama-server"
-    try? FileManager.default.setAttributes(
-      [.posixPermissions: 0o755], ofItemAtPath: llamaServerPath)
 
     let env = ["GGML_METAL_NO_RESIDENCY": "1"]
     var arguments = [
