@@ -18,8 +18,8 @@ struct ServerStatusView: View {
 
       if isServerActive {
         Text("Running on ")
-          .font(.system(size: 14)) +
-        Text("localhost:2276")
+          .font(.system(size: 14))
+          + Text("localhost:2276")
           .font(.system(size: 14))
           .foregroundColor(.blue)
       } else {
@@ -28,7 +28,7 @@ struct ServerStatusView: View {
       }
 
       Spacer()
-      
+
       Image(systemName: "link")
         .font(.system(size: 14))
         .frame(width: 32, height: 16)

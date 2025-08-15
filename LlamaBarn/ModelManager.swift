@@ -70,7 +70,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     }
 
     logger.info("Starting download for model: \(model.displayName)")
-    
+
     for fileUrl in filesToDownload {
       let task = urlSession.downloadTask(with: fileUrl)
       task.taskDescription = model.id
@@ -96,7 +96,6 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
   func isModelDownloaded(_ model: ModelCatalogEntry) -> Bool {
     return getModelStatus(model) == .downloaded
   }
-
 
   /// Safely deletes a downloaded model and its associated files
   /// Automatically stops the server if the model is currently active

@@ -97,7 +97,9 @@ class LlamaServer {
         fileHandle.readabilityHandler = nil
       } else {
         if let output = String(data: data, encoding: .utf8) {
-          self.logger.info("llama-server: \(output.trimmingCharacters(in: .whitespacesAndNewlines), privacy: .public)")
+          self.logger.info(
+            "llama-server: \(output.trimmingCharacters(in: .whitespacesAndNewlines), privacy: .public)"
+          )
         }
       }
     }
@@ -108,7 +110,9 @@ class LlamaServer {
         fileHandle.readabilityHandler = nil
       } else {
         if let error = String(data: data, encoding: .utf8) {
-          self.logger.error("llama-server error: \(error.trimmingCharacters(in: .whitespacesAndNewlines), privacy: .public)")
+          self.logger.error(
+            "llama-server error: \(error.trimmingCharacters(in: .whitespacesAndNewlines), privacy: .public)"
+          )
         }
       }
     }
@@ -433,10 +437,11 @@ class LlamaServer {
   /// Gets the version of the bundled llama.cpp from stored version file
   func getLlamaCppVersion() -> String {
     guard let url = Bundle.main.url(forResource: "version", withExtension: "txt"),
-          let version = try? String(contentsOf: url, encoding: .utf8) else {
+      let version = try? String(contentsOf: url, encoding: .utf8)
+    else {
       return "unknown"
     }
-    
+
     return version.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 

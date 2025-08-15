@@ -32,7 +32,6 @@ struct ContentView: View {
     NSWorkspace.shared.open(url)
   }
 
-
   var body: some View {
     // Main container for the popover content with organized model sections
     VStack(alignment: .leading, spacing: 0) {
@@ -63,7 +62,9 @@ struct ContentView: View {
           Divider()
 
           VStack(alignment: .leading, spacing: 2) {
-            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
+            Text(
+              "Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))"
+            )
             Text("llama.cpp \(llamaServer.getLlamaCppVersion())")
           }
           .font(.caption)

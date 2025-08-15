@@ -18,7 +18,6 @@ struct ModelRow: View {
     modelManager.getModelStatus(model)
   }
 
-
   var body: some View {
     HStack(alignment: .center, spacing: 4) {
       // Model brand logo positioned consistently for visual alignment
@@ -94,7 +93,7 @@ struct ModelRow: View {
         let progressValue =
           progress.totalUnitCount > 0
           ? Double(progress.completedUnitCount) / Double(progress.totalUnitCount) : 0.0
-        
+
         // Custom progress indicator for better macOS compatibility
         ZStack {
           Circle()
