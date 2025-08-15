@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import Observation
+import os.log
 
 /// Represents the current status of a model
 enum ModelStatus: Equatable {
@@ -30,6 +31,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
   var downloadUpdateTrigger: Int = 0
 
   private var urlSession: URLSession!
+  private let logger = Logger(subsystem: "LlamaBarn", category: "ModelManager")
 
   /// Curated collection of AI models available for download and use in LlamaBarn
   /// Each model is configured with download URLs, capabilities, and runtime parameters
@@ -67,6 +69,8 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       return
     }
 
+    logger.info("Starting download for model: \(model.displayName)")
+    
     for fileUrl in filesToDownload {
       let task = urlSession.downloadTask(with: fileUrl)
       task.taskDescription = model.id
@@ -124,7 +128,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
             downloadedModels.append(model)
           }
         }
-        print("Failed to delete model: \(error)")
+        logger.error("Failed to delete model: \(error.localizedDescription)")
       }
     }
   }
@@ -177,11 +181,12 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       try fileManager.moveItem(at: location, to: destinationURL)
 
       DispatchQueue.main.async {
+        self.logger.info("Download completed for model: \(model.displayName)")
         self.activeDownloads.removeValue(forKey: modelId)
         self.refreshDownloadedModels()
       }
     } catch {
-      print("Error moving file: \(error)")
+      logger.error("Error moving downloaded file: \(error.localizedDescription)")
       DispatchQueue.main.async {
         self.activeDownloads.removeValue(forKey: modelId)
       }
@@ -210,7 +215,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     }
 
     if let error = error {
-      print("Download error: \(error)")
+      logger.error("Model download failed: \(error.localizedDescription)")
       DispatchQueue.main.async {
         self.activeDownloads.removeValue(forKey: modelId)
       }

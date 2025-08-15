@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Observation
+import os.log
 import Sparkle
 import SwiftUI
 
@@ -99,8 +100,11 @@ class UpdaterController {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
   var updaterController: SPUStandardUpdaterController?
+  private let logger = Logger(subsystem: "LlamaBarn", category: "AppDelegate")
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    logger.info("LlamaBarn starting up")
+    
     // Configure app as menu bar only (removes from Dock)
     NSApp.setActivationPolicy(.accessory)
 
@@ -121,9 +125,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Initialize the shared model library manager to scan for existing models
     _ = ModelManager.shared
+    
+    logger.info("LlamaBarn startup complete")
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    logger.info("LlamaBarn shutting down")
+    
     // Gracefully stop the llama-server process when app quits
     LlamaServer.shared.stop()
   }
