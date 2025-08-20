@@ -30,6 +30,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 12390,  // 12.1 GB
       downloadUrl: URL(
         string:
@@ -54,6 +55,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 43520,  // 42.5 GB
       downloadUrl: URL(
         string:
@@ -75,6 +77,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 34800,  // 34.8 GB
       downloadUrl: URL(
         string:
@@ -96,6 +99,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 19900,  // 19.9 GB
       downloadUrl: URL(
         string:
@@ -117,6 +121,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 9216,  // 8.99 GB
       downloadUrl: URL(
         string:
@@ -138,6 +143,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 4920,  // 4.92 GB
       downloadUrl: URL(
         string:
@@ -159,6 +165,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 1120,  // 1.12 GB
       downloadUrl: URL(
         string:
@@ -183,6 +190,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 40960,
       fileSizeMB: 35635,  // 34.8 GB
       downloadUrl: URL(
         string: "https://huggingface.co/unsloth/Qwen3-32B-GGUF/resolve/main/Qwen3-32B-Q8_0.gguf")!,
@@ -202,6 +210,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 40960,
       fileSizeMB: 20275,  // 19.8 GB
       downloadUrl: URL(
         string: "https://huggingface.co/unsloth/Qwen3-32B-GGUF/resolve/main/Qwen3-32B-Q4_K_M.gguf")!,
@@ -221,6 +230,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 40960,
       fileSizeMB: 9216,  // 9 GB
       downloadUrl: URL(
         string: "https://huggingface.co/unsloth/Qwen3-14B-GGUF/resolve/main/Qwen3-14B-Q4_K_M.gguf")!,
@@ -240,6 +250,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 40960,
       fileSizeMB: 5150,  // 5.03 GB
       downloadUrl: URL(
         string: "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf")!,
@@ -259,6 +270,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 40960,
       fileSizeMB: 2560,  // 2.5 GB
       downloadUrl: URL(
         string: "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf")!,
@@ -281,6 +293,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 262144,
       fileSizeMB: 33280,  // 32.5 GB
       downloadUrl: URL(
         string:
@@ -302,6 +315,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 262144,
       fileSizeMB: 19046,  // 18.6 GB
       downloadUrl: URL(
         string:
@@ -326,6 +340,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 43520,  // 42.5 GB
       downloadUrl: URL(
         string:
@@ -350,6 +365,7 @@ enum ModelCatalog {
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
+      contextLength: 131072,
       fileSizeMB: 2068,  // 2.02 GB
       downloadUrl: URL(
         string:
@@ -374,6 +390,7 @@ enum ModelCatalog {
       supportsVision: true,
       supportsAudio: true,
       supportsTools: false,
+      contextLength: 32768,
       fileSizeMB: 7526,  // 7.35 GB
       downloadUrl: URL(
         string:
@@ -395,6 +412,7 @@ enum ModelCatalog {
       supportsVision: true,
       supportsAudio: true,
       supportsTools: false,
+      contextLength: 32768,
       fileSizeMB: 4505,  // 4.4 GB
       downloadUrl: URL(
         string:
@@ -417,6 +435,7 @@ enum ModelCatalog {
       supportsVision: true,
       supportsAudio: true,
       supportsTools: false,
+      contextLength: 32768,
       fileSizeMB: 3103,  // 3.03 GB
       downloadUrl: URL(
         string:

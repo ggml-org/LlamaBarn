@@ -10,6 +10,7 @@ struct ModelCatalogEntry: Identifiable, Codable {
   let supportsVision: Bool  // Can process images/visual input
   let supportsAudio: Bool  // Can process audio input
   let supportsTools: Bool  // Supports function calling/tools
+  let contextLength: Int  // Maximum context length in tokens
   let fileSizeMB: Int  // File size for progress tracking and display
   let downloadUrl: URL  // Remote download URL
   let visionFile: URL?  // Optional multimodal projection file for vision
