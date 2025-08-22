@@ -68,7 +68,7 @@ async function downloadLatestRelease() {
 /**
  * Copy only essential llama.cpp files to avoid bloating the app bundle
  */
-async function moveWhitelistedFiles(extractDir: string, targetDir: string) {
+async function copyWhitelistedFiles(extractDir: string, targetDir: string) {
   // Only include the server binary and required dynamic libraries
   const whitelist = [
     // Main server executable
@@ -91,9 +91,6 @@ async function moveWhitelistedFiles(extractDir: string, targetDir: string) {
     "libggml.dylib",     
   ];
 
-  // Ensure target directory exists
-  await Deno.mkdir(targetDir, { recursive: true });
-
   // Copy whitelisted files and make them executable
   for await (const entry of Deno.readDir(extractDir)) {
     if (whitelist.includes(entry.name)) {
@@ -108,14 +105,23 @@ async function moveWhitelistedFiles(extractDir: string, targetDir: string) {
 
 // Main execution
 try {
-  // Remove existing llama-cpp directory if it exists
-  await Deno.remove(llamaCppPath, { recursive: true }).catch(() => {});
-
   // Download and extract latest release
   const result = await downloadLatestRelease();
   
+  // Ensure target directory exists
+  await Deno.mkdir(llamaCppPath, { recursive: true });
+
+  // Remove all existing files (preserve directory to keep Xcode references intact)
+  try {
+    for await (const entry of Deno.readDir(llamaCppPath)) {
+      await Deno.remove(`${llamaCppPath}/${entry.name}`);
+    }
+  } catch {
+    // Directory might not exist, ignore
+  }
+  
   // Copy essential files to our llama-cpp directory
-  await moveWhitelistedFiles(`${result.extractDir}/build/bin`, llamaCppPath);
+  await copyWhitelistedFiles(`${result.extractDir}/build/bin`, llamaCppPath);
   
   // Store the version information
   const versionPath = `${llamaCppPath}/version.txt`;
