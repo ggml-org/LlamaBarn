@@ -300,6 +300,19 @@ class LlamaServer {
     )
   }
 
+  /// Convenience method to start server with maximum context length
+  func startWithMaxContext(model: ModelCatalogEntry) {
+    var maxContextArgs = model.serverArgs
+    maxContextArgs.append(contentsOf: ["--ctx-size", "0"])
+
+    start(
+      modelName: model.displayName,
+      modelPath: model.modelFilePath,
+      mmprojPath: model.visionFilePath,
+      extraArgs: maxContextArgs
+    )
+  }
+
   /// Convenience method to toggle server state using a ModelCatalogEntry
   func toggle(model: ModelCatalogEntry) {
     if activeModelPath == model.modelFilePath {

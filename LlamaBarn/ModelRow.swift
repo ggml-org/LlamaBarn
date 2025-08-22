@@ -168,6 +168,14 @@ struct ModelRow: View {
     // Context menu for downloaded models only (provides delete option)
     .contextMenu {
       if case .downloaded = modelStatus {
+        #if DEBUG
+          Button(action: {
+            llamaServer.startWithMaxContext(model: model)
+          }) {
+            Label("Run at Max Context", systemImage: "gauge.high")
+          }
+          Divider()
+        #endif
         Button(action: {
           showInFinder(model)
         }) {
