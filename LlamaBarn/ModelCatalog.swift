@@ -177,23 +177,25 @@ enum ModelCatalog {
       quantization: "Q4_K_M"
     ),
 
-    // MARK: - Qwen 3 Family
-    // Latest generation models with strong tool support
+    // MARK: - Qwen3 2507 Family
+    // Latest generation 2507 models with enhanced performance and larger context
 
     // Largest model for most complex tasks - high quality variant
     ModelCatalogEntry(
-      id: "qwen3-32b-q8",
-      family: "Qwen 3",
-      variant: "32B",
-      sizeInBillions: 32,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 29))!,
+      id: "qwen3-2507-235b-q8",
+      family: "Qwen3 2507",
+      variant: "235B",
+      sizeInBillions: 235,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
-      contextLength: 40960,
-      fileSizeMB: 35635,  // 34.8 GB
+      contextLength: 262144,
+      fileSizeMB: 256000,  // 250 GB
       downloadUrl: URL(
-        string: "https://huggingface.co/unsloth/Qwen3-32B-GGUF/resolve/main/Qwen3-32B-Q8_0.gguf")!,
+        string:
+          "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q8_0.gguf"
+      )!,
       visionFile: nil,
       serverArgs: [],
       icon: "ModelLogos/Qwen",
@@ -202,78 +204,243 @@ enum ModelCatalog {
 
     // Largest model for most complex tasks
     ModelCatalogEntry(
-      id: "qwen3-32b",
-      family: "Qwen 3",
-      variant: "32B",
-      sizeInBillions: 32,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 29))!,
+      id: "qwen3-2507-235b",
+      family: "Qwen3 2507",
+      variant: "235B",
+      sizeInBillions: 235,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
-      contextLength: 40960,
-      fileSizeMB: 20275,  // 19.8 GB
+      contextLength: 262144,
+      fileSizeMB: 114688,  // 112 GB
       downloadUrl: URL(
-        string: "https://huggingface.co/unsloth/Qwen3-32B-GGUF/resolve/main/Qwen3-32B-Q4_K_M.gguf")!,
+        string:
+          "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q4_K_M.gguf"
+      )!,
       visionFile: nil,
       serverArgs: [],
       icon: "ModelLogos/Qwen",
       quantization: "Q4_K_M"
+    ),
+
+    // Large model for complex reasoning tasks - high quality variant
+    ModelCatalogEntry(
+      id: "qwen3-2507-30b-q8",
+      family: "Qwen3 2507",
+      variant: "30B",
+      sizeInBillions: 30,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 32768,  // 32 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q8_0"
     ),
 
     // Large model for complex reasoning tasks
     ModelCatalogEntry(
-      id: "qwen3-14b",
-      family: "Qwen 3",
-      variant: "14B",
-      sizeInBillions: 14,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 29))!,
+      id: "qwen3-2507-30b",
+      family: "Qwen3 2507",
+      variant: "30B",
+      sizeInBillions: 30,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
-      contextLength: 40960,
-      fileSizeMB: 9216,  // 9 GB
+      contextLength: 262144,
+      fileSizeMB: 15052,  // 14.7 GB
       downloadUrl: URL(
-        string: "https://huggingface.co/unsloth/Qwen3-14B-GGUF/resolve/main/Qwen3-14B-Q4_K_M.gguf")!,
+        string:
+          "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
+      )!,
       visionFile: nil,
       serverArgs: [],
       icon: "ModelLogos/Qwen",
       quantization: "Q4_K_M"
     ),
 
-    // Large model for complex tasks requiring high reasoning capability
+    // Mid-size model balancing performance and resource usage - high quality variant
     ModelCatalogEntry(
-      id: "qwen3-8b",
-      family: "Qwen 3",
-      variant: "8B",
-      sizeInBillions: 8,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 29))!,
+      id: "qwen3-2507-4b-q8",
+      family: "Qwen3 2507",
+      variant: "4B",
+      sizeInBillions: 4,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
-      contextLength: 40960,
-      fileSizeMB: 5150,  // 5.03 GB
+      contextLength: 262144,
+      fileSizeMB: 4384,  // 4.28 GB
       downloadUrl: URL(
-        string: "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf")!,
+        string:
+          "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q8_0.gguf"
+      )!,
       visionFile: nil,
       serverArgs: [],
       icon: "ModelLogos/Qwen",
-      quantization: "Q4_K_M"
+      quantization: "Q8_0"
     ),
 
     // Mid-size model balancing performance and resource usage
     ModelCatalogEntry(
-      id: "qwen3-4b",
-      family: "Qwen 3",
+      id: "qwen3-2507-4b",
+      family: "Qwen3 2507",
       variant: "4B",
       sizeInBillions: 4,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 29))!,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
       supportsVision: false,
       supportsAudio: false,
       supportsTools: true,
-      contextLength: 40960,
+      contextLength: 262144,
       fileSizeMB: 2560,  // 2.5 GB
       downloadUrl: URL(
-        string: "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf")!,
+        string:
+          "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q4_K_M"
+    ),
+
+    // MARK: - Qwen3 2507 Thinking Family
+    // Reasoning models with step-by-step thinking capabilities
+
+    // Largest thinking model - high quality variant
+    ModelCatalogEntry(
+      id: "qwen3-2507-thinking-235b-q8",
+      family: "Qwen3 2507 Thinking",
+      variant: "235B",
+      sizeInBillions: 235,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 256000,  // 250 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q8_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q8_0"
+    ),
+
+    // Largest thinking model
+    ModelCatalogEntry(
+      id: "qwen3-2507-thinking-235b",
+      family: "Qwen3 2507 Thinking",
+      variant: "235B",
+      sizeInBillions: 235,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 114688,  // 112 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q4_K_M.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q4_K_M"
+    ),
+
+    // Large thinking model - high quality variant
+    ModelCatalogEntry(
+      id: "qwen3-2507-thinking-30b-q8",
+      family: "Qwen3 2507 Thinking",
+      variant: "30B",
+      sizeInBillions: 30,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 32768,  // 32 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q8_0"
+    ),
+
+    // Large thinking model
+    ModelCatalogEntry(
+      id: "qwen3-2507-thinking-30b",
+      family: "Qwen3 2507 Thinking",
+      variant: "30B",
+      sizeInBillions: 30,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 15052,  // 14.7 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q4_K_M"
+    ),
+
+    // Compact thinking model - high quality variant
+    ModelCatalogEntry(
+      id: "qwen3-2507-thinking-4b-q8",
+      family: "Qwen3 2507 Thinking",
+      variant: "4B",
+      sizeInBillions: 4,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 4384,  // 4.28 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q8_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Qwen",
+      quantization: "Q8_0"
+    ),
+
+    // Compact thinking model
+    ModelCatalogEntry(
+      id: "qwen3-2507-thinking-4b",
+      family: "Qwen3 2507 Thinking",
+      variant: "4B",
+      sizeInBillions: 4,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 262144,
+      fileSizeMB: 2560,  // 2.5 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf"
+      )!,
       visionFile: nil,
       serverArgs: [],
       icon: "ModelLogos/Qwen",
