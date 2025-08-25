@@ -613,6 +613,97 @@ enum ModelCatalog {
       icon: "ModelLogos/Gemma",
       quantization: "Q4_K_M"
     ),
+
+    // MARK: - Gemma 3 QAT Family
+    // Quantization-aware trained models with enhanced efficiency and multimodal capabilities
+
+    // Largest QAT model for most complex tasks
+    ModelCatalogEntry(
+      id: "gemma-3-qat-27b",
+      family: "Gemma 3 QAT",
+      variant: "27B",
+      sizeInBillions: 27,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 24))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 131072,
+      fileSizeMB: 15974,  // 15.6 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Gemma",
+      quantization: "Q4_0"
+    ),
+
+    // Large QAT model with enhanced efficiency
+    ModelCatalogEntry(
+      id: "gemma-3-qat-12b",
+      family: "Gemma 3 QAT",
+      variant: "12B",
+      sizeInBillions: 12,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 21))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 131072,
+      fileSizeMB: 7074,  // 6.91 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Gemma",
+      quantization: "Q4_0"
+    ),
+
+    // Compact QAT model balancing performance and efficiency
+    ModelCatalogEntry(
+      id: "gemma-3-qat-4b",
+      family: "Gemma 3 QAT",
+      variant: "4B",
+      sizeInBillions: 4,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 22))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 131072,
+      fileSizeMB: 2427,  // 2.37 GB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Gemma",
+      quantization: "Q4_0"
+    ),
+
+    // Ultra-compact QAT model for resource-constrained environments
+    ModelCatalogEntry(
+      id: "gemma-3-qat-270m",
+      family: "Gemma 3 QAT",
+      variant: "270M",
+      sizeInBillions: 0.27,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 14))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 32768,
+      fileSizeMB: 241,  // 241 MB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/ggml-org/gemma-3-270m-it-qat-GGUF/resolve/main/gemma-3-270m-it-qat-Q4_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Gemma",
+      quantization: "Q4_0"
+    ),
   ]
 
   /// Gets system memory in MB using shared system memory utility
