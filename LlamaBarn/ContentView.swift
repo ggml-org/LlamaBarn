@@ -20,10 +20,23 @@ struct ContentView: View {
     modelManager.downloadedModels
   }
 
-  private var availableModels: [ModelCatalogEntry] {
-    modelManager.availableModelCatalog.filter { model in
-      !modelManager.isModelDownloaded(model)
+  // Models currently being downloaded
+  private var downloadingModels: [ModelCatalogEntry] {
+    ModelCatalog.models.filter { model in
+      if case .downloading = modelManager.getModelStatus(model) {
+        return true
+      }
+      return false
     }
+  }
+
+  // Group all models by family for the menu interface
+  private var allModelFamilies: [(family: String, models: [ModelCatalogEntry], icon: String)] {
+    Dictionary(grouping: ModelCatalog.models, by: { $0.family })
+      .map { (family, models) in
+        (family: family, models: models, icon: models.first?.icon ?? "ModelLogos/OpenAI")
+      }
+      .sorted { $0.family < $1.family }
   }
 
   // Utility to open URLs in the default system browser
@@ -102,8 +115,8 @@ struct ContentView: View {
 
       // Organized model sections: Downloaded models first, then available for download
       VStack(spacing: 0) {
-        // Downloaded models section - shows models ready to run
-        if !downloadedModels.isEmpty {
+        // Downloaded and downloading models section - shows models ready to run and currently downloading
+        if !downloadedModels.isEmpty || !downloadingModels.isEmpty {
           VStack(spacing: 4) {
             // Section header
             Text("Installed")
@@ -117,37 +130,28 @@ struct ContentView: View {
               ForEach(downloadedModels, id: \.id) { model in
                 ModelRow(model: model)
               }
+
+              // Show downloading models in the installed section
+              ForEach(downloadingModels, id: \.id) { model in
+                ModelRow(model: model)
+              }
             }
           }
           .padding(.vertical, 8)
 
           // Separator between sections (only if both sections have content)
-          if !availableModels.isEmpty {
+          if !allModelFamilies.isEmpty {
             Divider()
               .padding(.horizontal, 8)
           }
         }
 
-        // Available models section - shows models that can be downloaded
-        if !availableModels.isEmpty {
+        // Available model families section - shows expandable menus for each family
+        if !allModelFamilies.isEmpty {
           VStack(spacing: 4) {
             // Section header
             HStack {
               Text("Available")
-              Button(action: {
-                showAvailableInfo.toggle()
-              }) {
-                Image(systemName: "info.circle")
-              }
-              .buttonStyle(.plain)
-              .popover(isPresented: $showAvailableInfo) {
-                Text(
-                  "We're showing the best model of each model family that would run your hardware."
-                )
-                // For some reason, using maxWidth truncates the content instead of wrapping it
-                .frame(width: 300)
-                .padding()
-              }
 
               Spacer()
             }
@@ -155,10 +159,14 @@ struct ContentView: View {
             .foregroundColor(.secondary)
             .padding(.horizontal, 8)
 
-            // List of models that can be downloaded
+            // List of model families that can be downloaded
             VStack(spacing: 0) {
-              ForEach(availableModels, id: \.id) { model in
-                ModelRow(model: model)
+              ForEach(allModelFamilies, id: \.family) { familyInfo in
+                ModelFamilyRow(
+                  family: familyInfo.family,
+                  models: familyInfo.models,
+                  icon: familyInfo.icon
+                )
               }
             }
           }

@@ -33,12 +33,6 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
   private var urlSession: URLSession!
   private let logger = Logger(subsystem: "LlamaBarn", category: "ModelManager")
 
-  /// Curated collection of AI models available for download and use in LlamaBarn
-  /// Each model is configured with download URLs, capabilities, and runtime parameters
-  /// Shows the best model from each family, including families that don't fit in memory
-  /// For incompatible families, displays the smallest model with visual indication
-  let availableModelCatalog: [ModelCatalogEntry] = ModelCatalog.allFamiliesForSystem()
-
   private override init() {
     super.init()
     urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
@@ -165,7 +159,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     didFinishDownloadingTo location: URL
   ) {
     guard let modelId = downloadTask.taskDescription,
-      let model = availableModelCatalog.first(where: { $0.id == modelId })
+      let model = ModelCatalog.models.first(where: { $0.id == modelId })
     else {
       return
     }
