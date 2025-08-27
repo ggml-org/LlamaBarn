@@ -151,7 +151,7 @@ struct ContentView: View {
           VStack(spacing: 4) {
             // Section header
             HStack {
-              Text("Available")
+              Text("Catalog")
 
               Spacer()
             }
