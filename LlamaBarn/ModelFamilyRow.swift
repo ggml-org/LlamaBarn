@@ -116,7 +116,7 @@ struct ModelMenuItem: View {
 
         // Single line format that works better in menus
         Text(
-          "\(model.variant)\(model.quantization == "Q8_0" ? " (\(model.quantization))" : "") - \(model.totalSize)"
+          "\(model.displayName)\(model.quantization == "Q8_0" ? " (\(model.quantization))" : "") - \(model.totalSize)"
         )
         .foregroundColor(isModelCompatible ? .primary : .primary.opacity(0.5))
 
