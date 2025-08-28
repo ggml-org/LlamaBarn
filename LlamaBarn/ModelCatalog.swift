@@ -406,56 +406,6 @@ enum ModelCatalog {
       quantization: "Q4_K_M"
     ),
 
-    // MARK: - Llama 3.3 Family
-    // Latest large instruct model with enhanced capabilities
-
-    // Large model for complex reasoning and instruction following
-    ModelCatalogEntry(
-      id: "llama-3.3-70b-instruct",
-      family: "Llama 3.3",
-      variant: "70B",
-      sizeInBillions: 70,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 12, day: 6))!,
-      supportsVision: false,
-      supportsAudio: false,
-      supportsTools: true,
-      contextLength: 131072,
-      fileSizeMB: 43520,  // 42.5 GB
-      downloadUrl: URL(
-        string:
-          "https://huggingface.co/unsloth/Llama-3.3-70B-Instruct-GGUF/resolve/main/Llama-3.3-70B-Instruct-Q4_K_M.gguf"
-      )!,
-      visionFile: nil,
-      serverArgs: [],
-      icon: "ModelLogos/Meta",
-      quantization: "Q4_K_M"
-    ),
-
-    // MARK: - Llama 3.2 Family
-    // Compact instruct model optimized for efficiency
-
-    // Compact model with Q4_K_M quantization for efficient performance
-    ModelCatalogEntry(
-      id: "llama-3.2-3b-instruct",
-      family: "Llama 3.2",
-      variant: "3B",
-      sizeInBillions: 3,
-      releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 9, day: 25))!,
-      supportsVision: false,
-      supportsAudio: false,
-      supportsTools: true,
-      contextLength: 131072,
-      fileSizeMB: 2068,  // 2.02 GB
-      downloadUrl: URL(
-        string:
-          "https://huggingface.co/unsloth/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf"
-      )!,
-      visionFile: nil,
-      serverArgs: [],
-      icon: "ModelLogos/Meta",
-      quantization: "Q4_K_M"
-    ),
-
     // MARK: - Gemma 3n Family
     // Multimodal models with vision and audio capabilities
 
