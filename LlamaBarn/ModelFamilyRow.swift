@@ -8,44 +8,73 @@ struct ModelFamilyRow: View {
   @Environment(ModelManager.self) var modelManager
   @State private var isHovered = false
 
-  // Check if any model in this family is compatible with system memory
-  private var hasCompatibleModels: Bool {
-    models.contains { ModelCatalog.isModelCompatible($0) }
+  private static let darkGreen = Color(red: 0.0, green: 0.5, blue: 0.0)
+
+  private var sortedModels: [ModelCatalogEntry] {
+    models.sorted { compareModelsBySize($0, $1) }
   }
 
   var body: some View {
     Menu {
-      ForEach(models.sorted { compareModelsBySize($0, $1) }, id: \.id) { model in
+      ForEach(sortedModels, id: \.id) { model in
         ModelMenuItem(model: model)
       }
     } label: {
-      HStack(alignment: .center, spacing: 4) {
+      HStack(alignment: .top, spacing: 4) {
         // Model brand logo positioned consistently for visual alignment
         Image(icon)
           .resizable()
           .aspectRatio(contentMode: .fit)
           .frame(width: 18, height: 18)
           .padding(.trailing, 4)
+          .padding(.top, 2)
           .opacity(0.9)
 
-        // Family name
+        // Family name and variant chips
         VStack(alignment: .leading, spacing: 4) {
           Text(family)
-            .foregroundColor(hasCompatibleModels ? .primary : .primary.opacity(0.3))
+            .foregroundColor(.primary)
 
-          Text("\(models.count) models")
-            .font(.system(size: 10, weight: .medium, design: .monospaced))
-            .foregroundColor(hasCompatibleModels ? .secondary : .primary.opacity(0.3))
+          // Variant chips/tags
+          HStack(spacing: 4) {
+            ForEach(sortedModels, id: \.id) { model in
+              let isDownloaded = modelManager.getModelStatus(model) == .downloaded
+              let isCompatible = ModelCatalog.isModelCompatible(model)
+
+              HStack(spacing: 2) {
+                if isDownloaded {
+                  Image(systemName: "checkmark")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundColor(Self.darkGreen)
+                }
+                Text(model.variant)
+                  .font(.system(size: 9, weight: .medium, design: .monospaced))
+              }
+              .padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                  .stroke(
+                    isDownloaded
+                      ? Self.darkGreen.opacity(0.4)
+                      : isCompatible
+                        ? Color.secondary.opacity(0.3)
+                        : Color.secondary.opacity(0.2),
+                    lineWidth: 1
+                  )
+              )
+              .foregroundColor(
+                isDownloaded
+                  ? Self.darkGreen
+                  : isCompatible
+                    ? .secondary
+                    : .secondary.opacity(0.4)
+              )
+            }
+          }
         }
 
         Spacer()
-
-        // Memory warning for incompatible families
-        if !hasCompatibleModels {
-          Image(systemName: "exclamationmark.triangle")
-            .font(.system(size: 12))
-            .foregroundColor(.orange)
-        }
 
         // Menu indicator
         Image(systemName: "chevron.right")
@@ -56,8 +85,7 @@ struct ModelFamilyRow: View {
       .padding(.horizontal, 8)
       .padding(.vertical, 8)
       .background(
-        isHovered && hasCompatibleModels
-          ? Color.primary.opacity(0.05) : Color.clear
+        isHovered ? Color.primary.opacity(0.05) : Color.clear
       )
       .cornerRadius(6)
       .frame(maxWidth: .infinity)
@@ -134,13 +162,6 @@ struct ModelMenuItem: View {
         }
 
         Spacer()
-
-        // Memory warning for incompatible models
-        if !isModelCompatible {
-          Image(systemName: "exclamationmark.triangle")
-            .font(.system(size: 10))
-            .foregroundColor(.orange)
-        }
       }
     }
     .disabled(modelStatus == .downloaded || (!isModelCompatible && modelStatus == .available))
