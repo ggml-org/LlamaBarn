@@ -490,10 +490,10 @@ enum ModelCatalog {
       supportsAudio: false,
       supportsTools: true,
       contextLength: 131072,
-      fileSizeMB: 15974,  // 15.6 GB
+      fileSizeMB: 15909,  // 15.9 GB
       downloadUrl: URL(
         string:
-          "https://huggingface.co/unsloth/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
+          "https://huggingface.co/ggml-org/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
       )!,
       visionFile: nil,
       serverArgs: [],
@@ -512,10 +512,10 @@ enum ModelCatalog {
       supportsAudio: false,
       supportsTools: true,
       contextLength: 131072,
-      fileSizeMB: 7074,  // 6.91 GB
+      fileSizeMB: 7131,  // 6.98 GB
       downloadUrl: URL(
         string:
-          "https://huggingface.co/unsloth/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
+          "https://huggingface.co/ggml-org/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
       )!,
       visionFile: nil,
       serverArgs: [],
@@ -534,10 +534,32 @@ enum ModelCatalog {
       supportsAudio: false,
       supportsTools: true,
       contextLength: 131072,
-      fileSizeMB: 2427,  // 2.37 GB
+      fileSizeMB: 2526,  // 2.53 GB
       downloadUrl: URL(
         string:
-          "https://huggingface.co/unsloth/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
+          "https://huggingface.co/ggml-org/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
+      )!,
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/Gemma",
+      quantization: "Q4_0"
+    ),
+
+    // Compact QAT model for lightweight applications
+    ModelCatalogEntry(
+      id: "gemma-3-qat-1b",
+      family: "Gemma 3 QAT",
+      variant: "1B",
+      sizeInBillions: 1,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 27))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 131072,
+      fileSizeMB: 720,  // 720 MB
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/ggml-org/gemma-3-1b-it-qat-GGUF/resolve/main/gemma-3-1b-it-qat-Q4_0.gguf"
       )!,
       visionFile: nil,
       serverArgs: [],
