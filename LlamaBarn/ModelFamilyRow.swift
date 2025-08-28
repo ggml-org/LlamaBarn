@@ -137,9 +137,15 @@ struct ModelMenuItem: View {
             .font(.system(size: 10))
             .foregroundColor(.blue)
         case .available:
-          Image(systemName: "arrow.down.circle")
-            .font(.system(size: 10))
-            .foregroundColor(.secondary)
+          if isModelCompatible {
+            Image(systemName: "arrow.down.circle")
+              .font(.system(size: 10))
+              .foregroundColor(.secondary)
+          } else {
+            Image(systemName: "nosign")
+              .font(.system(size: 10))
+              .foregroundColor(.orange)
+          }
         }
 
         // Single line format that works better in menus
