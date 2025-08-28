@@ -120,12 +120,12 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
         }
 
         // Successfully deleted - remove from being deleted set
-        await MainActor.run {
+        _ = await MainActor.run {
           self.modelsBeingDeleted.remove(model.id)
         }
       } catch {
         // If deletion fails, add the model back to the list and remove from being deleted
-        await MainActor.run {
+        _ = await MainActor.run {
           self.modelsBeingDeleted.remove(model.id)
           // Re-check if files still exist after failed deletion
           if model.isDownloaded {

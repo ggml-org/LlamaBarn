@@ -355,7 +355,7 @@ class LlamaServer {
 
       // Health check failed
       if !Task.isCancelled {
-        await MainActor.run {
+        _ = await MainActor.run {
           if self.state != .idle {
             self.state = .error(.healthCheckFailed)
           }
@@ -380,7 +380,7 @@ class LlamaServer {
 
       if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
         let memoryValue = getMemoryUsageMB()
-        await MainActor.run {
+        _ = await MainActor.run {
           if self.state != .idle {
             self.state = .running
             self.memoryUsageMB = memoryValue
@@ -406,7 +406,7 @@ class LlamaServer {
         }
 
         let memoryValue = self.getMemoryUsageMB()
-        await MainActor.run {
+        _ = await MainActor.run {
           self.memoryUsageMB = memoryValue
         }
 
