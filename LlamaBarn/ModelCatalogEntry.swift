@@ -13,10 +13,49 @@ struct ModelCatalogEntry: Identifiable, Codable {
   let contextLength: Int  // Maximum context length in tokens
   let fileSizeMB: Int  // File size for progress tracking and display
   let downloadUrl: URL  // Remote download URL
+  /// Optional additional model shards. When present, the first shard in `downloadUrl`
+  /// should be passed to `--model` and llama-server will discover the rest in the same directory.
+  let additionalParts: [URL]?
   let visionFile: URL?  // Optional multimodal projection file for vision
   let serverArgs: [String]  // Additional command line arguments for llama-server
   let icon: String  // Asset name for the model's brand logo
   let quantization: String  // Quantization method (e.g., "Q4_K_M", "Q8_0")
+
+  init(
+    id: String,
+    family: String,
+    variant: String,
+    sizeInBillions: Double,
+    releaseDate: Date,
+    supportsVision: Bool,
+    supportsAudio: Bool,
+    supportsTools: Bool,
+    contextLength: Int,
+    fileSizeMB: Int,
+    downloadUrl: URL,
+    additionalParts: [URL]? = nil,
+    visionFile: URL?,
+    serverArgs: [String],
+    icon: String,
+    quantization: String
+  ) {
+    self.id = id
+    self.family = family
+    self.variant = variant
+    self.sizeInBillions = sizeInBillions
+    self.releaseDate = releaseDate
+    self.supportsVision = supportsVision
+    self.supportsAudio = supportsAudio
+    self.supportsTools = supportsTools
+    self.contextLength = contextLength
+    self.fileSizeMB = fileSizeMB
+    self.downloadUrl = downloadUrl
+    self.additionalParts = additionalParts
+    self.visionFile = visionFile
+    self.serverArgs = serverArgs
+    self.icon = icon
+    self.quantization = quantization
+  }
 
   /// Display name combining family and variant
   var displayName: String {
@@ -40,18 +79,39 @@ struct ModelCatalogEntry: Identifiable, Codable {
   /// Check if all required files exist locally
   var isDownloaded: Bool {
     let modelFileExists = FileManager.default.fileExists(atPath: modelFilePath)
+    let shardFilesExist: Bool = {
+      guard let additional = additionalParts, !additional.isEmpty else { return true }
+      let baseDir = URL(fileURLWithPath: modelFilePath).deletingLastPathComponent()
+      for url in additional {
+        let path = baseDir.appendingPathComponent(url.lastPathComponent).path
+        if !FileManager.default.fileExists(atPath: path) { return false }
+      }
+      return true
+    }()
     let visionFileExists: Bool
     if let visionPath = visionFilePath {
       visionFileExists = FileManager.default.fileExists(atPath: visionPath)
     } else {
       visionFileExists = true  // No vision file required
     }
-    return modelFileExists && visionFileExists
+    return modelFileExists && shardFilesExist && visionFileExists
   }
 
   /// The local file system path where the model file will be stored
   var modelFilePath: String {
     Self.getModelStorageDirectory().appendingPathComponent(downloadUrl.lastPathComponent).path
+  }
+
+  /// All local file paths this model requires (main file + shards if any)
+  var allLocalModelPaths: [String] {
+    let baseDir = URL(fileURLWithPath: modelFilePath).deletingLastPathComponent()
+    var paths = [modelFilePath]
+    if let additional = additionalParts {
+      for url in additional {
+        paths.append(baseDir.appendingPathComponent(url.lastPathComponent).path)
+      }
+    }
+    return paths
   }
 
   /// The local file system path where the vision file will be stored

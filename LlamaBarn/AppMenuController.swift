@@ -159,12 +159,13 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     menu.addItem(serverItem)
 
     menu.addItem(.separator())
-    // Settings-like items previously in ellipsis submenu
+    // Settings-like items
     let launchAtLogin = NSMenuItem(
       title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
     launchAtLogin.target = self
     launchAtLogin.state = LaunchAtLogin.isEnabled ? .on : .off
     menu.addItem(launchAtLogin)
+
 
     let updatesItem = NSMenuItem(
       title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
@@ -256,4 +257,6 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     // Ask AppDelegate (which owns Sparkle) to present the updater UI.
     NotificationCenter.default.post(name: .LBCheckForUpdates, object: nil)
   }
+
+  
 }

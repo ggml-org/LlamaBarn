@@ -42,6 +42,39 @@ enum ModelCatalog {
       quantization: "mxfp4"
     ),
 
+    // 120B model, sharded mxfp4 quantization (3 parts)
+    // llama-server should be pointed to the first shard; it will find the rest
+    ModelCatalogEntry(
+      id: "gpt-oss-120b-mxfp4",
+      family: "GPT-OSS",
+      variant: "120B",
+      sizeInBillions: 120,
+      releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
+      supportsVision: false,
+      supportsAudio: false,
+      supportsTools: true,
+      contextLength: 131072,
+      fileSizeMB: 63387,  // 63.39 GB across 3 shards
+      downloadUrl: URL(
+        string:
+          "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00001-of-00003.gguf"
+      )!,
+      additionalParts: [
+        URL(
+          string:
+            "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00002-of-00003.gguf"
+        )!,
+        URL(
+          string:
+            "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00003-of-00003.gguf"
+        )!,
+      ],
+      visionFile: nil,
+      serverArgs: [],
+      icon: "ModelLogos/OpenAI",
+      quantization: "mxfp4"
+    ),
+
     // MARK: - DeepSeek R1 0528 Family
     // Latest reasoning models with enhanced efficiency
 
