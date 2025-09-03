@@ -19,24 +19,20 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.modelManager = modelManager
     self.server = server
-    // Attempt to read bundled llama.cpp version (fallback to placeholder)
-    if let path = Bundle.main.path(forResource: "version", ofType: "txt"),
-      let content = try? String(contentsOfFile: path).trimmingCharacters(
-        in: .whitespacesAndNewlines),
-      !content.isEmpty
-    {
-      self.llamaCppVersion = content
-    } else if let repoPath = Bundle.main.resourcePath?.appending("/llama-cpp/version.txt"),
-      let content = try? String(contentsOfFile: repoPath).trimmingCharacters(
-        in: .whitespacesAndNewlines),
-      !content.isEmpty
-    {
-      self.llamaCppVersion = content
-    } else {
-      self.llamaCppVersion = "unknown"
-    }
+    self.llamaCppVersion = AppMenuController.readLlamaCppVersion()
     super.init()
     configureStatusItem()
+  }
+
+  private static func readLlamaCppVersion() -> String {
+    // Canonical location: bundle resource "version.txt". Fallback to "unknown".
+    if let path = Bundle.main.path(forResource: "version", ofType: "txt"),
+      let content = try? String(contentsOfFile: path).trimmingCharacters(in: .whitespacesAndNewlines),
+      !content.isEmpty
+    {
+      return content
+    }
+    return "unknown"
   }
 
   private func configureStatusItem() {
@@ -86,18 +82,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     menu.addItem(.separator())
 
     // Installed section header
-    let headerItem = NSMenuItem()
-    headerItem.title = "Installed"
-    headerItem.isEnabled = false
-    // Use smaller font (10 pt) for section headers per design update
-    headerItem.attributedTitle = NSAttributedString(
-      string: headerItem.title,
-      attributes: [
-        .font: NSFont.systemFont(ofSize: 10),
-        .foregroundColor: NSColor.secondaryLabelColor,
-      ]
-    )
-    menu.addItem(headerItem)
+    menu.addItem(makeSectionHeaderItem("Installed"))
 
     // Include downloading models in Installed section (original behavior)
     let downloadingModels = ModelCatalog.models.filter { m in
@@ -131,17 +116,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     let sortedFamilies = familiesDict.keys.sorted()
     if !sortedFamilies.isEmpty {
       menu.addItem(.separator())
-      let availHeader = NSMenuItem()
-      availHeader.title = "Available"
-      availHeader.isEnabled = false
-      availHeader.attributedTitle = NSAttributedString(
-        string: availHeader.title,
-        attributes: [
-          .font: NSFont.systemFont(ofSize: 10),
-          .foregroundColor: NSColor.secondaryLabelColor,
-        ]
-      )
-      menu.addItem(availHeader)
+      menu.addItem(makeSectionHeaderItem("Available"))
 
       for family in sortedFamilies {
         guard let models = familiesDict[family] else { continue }
@@ -151,10 +126,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         familyItem.representedObject = family as NSString
         let submenu = NSMenu(title: family)
         submenu.autoenablesItems = false
-        let sortedModels = models.sorted { lhs, rhs in
-          if lhs.fileSizeMB != rhs.fileSizeMB { return lhs.fileSizeMB < rhs.fileSizeMB }
-          return lhs.sizeInBillions < rhs.sizeInBillions
-        }
+        let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
         for model in sortedModels {
           let modelItem = NSMenuItem()
           modelItem.isEnabled = false
@@ -203,6 +175,20 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
     quit.target = self
     menu.addItem(quit)
+  }
+
+  private func makeSectionHeaderItem(_ title: String) -> NSMenuItem {
+    let item = NSMenuItem()
+    item.title = title
+    item.isEnabled = false
+    item.attributedTitle = NSAttributedString(
+      string: title,
+      attributes: [
+        .font: NSFont.systemFont(ofSize: 10),
+        .foregroundColor: NSColor.secondaryLabelColor,
+      ]
+    )
+    return item
   }
 
   // Periodically refresh status bar icon + row views while menu is open.

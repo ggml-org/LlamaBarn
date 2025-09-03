@@ -19,9 +19,6 @@ extension NSColor {
     }
   }
 
-  /// Border color for llamaGreen chips (subtle, dynamic alpha).
-  static var llamaGreenBorder: NSColor { llamaGreen.withAlphaComponent(0.55) }
-
   // MARK: - LlamaBarn semantic roles (text)
   // Keep this intentionally small & map directly to platform semantic colors so updates are centralized.
   // Contrast ordering: primary > secondary > disabled.
@@ -35,9 +32,6 @@ extension NSColor {
     }
     return base
   }
-
-  static var lbSuccess: NSColor { llamaGreen }
-  static var lbDestructive: NSColor { .systemRed }
 
   /// Subtle border / hairline separator for pills & chips.
   static var lbSubtleBorder: NSColor {

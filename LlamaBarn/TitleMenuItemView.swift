@@ -7,6 +7,18 @@ final class TitleMenuItemView: NSView {
     static let title = NSFont.systemFont(ofSize: 13, weight: .semibold)
     static let subtitle = NSFont.systemFont(ofSize: 10, weight: .regular)
   }
+  private static let nf0: NumberFormatter = {
+    let nf = NumberFormatter()
+    nf.minimumFractionDigits = 0
+    nf.maximumFractionDigits = 0
+    return nf
+  }()
+  private static let nf1: NumberFormatter = {
+    let nf = NumberFormatter()
+    nf.minimumFractionDigits = 0
+    nf.maximumFractionDigits = 1
+    return nf
+  }()
 
   private unowned let server: LlamaServer
   private let titleLabel = NSTextField(labelWithString: "")
@@ -75,10 +87,8 @@ final class TitleMenuItemView: NSView {
     if server.isRunning && server.memoryUsageMB > 0 {
       let memMB = server.memoryUsageMB
       let (value, unit): (Double, String) = memMB >= 1024 ? (memMB / 1024, "GB") : (memMB, "MB")
-      let nf = NumberFormatter()
-      nf.maximumFractionDigits = value < 10 && unit == "GB" ? 1 : 0
-      nf.minimumFractionDigits = 0
-      let valueStr = nf.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+      let formatter = (value < 10 && unit == "GB") ? Self.nf1 : Self.nf0
+      let valueStr = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
       let full = appBaseTitle + "  •  " + valueStr + " " + unit
       let attr = NSMutableAttributedString(string: full)
       attr.addAttributes(

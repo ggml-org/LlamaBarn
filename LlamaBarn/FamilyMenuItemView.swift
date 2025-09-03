@@ -3,7 +3,7 @@ import Foundation
 
 /// Displays a model family with variant "chips" summarizing status.
 final class FamilyMenuItemView: NSView {
-  enum Font {
+  fileprivate enum Font {
     static let primary = NSFont.systemFont(ofSize: 13, weight: .regular)
     // Reduced chip font size from 10 -> 8 per design update
     static let chip = NSFont.systemFont(ofSize: 8, weight: .medium)
@@ -121,10 +121,7 @@ final class FamilyMenuItemView: NSView {
   }
 
   func refresh() {
-    let sortedModels = models.sorted { lhs, rhs in
-      if lhs.fileSizeMB != rhs.fileSizeMB { return lhs.fileSizeMB < rhs.fileSizeMB }
-      return lhs.sizeInBillions < rhs.sizeInBillions
-    }
+    let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
     var seen: Set<String> = []
     for model in sortedModels {
       let key = model.id
