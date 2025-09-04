@@ -12,6 +12,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private let server: LlamaServer
   private let llamaCppVersion: String
   private var titleView: TitleMenuItemView?
+  // No stored reference needed for the memory footer.
 
   private var observationTimer: Timer?
 
@@ -27,7 +28,8 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private static func readLlamaCppVersion() -> String {
     // Canonical location: bundle resource "version.txt". Fallback to "unknown".
     if let path = Bundle.main.path(forResource: "version", ofType: "txt"),
-      let content = try? String(contentsOfFile: path).trimmingCharacters(in: .whitespacesAndNewlines),
+      let content = try? String(contentsOfFile: path).trimmingCharacters(
+        in: .whitespacesAndNewlines),
       !content.isEmpty
     {
       return content
@@ -166,11 +168,27 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     launchAtLogin.state = LaunchAtLogin.isEnabled ? .on : .off
     menu.addItem(launchAtLogin)
 
-
     let updatesItem = NSMenuItem(
       title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
     updatesItem.target = self
     menu.addItem(updatesItem)
+
+    // Footer: show effective system memory (actual or simulated) in Debug builds only
+    #if DEBUG
+      let memItem = NSMenuItem()
+      memItem.isEnabled = false
+      let memText = SystemMemory.formatMemory()
+      // Use subtle styling like section headers but regular size for readability
+      memItem.attributedTitle = NSAttributedString(
+        string: memText,
+        attributes: [
+          .font: NSFont.systemFont(ofSize: 11),
+          .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+      )
+      menu.addItem(.separator())
+    menu.addItem(memItem)
+    #endif
 
     menu.addItem(.separator())
     let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
@@ -222,6 +240,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
     // Update dynamic title (memory usage)
     titleView?.refresh()
+    // Update memory footer text to reflect any env var changes or formatting
+    // No need to refresh memory footer: RAM doesn't change at runtime, and
+    // the menu rebuild sets it correctly on open.
     statusItem.menu?.items.forEach { menuItem in
       if let view = menuItem.view as? ModelMenuItemView { view.refresh() }
       if let view = menuItem.view as? ServerStatusMenuItemView { view.refresh() }
@@ -258,5 +279,4 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     NotificationCenter.default.post(name: .LBCheckForUpdates, object: nil)
   }
 
-  
 }
