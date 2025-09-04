@@ -18,6 +18,8 @@ final class FamilyMenuItemView: NSView {
   private let chevron = NSImageView()
   private let backgroundView = NSView()
   private var chipsMap: [String: ChipView] = [:]
+  // Identifier for ephemeral separator views between chips
+  private let chipSeparatorID = NSUserInterfaceItemIdentifier("chip-separator")
 
   private var trackingArea: NSTrackingArea?
   private var isHighlighted = false { didSet { updateHighlight() } }
@@ -52,7 +54,7 @@ final class FamilyMenuItemView: NSView {
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
     chipsStack.orientation = .horizontal
-    chipsStack.spacing = 4
+    chipsStack.spacing = 6
     chipsStack.alignment = .centerY
     // Let chips hug their intrinsic content; default distribution avoids stretching when hugging is required
     chipsStack.translatesAutoresizingMaskIntoConstraints = false
@@ -126,6 +128,8 @@ final class FamilyMenuItemView: NSView {
   func refresh() {
     let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
     var seen: Set<String> = []
+    // Remove any existing separators before rebuilding
+    removeChipSeparators()
     for model in sortedModels {
       let key = model.id
       seen.insert(key)
@@ -152,7 +156,31 @@ final class FamilyMenuItemView: NSView {
       chip.removeFromSuperview()
       chipsMap.removeValue(forKey: key)
     }
+    // Ensure separators exist between all remaining chips
+    rebuildChipSeparators()
     needsDisplay = true
+  }
+
+  private func removeChipSeparators() {
+    for view in chipsStack.arrangedSubviews where view.identifier == chipSeparatorID {
+      chipsStack.removeArrangedSubview(view)
+      view.removeFromSuperview()
+    }
+  }
+
+  private func rebuildChipSeparators() {
+    // Collect chips in order as they appear
+    let chips = chipsStack.arrangedSubviews.compactMap { $0 as? ChipView }
+    guard chips.count > 1 else { return }
+    // Insert separators between each adjacent pair if not already present
+    for (index, chip) in chips.enumerated() where index > 0 {
+      let separator = ChipSeparatorView()
+      separator.identifier = chipSeparatorID
+      // Insert separator before this chip in the overall arrangedSubviews order
+      if let chipIndex = chipsStack.arrangedSubviews.firstIndex(of: chip) {
+        chipsStack.insertArrangedSubview(separator, at: chipIndex)
+      }
+    }
   }
 
   private func applyIconTint() {
@@ -188,10 +216,10 @@ private final class ChipView: NSView {
     innerStack.addArrangedSubview(label)
     addSubview(innerStack)
     NSLayoutConstraint.activate([
-      innerStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-      innerStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
-      innerStack.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-      innerStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+      innerStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+      innerStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+      innerStack.topAnchor.constraint(equalTo: topAnchor),
+      innerStack.bottomAnchor.constraint(equalTo: bottomAnchor),
     ])
     setContentHuggingPriority(.required, for: .horizontal)
     setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -211,8 +239,9 @@ private final class ChipView: NSView {
       checkVisible = showCheck
       invalidateIntrinsicContentSize()
     }
-    layer?.cornerRadius = 4
-    layer?.borderWidth = 1
+    // No internal padding visuals; remove outlines and rounding
+    layer?.cornerRadius = 0
+    layer?.borderWidth = 0
     lastDownloaded = downloaded
     lastCompatible = compatible
     // Defer color application to next runloop so effectiveAppearance has stabilized within menu hierarchy.
@@ -233,7 +262,7 @@ private final class ChipView: NSView {
     if !force, lastAppliedAppearanceName == currentName { return }
     lastAppliedAppearanceName = currentName
     // Resolve dynamic colors to concrete before bridging to CGColor to avoid second-phase shifts.
-    layer.borderColor = NSColor.lbSubtleBorder.cgColor
+    // No border color since outlines are removed
     // Final simplified ordering to avoid confusion & accidental lower contrast for supported chips:
     // Downloaded: primary, Compatible (supported but not downloaded): secondary, Unsupported: disabled.
     if lastDownloaded {
@@ -249,8 +278,47 @@ private final class ChipView: NSView {
     let checkWidth: CGFloat =
       checkVisible
       ? (check.intrinsicContentSize.width == 0 ? 10 : check.intrinsicContentSize.width) + 2 : 0  // +2 for spacing when visible
-    let width = 4 + checkWidth + labelSize.width + 4
-    let height = max(labelSize.height + 4, 14)
+    let width = checkWidth + labelSize.width
+    let height = labelSize.height
     return NSSize(width: width, height: height)
+  }
+}
+
+// Simple 1px vertical hairline between chips
+private final class ChipSeparatorView: NSView {
+  private var scale: CGFloat { window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2 }
+  private var widthConstraint: NSLayoutConstraint?
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+    translatesAutoresizingMaskIntoConstraints = false
+    wantsLayer = true
+    layer?.backgroundColor = NSColor.cgColor(.lbStrongSeparator, in: self)
+    setHuggingCompression()
+    updateWidthConstraint()
+  }
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+  private func setHuggingCompression() {
+    setContentHuggingPriority(.required, for: .horizontal)
+    setContentCompressionResistancePriority(.required, for: .horizontal)
+    setContentHuggingPriority(.defaultLow, for: .vertical)
+  }
+  private func updateWidthConstraint() {
+    widthConstraint?.isActive = false
+    let w = 1.0 / scale  // 1 device pixel
+    widthConstraint = widthAnchor.constraint(equalToConstant: w)
+    widthConstraint?.isActive = true
+  }
+  override func viewDidMoveToWindow() {
+    super.viewDidMoveToWindow()
+    updateWidthConstraint()
+  }
+  override func viewDidChangeEffectiveAppearance() {
+    super.viewDidChangeEffectiveAppearance()
+    layer?.backgroundColor = NSColor.cgColor(.lbStrongSeparator, in: self)
+  }
+  // No custom layout; AppKit stack view handles positioning
+  override var intrinsicContentSize: NSSize {
+    // Slightly shorter than chip content height for a lighter feel
+    NSSize(width: 1.0 / scale, height: 9)
   }
 }

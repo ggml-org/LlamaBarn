@@ -25,6 +25,19 @@ extension NSColor {
   /// Now mapped to system `separatorColor` for platform consistency.
   static let lbSubtleBorder: NSColor = .separatorColor
 
+  /// Stronger separator for higher contrast than `.separatorColor`.
+  /// Slightly darker in light mode and slightly brighter in dark mode.
+  static let lbStrongSeparator: NSColor = NSColor(name: NSColor.Name("lbStrongSeparator")) { appearance in
+    let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+    if isDark(appearance) {
+      // Stronger/light-on-dark; bump further when Increase Contrast is on
+      return NSColor.white.withAlphaComponent(increaseContrast ? 0.6 : 0.5)
+    } else {
+      // Stronger/dark-on-light; bump further when Increase Contrast is on
+      return NSColor.black.withAlphaComponent(increaseContrast ? 0.42 : 0.34)
+    }
+  }
+
   /// Hover background for interactive rows.
   static let lbHoverBackground: NSColor = NSColor(name: NSColor.Name("lbHoverBackground")) { appearance in
     let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
