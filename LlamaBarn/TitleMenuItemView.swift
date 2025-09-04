@@ -26,6 +26,7 @@ final class TitleMenuItemView: NSView {
   private let backgroundView = NSView()
   private let appBaseTitle = "LlamaBarn"
   private let versionString: String
+  private let buildString: String
   private let llamaCppVersion: String
 
   init(server: LlamaServer, llamaCppVersion: String) {
@@ -34,7 +35,8 @@ final class TitleMenuItemView: NSView {
     let ver =
       Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-    self.versionString = "v\(ver) (\(build))"
+    self.versionString = ver
+    self.buildString = build
     self.llamaCppVersion = llamaCppVersion
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
@@ -59,7 +61,7 @@ final class TitleMenuItemView: NSView {
     subtitleLabel.textColor = .secondaryLabelColor
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.lineBreakMode = .byTruncatingTail
-    subtitleLabel.stringValue = "\(versionString) • llama.cpp \(llamaCppVersion)"
+    subtitleLabel.stringValue = "\(versionString) · \(buildString) · \(llamaCppVersion)"
 
     let stack = NSStackView(views: [titleLabel, subtitleLabel])
     stack.orientation = .vertical
