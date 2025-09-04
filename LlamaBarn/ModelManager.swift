@@ -44,7 +44,8 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
 
   private override init() {
     super.init()
-    urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+    // Route delegate callbacks to the main queue to keep state access consistent
+    urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
     refreshDownloadedModels()
   }
 
@@ -87,11 +88,13 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
 
     // Create or reuse aggregate state for this model's downloads
     var aggregate = activeDownloads[model.id] ?? ActiveDownload(
-      progress: Progress(totalUnitCount: Int64(model.fileSizeMB * 1_048_576)),
+      // Start at 0 and grow as we learn expected sizes from the server/filesystem.
+      // Using a fixed catalog estimate can briefly make completed > total when some shards report unknown sizes.
+      progress: Progress(totalUnitCount: 0),
       tasks: [:],
       bytesWritten: [:],
       expectedBytes: [:],
-      totalExpectedBytes: Int64(model.fileSizeMB * 1_048_576)
+      totalExpectedBytes: 0
     )
 
     // Publish aggregate before starting tasks to avoid race with delegate callbacks
@@ -209,8 +212,10 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     let expected = aggregate.expectedBytes.values.reduce(0, +)
     if expected > 0 {
       aggregate.totalExpectedBytes = expected
-      aggregate.progress.totalUnitCount = expected
     }
+    // Ensure total never falls below completed to avoid Progress inconsistencies.
+    let safeTotal = max(aggregate.totalExpectedBytes, totalBytes)
+    aggregate.progress.totalUnitCount = safeTotal
     aggregate.progress.completedUnitCount = totalBytes
     activeDownloads[modelId] = aggregate
     downloadUpdateTrigger += 1
@@ -238,40 +243,36 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       }
       try fileManager.moveItem(at: location, to: destinationURL)
 
-      DispatchQueue.main.async {
-        // Mark this task as finished and finalize its byte counts
-        if var aggregate = self.activeDownloads[modelId] {
-          aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
-          // Determine actual file size and promote to expected if unknown
-          let fileSize = (try? FileManager.default.attributesOfItem(
-            atPath: destinationURL.path)[.size] as? NSNumber)?.int64Value ?? 0
-          aggregate.bytesWritten[downloadTask.taskIdentifier] = fileSize
-          if (aggregate.expectedBytes[downloadTask.taskIdentifier] ?? 0) <= 0 {
-            aggregate.expectedBytes[downloadTask.taskIdentifier] = fileSize
-          }
-          self.activeDownloads[modelId] = aggregate
-          self.recalcProgress(for: modelId)
+      // Mark this task as finished and finalize its byte counts (delegate already on main)
+      if var aggregate = self.activeDownloads[modelId] {
+        aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
+        // Determine actual file size and promote to expected if unknown
+        let fileSize = (try? FileManager.default.attributesOfItem(
+          atPath: destinationURL.path)[.size] as? NSNumber)?.int64Value ?? 0
+        aggregate.bytesWritten[downloadTask.taskIdentifier] = fileSize
+        if (aggregate.expectedBytes[downloadTask.taskIdentifier] ?? 0) <= 0 {
+          aggregate.expectedBytes[downloadTask.taskIdentifier] = fileSize
+        }
+        self.activeDownloads[modelId] = aggregate
+        self.recalcProgress(for: modelId)
 
-          // If this was the last pending task, clear and refresh
-          if aggregate.tasks.isEmpty {
-            self.logger.info("All downloads completed for model: \(model.displayName)")
-            self.activeDownloads.removeValue(forKey: modelId)
-            self.refreshDownloadedModels()
-          }
-        } else {
+        // If this was the last pending task, clear and refresh
+        if aggregate.tasks.isEmpty {
+          self.logger.info("All downloads completed for model: \(model.displayName)")
+          self.activeDownloads.removeValue(forKey: modelId)
           self.refreshDownloadedModels()
         }
+      } else {
+        self.refreshDownloadedModels()
       }
     } catch {
       logger.error("Error moving downloaded file: \(error.localizedDescription)")
-      DispatchQueue.main.async {
-        // Remove this task but keep others going
-        if var aggregate = self.activeDownloads[modelId] {
-          aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
-          self.activeDownloads[modelId] = aggregate
-          self.recalcProgress(for: modelId)
-          if aggregate.tasks.isEmpty { self.activeDownloads.removeValue(forKey: modelId) }
-        }
+      // Remove this task but keep others going (delegate already on main)
+      if var aggregate = self.activeDownloads[modelId] {
+        aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
+        self.activeDownloads[modelId] = aggregate
+        self.recalcProgress(for: modelId)
+        if aggregate.tasks.isEmpty { self.activeDownloads.removeValue(forKey: modelId) }
       }
     }
   }
@@ -280,29 +281,28 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     _ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64,
     totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64
   ) {
+    // Delegate callbacks are delivered on main; update shared state directly.
     guard let modelId = downloadTask.taskDescription,
-      var download = activeDownloads[modelId]
-    else {
+          var download = self.activeDownloads[modelId] else {
       return
     }
-
-    DispatchQueue.main.async {
-      download.bytesWritten[downloadTask.taskIdentifier] = totalBytesWritten
-      // Sum all bytes across tasks to update aggregate progress
-      let total = download.bytesWritten.values.reduce(0, +)
-      // Update expected when server reports a known total for this task
-      if totalBytesExpectedToWrite > 0 {
-        download.expectedBytes[downloadTask.taskIdentifier] = totalBytesExpectedToWrite
-      }
-      let expectedTotal = download.expectedBytes.values.reduce(0, +)
-      if expectedTotal > 0 {
-        download.totalExpectedBytes = expectedTotal
-        download.progress.totalUnitCount = expectedTotal
-      }
-      download.progress.completedUnitCount = total
-      self.activeDownloads[modelId] = download
-      self.downloadUpdateTrigger += 1
+    download.bytesWritten[downloadTask.taskIdentifier] = totalBytesWritten
+    // Sum all bytes across tasks to update aggregate progress
+    let total = download.bytesWritten.values.reduce(0, +)
+    // Update expected when server reports a known total for this task
+    if totalBytesExpectedToWrite > 0 {
+      download.expectedBytes[downloadTask.taskIdentifier] = totalBytesExpectedToWrite
     }
+    let expectedTotal = download.expectedBytes.values.reduce(0, +)
+    if expectedTotal > 0 {
+      download.totalExpectedBytes = expectedTotal
+    }
+    // Keep total >= completed at all times.
+    let safeTotal = max(download.totalExpectedBytes, total)
+    download.progress.totalUnitCount = safeTotal
+    download.progress.completedUnitCount = total
+    self.activeDownloads[modelId] = download
+    self.downloadUpdateTrigger += 1
   }
 
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
@@ -312,15 +312,13 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
 
     if let error = error {
       logger.error("Model download failed: \(error.localizedDescription)")
-      DispatchQueue.main.async {
-        // Remove only this failed task and keep tracking others
-        if var aggregate = self.activeDownloads[modelId] {
-          aggregate.tasks.removeValue(forKey: task.taskIdentifier)
-          self.activeDownloads[modelId] = aggregate
-          self.recalcProgress(for: modelId)
-          if aggregate.tasks.isEmpty {
-            self.activeDownloads.removeValue(forKey: modelId)
-          }
+      // Remove only this failed task and keep tracking others (already on main)
+      if var aggregate = self.activeDownloads[modelId] {
+        aggregate.tasks.removeValue(forKey: task.taskIdentifier)
+        self.activeDownloads[modelId] = aggregate
+        self.recalcProgress(for: modelId)
+        if aggregate.tasks.isEmpty {
+          self.activeDownloads.removeValue(forKey: modelId)
         }
       }
     }
