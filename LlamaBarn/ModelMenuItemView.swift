@@ -26,6 +26,7 @@ final class ModelMenuItemView: NSView {
   private let greenDot = NSView()
   private let actionImageView = NSImageView()
   private let progressLabel = NSTextField(labelWithString: "")
+  private let bytesLabel = NSTextField(labelWithString: "")
   // Replaces prior NSButton (which rendered black in dark mode inside menu views) with template image view.
   private let deleteImageView = NSImageView()
 
@@ -48,7 +49,9 @@ final class ModelMenuItemView: NSView {
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-  override var intrinsicContentSize: NSSize { NSSize(width: 260, height: 28) }
+  override var intrinsicContentSize: NSSize {
+    NSSize(width: 260, height: bytesLabel.isHidden ? 28 : 40)
+  }
 
   private func setup() {
     wantsLayer = true
@@ -86,6 +89,12 @@ final class ModelMenuItemView: NSView {
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
+    bytesLabel.font = Font.secondary
+    bytesLabel.textColor = .tertiaryLabelColor
+    bytesLabel.alignment = .right
+    bytesLabel.translatesAutoresizingMaskIntoConstraints = false
+    bytesLabel.isHidden = true
+
     deleteImageView.image = NSImage(
       systemSymbolName: "trash", accessibilityDescription: "Delete model")
     deleteImageView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
@@ -96,7 +105,7 @@ final class ModelMenuItemView: NSView {
     deleteImageView.toolTip = "Delete model"
     deleteImageView.isHidden = true
 
-    // Order: icon, label, spacer -> (state indicator, progress, delete, action)
+    // Order: icon | (label over bytes) | spacer | (state, progress, delete, action)
     // Spacer expands so trailing visuals sit flush right.
     let spacer = NSView()
     spacer.translatesAutoresizingMaskIntoConstraints = false
@@ -108,15 +117,27 @@ final class ModelMenuItemView: NSView {
     progressLabel.setContentHuggingPriority(.required, for: .horizontal)
     progressLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-    let stack = NSStackView(views: [
-      iconView, labelField, spacer, stateContainer, progressLabel, deleteImageView, actionImageView,
-    ])
-    stack.translatesAutoresizingMaskIntoConstraints = false
-    stack.orientation = .horizontal
-    stack.spacing = 6
-    stack.alignment = .centerY
+    // Left: model name stacked over bytes
+    let nameStack = NSStackView(views: [labelField, bytesLabel])
+    nameStack.translatesAutoresizingMaskIntoConstraints = false
+    nameStack.orientation = .vertical
+    nameStack.spacing = 0
+    nameStack.alignment = .leading
+
+    // Right: status/progress/delete/action in a row
+    let rightStack = NSStackView(views: [stateContainer, progressLabel, deleteImageView, actionImageView])
+    rightStack.translatesAutoresizingMaskIntoConstraints = false
+    rightStack.orientation = .horizontal
+    rightStack.spacing = 6
+    rightStack.alignment = .centerY
+
+    let rootStack = NSStackView(views: [iconView, nameStack, spacer, rightStack])
+    rootStack.translatesAutoresizingMaskIntoConstraints = false
+    rootStack.orientation = .horizontal
+    rootStack.spacing = 6
+    rootStack.alignment = .centerY
     addSubview(backgroundView)
-    backgroundView.addSubview(stack)
+    backgroundView.addSubview(rootStack)
 
     NSLayoutConstraint.activate([
       backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
@@ -133,10 +154,10 @@ final class ModelMenuItemView: NSView {
       deleteImageView.widthAnchor.constraint(equalToConstant: 16),
       deleteImageView.heightAnchor.constraint(equalToConstant: 16),
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 48),
-      stack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
-      stack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
-      stack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 4),
-      stack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -4),
+      rootStack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
+      rootStack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
+      rootStack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 4),
+      rootStack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -4),
     ])
   }
 
@@ -233,11 +254,29 @@ final class ModelMenuItemView: NSView {
         percent = 0
       }
       progressLabel.stringValue = "\(percent)%"
+      // Second line: show downloaded/total bytes
+      let formatter = ByteCountFormatter()
+      formatter.allowedUnits = [.useMB, .useGB]
+      formatter.countStyle = .decimal
+      let completedText = formatter.string(fromByteCount: progress.completedUnitCount)
+      if progress.totalUnitCount > 0 {
+        let totalText = formatter.string(fromByteCount: progress.totalUnitCount)
+        bytesLabel.stringValue = "\(completedText) / \(totalText)"
+      } else {
+        bytesLabel.stringValue = completedText
+      }
+      let wasHidden = bytesLabel.isHidden
+      bytesLabel.isHidden = false
+      if wasHidden { invalidateIntrinsicContentSize() }
       actionImageView.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
       actionImageView.contentTintColor = .systemRed
       deleteImageView.isHidden = true
     case .downloaded:
       progressLabel.stringValue = ""
+      bytesLabel.stringValue = ""
+      let wasHidden = bytesLabel.isHidden
+      bytesLabel.isHidden = true
+      if !wasHidden { invalidateIntrinsicContentSize() }
       let symbolName = (isLoadingServer || isRunning) ? "stop" : "play"
       actionImageView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
       actionImageView.contentTintColor =
@@ -246,6 +285,10 @@ final class ModelMenuItemView: NSView {
       if isHighlighted { deleteImageView.isHidden = false }
     case .available:
       progressLabel.stringValue = ""
+      bytesLabel.stringValue = ""
+      let wasHidden2 = bytesLabel.isHidden
+      bytesLabel.isHidden = true
+      if !wasHidden2 { invalidateIntrinsicContentSize() }
       actionImageView.image = nil
       deleteImageView.isHidden = true
     }
