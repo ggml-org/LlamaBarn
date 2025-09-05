@@ -120,9 +120,10 @@ final class VariantMenuItemView: MenuRowView {
     progressLabel.stringValue = ""
     switch status {
     case .downloaded:
+      // Monochrome: indicate completion without green.
       statusIndicator.image = NSImage(
         systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
-      statusIndicator.contentTintColor = .systemGreen
+      statusIndicator.contentTintColor = .labelColor
     case .downloading(let progress):
       let pct: Int
       if progress.totalUnitCount > 0 {
@@ -130,9 +131,10 @@ final class VariantMenuItemView: MenuRowView {
       } else {
         pct = 0
       }
+      // Monochrome progress indicator.
       statusIndicator.image = NSImage(
-        systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
-      statusIndicator.contentTintColor = .controlAccentColor
+        systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
+      statusIndicator.contentTintColor = .secondaryLabelColor
       progressLabel.stringValue = "\(pct)%"
     case .available:
       if compatible {
@@ -141,7 +143,8 @@ final class VariantMenuItemView: MenuRowView {
         statusIndicator.contentTintColor = .secondaryLabelColor
       } else {
         statusIndicator.image = NSImage(systemSymbolName: "nosign", accessibilityDescription: nil)
-        statusIndicator.contentTintColor = .systemOrange
+        // Monochrome disabled/incompatible indicator.
+        statusIndicator.contentTintColor = .tertiaryLabelColor
       }
     }
     needsDisplay = true
