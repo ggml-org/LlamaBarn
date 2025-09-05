@@ -31,6 +31,22 @@ final class VariantMenuItemView: MenuRowView {
 
   override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 40) }
 
+  // Only allow hover highlight for actionable rows:
+  // - available & compatible (can start download)
+  // - downloading (can cancel)
+  // Not for incompatible variants or already-downloaded ones.
+  override var hoverHighlightEnabled: Bool {
+    let status = modelManager.getModelStatus(model)
+    switch status {
+    case .available:
+      return ModelCatalog.isModelCompatible(model)
+    case .downloading:
+      return true
+    case .downloaded:
+      return false
+    }
+  }
+
   private func setup() {
     wantsLayer = true
     statusIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -84,6 +100,7 @@ final class VariantMenuItemView: MenuRowView {
     ])
   }
   override func mouseDown(with event: NSEvent) {
+    guard hoverHighlightEnabled else { return }
     handleAction()
     refresh()
   }
@@ -147,6 +164,8 @@ final class VariantMenuItemView: MenuRowView {
         statusIndicator.contentTintColor = .tertiaryLabelColor
       }
     }
+    // If the item is no longer actionable, clear any lingering hover highlight.
+    if !hoverHighlightEnabled { setHoverHighlight(false) }
     needsDisplay = true
   }
 
