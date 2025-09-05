@@ -54,7 +54,7 @@ final class FamilyHeaderMenuItemView: NSView {
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
     badgesStack.orientation = .horizontal
-    badgesStack.spacing = 6
+    badgesStack.spacing = 4
     badgesStack.alignment = .centerY
     // Let badges hug their intrinsic content; default distribution avoids stretching when hugging is required
     badgesStack.translatesAutoresizingMaskIntoConstraints = false
@@ -284,41 +284,45 @@ private final class BadgeView: NSView {
   }
 }
 
-// Simple 1px vertical hairline between badges
+// Small centered dot between badges (replaces 1px hairline)
 private final class BadgeSeparatorView: NSView {
-  private var scale: CGFloat { window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2 }
-  private var widthConstraint: NSLayoutConstraint?
+  private let dotSize: CGFloat = 1.5
+  private var sizeConstraints: [NSLayoutConstraint] = []
+
   override init(frame frameRect: NSRect) {
     super.init(frame: frameRect)
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
     layer?.backgroundColor = NSColor.cgColor(.lbStrongSeparator, in: self)
+    layer?.cornerRadius = dotSize / 2
     setHuggingCompression()
-    updateWidthConstraint()
+    applySizeConstraints()
   }
+
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
   private func setHuggingCompression() {
     setContentHuggingPriority(.required, for: .horizontal)
     setContentCompressionResistancePriority(.required, for: .horizontal)
-    setContentHuggingPriority(.defaultLow, for: .vertical)
+    setContentHuggingPriority(.required, for: .vertical)
+    setContentCompressionResistancePriority(.required, for: .vertical)
   }
-  private func updateWidthConstraint() {
-    widthConstraint?.isActive = false
-    let w = 1.0 / scale  // 1 device pixel
-    widthConstraint = widthAnchor.constraint(equalToConstant: w)
-    widthConstraint?.isActive = true
+
+  private func applySizeConstraints() {
+    NSLayoutConstraint.deactivate(sizeConstraints)
+    sizeConstraints = [
+      widthAnchor.constraint(equalToConstant: dotSize),
+      heightAnchor.constraint(equalToConstant: dotSize),
+    ]
+    NSLayoutConstraint.activate(sizeConstraints)
   }
-  override func viewDidMoveToWindow() {
-    super.viewDidMoveToWindow()
-    updateWidthConstraint()
-  }
+
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
     layer?.backgroundColor = NSColor.cgColor(.lbStrongSeparator, in: self)
   }
-  // No custom layout; AppKit stack view handles positioning
+
   override var intrinsicContentSize: NSSize {
-    // Slightly shorter than chip content height for a lighter feel
-    NSSize(width: 1.0 / scale, height: 9)
+    NSSize(width: dotSize, height: dotSize)
   }
 }
