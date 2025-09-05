@@ -3,22 +3,6 @@ import Foundation
 
 /// Header row showing app name and versions.
 final class HeaderMenuItemView: NSView {
-  private enum Font {
-    static let title = NSFont.systemFont(ofSize: 13, weight: .semibold)
-    static let subtitle = NSFont.systemFont(ofSize: 10, weight: .regular)
-  }
-  private static let nf0: NumberFormatter = {
-    let nf = NumberFormatter()
-    nf.minimumFractionDigits = 0
-    nf.maximumFractionDigits = 0
-    return nf
-  }()
-  private static let nf1: NumberFormatter = {
-    let nf = NumberFormatter()
-    nf.minimumFractionDigits = 0
-    nf.maximumFractionDigits = 1
-    return nf
-  }()
 
   private unowned let server: LlamaServer
   private let titleLabel = NSTextField(labelWithString: "")
@@ -53,11 +37,11 @@ final class HeaderMenuItemView: NSView {
     backgroundView.translatesAutoresizingMaskIntoConstraints = false
     backgroundView.wantsLayer = true
 
-    titleLabel.font = Font.title
+    titleLabel.font = MenuTypography.primarySemibold
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.lineBreakMode = .byTruncatingTail
 
-    subtitleLabel.font = Font.subtitle
+    subtitleLabel.font = MenuTypography.subtitle
     subtitleLabel.textColor = .secondaryLabelColor
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.lineBreakMode = .byTruncatingTail
@@ -73,12 +57,16 @@ final class HeaderMenuItemView: NSView {
     backgroundView.addSubview(stack)
 
     NSLayoutConstraint.activate([
-      backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
-      backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
+      backgroundView.leadingAnchor.constraint(
+        equalTo: leadingAnchor, constant: MenuMetrics.outerHorizontalPadding),
+      backgroundView.trailingAnchor.constraint(
+        equalTo: trailingAnchor, constant: -MenuMetrics.outerHorizontalPadding),
       backgroundView.topAnchor.constraint(equalTo: topAnchor),
       backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      stack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
-      stack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
+      stack.leadingAnchor.constraint(
+        equalTo: backgroundView.leadingAnchor, constant: MenuMetrics.innerHorizontalPadding),
+      stack.trailingAnchor.constraint(
+        equalTo: backgroundView.trailingAnchor, constant: -MenuMetrics.innerHorizontalPadding),
       stack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
       stack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
     ])
@@ -89,7 +77,7 @@ final class HeaderMenuItemView: NSView {
     titleLabel.attributedStringValue = NSAttributedString(
       string: appBaseTitle,
       attributes: [
-        .font: Font.title,
+        .font: MenuTypography.primarySemibold,
         .foregroundColor: NSColor.labelColor,
       ]
     )

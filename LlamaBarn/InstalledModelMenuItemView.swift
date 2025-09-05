@@ -6,19 +6,13 @@ import Foundation
 /// - Idle: icon + label + play symbol
 /// - Loading: icon + label + spinner + stop symbol
 /// - Running: icon + label + green circle + stop symbol
-final class InstalledModelMenuItemView: NSView {
-  // Shared font metrics
-  private enum Font {
-    static let primary = NSFont.systemFont(ofSize: 13)
-    static let secondary = NSFont.systemFont(ofSize: 10, weight: .medium)
-  }
+final class InstalledModelMenuItemView: MenuRowView {
   private let model: ModelCatalogEntry
   private unowned let server: LlamaServer
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
 
   // Subviews
-  private let backgroundView = NSView()
   private let iconView = NSImageView()
   private let labelField = NSTextField(labelWithString: "")
   private let stateContainer = NSView()
@@ -32,8 +26,7 @@ final class InstalledModelMenuItemView: NSView {
   // Replaces prior NSButton (which rendered black in dark mode inside menu views) with template image view.
   private let deleteImageView = NSImageView()
 
-  private var trackingArea: NSTrackingArea?
-  private var isHighlighted: Bool = false { didSet { updateHighlight() } }
+  // Hover handling is provided by MenuRowView
 
   init(
     model: ModelCatalogEntry, server: LlamaServer, modelManager: ModelManager,
@@ -55,8 +48,6 @@ final class InstalledModelMenuItemView: NSView {
 
   private func setup() {
     wantsLayer = true
-    backgroundView.translatesAutoresizingMaskIntoConstraints = false
-    backgroundView.wantsLayer = true
     iconView.image = NSImage(named: model.icon)
     iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
@@ -66,7 +57,7 @@ final class InstalledModelMenuItemView: NSView {
     iconView.contentTintColor = .secondaryLabelColor
 
     labelField.stringValue = model.displayName
-    labelField.font = Font.primary
+    labelField.font = MenuTypography.primary
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
@@ -84,12 +75,12 @@ final class InstalledModelMenuItemView: NSView {
     indicatorImageView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
     indicatorImageView.contentTintColor = .controlAccentColor
 
-    progressLabel.font = Font.secondary
+    progressLabel.font = MenuTypography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    bytesLabel.font = Font.secondary
+    bytesLabel.font = MenuTypography.secondary
     bytesLabel.textColor = .secondaryLabelColor
     bytesLabel.alignment = .left
     bytesLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -142,41 +133,24 @@ final class InstalledModelMenuItemView: NSView {
     rootStack.orientation = .horizontal
     rootStack.spacing = 6
     rootStack.alignment = .centerY
-    addSubview(backgroundView)
-    backgroundView.addSubview(rootStack)
+    contentView.addSubview(rootStack)
 
     NSLayoutConstraint.activate([
-      backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
-      backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
-      backgroundView.topAnchor.constraint(equalTo: topAnchor),
-      backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      // Reduced from 18 -> 16 to make logos a bit smaller and align visually with 16x16 action icons
-      iconView.widthAnchor.constraint(equalToConstant: 16),
-      iconView.heightAnchor.constraint(equalToConstant: 16),
-      stateContainer.widthAnchor.constraint(equalToConstant: 16),
-      stateContainer.heightAnchor.constraint(equalToConstant: 16),
-      indicatorImageView.widthAnchor.constraint(equalToConstant: 16),
-      indicatorImageView.heightAnchor.constraint(equalToConstant: 16),
-      deleteImageView.widthAnchor.constraint(equalToConstant: 16),
-      deleteImageView.heightAnchor.constraint(equalToConstant: 16),
-      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 48),
-      rootStack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
-      rootStack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
-      rootStack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 4),
-      rootStack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -4),
+      iconView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      iconView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      stateContainer.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      stateContainer.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      indicatorImageView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      indicatorImageView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      deleteImageView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      deleteImageView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.progressWidth),
+      rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+      rootStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+      rootStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+      rootStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
   }
-
-  override func updateTrackingAreas() {
-    super.updateTrackingAreas()
-    if let trackingArea = trackingArea { removeTrackingArea(trackingArea) }
-    let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
-    trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
-    addTrackingArea(trackingArea!)
-  }
-
-  override func mouseEntered(with event: NSEvent) { isHighlighted = true }
-  override func mouseExited(with event: NSEvent) { isHighlighted = false }
 
   // Custom hit test so clicking the trash icon deletes instead of toggling run state.
   override func mouseDown(with event: NSEvent) {
@@ -202,19 +176,11 @@ final class InstalledModelMenuItemView: NSView {
     refresh()
   }
 
-  private func updateHighlight() {
-    // Use a neutral adaptive highlight instead of accent color blue. We derive from labelColor so it
-    // inverts appropriately in light/dark without introducing a semantic (accent/destructive) hue.
-    if isHighlighted {
-      backgroundView.layer?.backgroundColor = NSColor.cgColor(.lbHoverBackground, in: backgroundView)
-    } else {
-      backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-    backgroundView.layer?.cornerRadius = 6
+  override func hoverHighlightDidChange(_ highlighted: Bool) {
     // Show delete only when hovered & model is downloaded
     let status = modelManager.getModelStatus(model)
     if case .downloaded = status {
-      deleteImageView.isHidden = !isHighlighted
+      deleteImageView.isHidden = !highlighted
     } else {
       deleteImageView.isHidden = true
     }
@@ -302,8 +268,8 @@ final class InstalledModelMenuItemView: NSView {
       indicatorImageView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
       indicatorImageView.contentTintColor =
         (isLoadingServer || isRunning) ? .systemRed : .controlAccentColor
-      // Only show on hover via updateHighlight
-      if isHighlighted { deleteImageView.isHidden = false }
+      // Only show on hover
+      if isHoverHighlighted { deleteImageView.isHidden = false }
     case .available:
       progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
@@ -326,7 +292,7 @@ final class InstalledModelMenuItemView: NSView {
       let isActiveModel = server.isActive(model: model)
       statusIsActive = isActiveModel && (server.isLoading || server.isRunning)
     }
-    if statusIsActive || isHighlighted {
+    if statusIsActive || isHoverHighlighted {
       iconView.contentTintColor = .labelColor
     } else {
       iconView.contentTintColor = .secondaryLabelColor
@@ -337,7 +303,7 @@ final class InstalledModelMenuItemView: NSView {
   private func applyDeleteTint() {
     guard !deleteImageView.isHidden else { return }
     let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
-    if isHighlighted {
+    if isHoverHighlighted {
       deleteImageView.contentTintColor = increaseContrast ? .labelColor : .secondaryLabelColor
     } else {
       deleteImageView.contentTintColor =

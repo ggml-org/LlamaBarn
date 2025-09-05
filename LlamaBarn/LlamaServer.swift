@@ -54,9 +54,13 @@ class LlamaServer {
     }
   }
 
-  var state: ServerState = .idle
+  var state: ServerState = .idle {
+    didSet { NotificationCenter.default.post(name: .LBServerStateDidChange, object: self) }
+  }
   var activeModelPath: String?
-  var memoryUsageMB: Double = 0
+  var memoryUsageMB: Double = 0 {
+    didSet { NotificationCenter.default.post(name: .LBServerMemoryDidChange, object: self) }
+  }
 
   private var memoryTask: Task<Void, Never>?
 

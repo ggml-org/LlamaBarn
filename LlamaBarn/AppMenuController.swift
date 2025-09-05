@@ -13,8 +13,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private let llamaCppVersion: String
   private var titleView: HeaderMenuItemView?
   // No stored reference needed for the memory footer.
-
-  private var observationTimer: Timer?
+  private var observers: [NSObjectProtocol] = []
 
   init(modelManager: ModelManager = .shared, server: LlamaServer = .shared) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -28,7 +27,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private static func readLlamaCppVersion() -> String {
     // Canonical location: bundle resource "version.txt". Fallback to "unknown".
     if let path = Bundle.main.path(forResource: "version", ofType: "txt"),
-      let content = try? String(contentsOfFile: path).trimmingCharacters(
+      let content = try? String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(
         in: .whitespacesAndNewlines),
       !content.isEmpty
     {
@@ -61,32 +60,36 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   func menuWillOpen(_ menu: NSMenu) {
     // Ensure we have the latest list of installed models
     modelManager.refreshDownloadedModels()
-    startObservation()
+    addObservers()
   }
 
   func menuDidClose(_ menu: NSMenu) {
-    stopObservation()
+    removeObservers()
   }
 
   // MARK: - Menu Construction
 
   private func rebuildMenu(_ menu: NSMenu) {
     menu.removeAllItems()
+    addHeader(to: menu)
+    addInstalled(to: menu)
+    addCatalog(to: menu)
+    addServer(to: menu)
+    addSettings(to: menu)
+    addDebugFooterIfNeeded(to: menu)
+    addQuit(to: menu)
+  }
 
-    // App title + version subtitle at the very top
-    let tItem = NSMenuItem()
-    tItem.isEnabled = false
+  private func addHeader(to menu: NSMenu) {
     let tView = HeaderMenuItemView(server: server, llamaCppVersion: llamaCppVersion)
-    tItem.view = tView
-    tView.heightAnchor.constraint(greaterThanOrEqualToConstant: 40).isActive = true
     titleView = tView
-    menu.addItem(tItem)
+    menu.addItem(NSMenuItem.viewItem(with: tView, minHeight: 40))
     menu.addItem(.separator())
+  }
 
-    // Installed section header
+  private func addInstalled(to menu: NSMenu) {
     menu.addItem(makeSectionHeaderItem("Installed models"))
 
-    // Include downloading models in Installed section (original behavior)
     let downloadingModels = ModelCatalog.models.filter { m in
       if case .downloading = modelManager.getModelStatus(m) { return true }
       return false
@@ -99,69 +102,57 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       menu.addItem(emptyItem)
     } else {
       for model in installed {
-        let item = NSMenuItem()
-        item.isEnabled = false  // Keep menu open when interacting with the custom view
         let view = InstalledModelMenuItemView(model: model, server: server, modelManager: modelManager) {
           [weak self] in
-          // Rebuild so the row can disappear (if download canceled) or convert to available
           if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
         }
-        item.view = view
-        // Fix height so highlight looks consistent
-        item.view?.heightAnchor.constraint(greaterThanOrEqualToConstant: 28).isActive = true
-        menu.addItem(item)
+        menu.addItem(NSMenuItem.viewItem(with: view, minHeight: 28))
       }
     }
+  }
 
-    // Available (catalog) section
+  private func addCatalog(to menu: NSMenu) {
     let familiesDict = Dictionary(grouping: ModelCatalog.models, by: { $0.family })
     let sortedFamilies = familiesDict.keys.sorted()
-    if !sortedFamilies.isEmpty {
-      menu.addItem(.separator())
-      menu.addItem(makeSectionHeaderItem("Catalog"))
-
-      for family in sortedFamilies {
-        guard let models = familiesDict[family] else { continue }
-        let familyItem = NSMenuItem()
-        let famView = FamilyHeaderMenuItemView(family: family, models: models, modelManager: modelManager)
-        familyItem.view = famView
-        familyItem.representedObject = family as NSString
-        let submenu = NSMenu(title: family)
-        submenu.autoenablesItems = false
-        let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
-        for model in sortedModels {
-          let modelItem = NSMenuItem()
-          modelItem.isEnabled = false
-          modelItem.representedObject = model.id as NSString
-          let view = VariantMenuItemView(model: model, modelManager: modelManager) {
-            [weak self] in
-            if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
-          }
-          modelItem.view = view
-          view.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
-          submenu.addItem(modelItem)
-        }
-        familyItem.submenu = submenu
-        menu.addItem(familyItem)
-      }
-    }
-
+    guard !sortedFamilies.isEmpty else { return }
     menu.addItem(.separator())
-    // Server status item
-    let serverItem = NSMenuItem()
-    serverItem.isEnabled = false
+    menu.addItem(makeSectionHeaderItem("Catalog"))
+
+    for family in sortedFamilies {
+      guard let models = familiesDict[family] else { continue }
+      let famView = FamilyHeaderMenuItemView(family: family, models: models, modelManager: modelManager)
+      let familyItem = NSMenuItem.viewItem(with: famView)
+      familyItem.isEnabled = true  // must be enabled so the submenu opens on hover
+      familyItem.representedObject = family as NSString
+      let submenu = NSMenu(title: family)
+      submenu.autoenablesItems = false
+      let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
+      for model in sortedModels {
+        let view = VariantMenuItemView(model: model, modelManager: modelManager) {
+          [weak self] in
+          if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
+        }
+        let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
+        modelItem.representedObject = model.id as NSString
+        submenu.addItem(modelItem)
+      }
+      familyItem.submenu = submenu
+      menu.addItem(familyItem)
+    }
+  }
+
+  private func addServer(to menu: NSMenu) {
+    menu.addItem(.separator())
     let serverView = ServerMenuItemView(server: server) { [weak self] in
       guard let url = URL(string: "http://localhost:\(LlamaServer.defaultPort)/") else { return }
       NSWorkspace.shared.open(url)
-      // Close the menu after opening the UI
       self?.statusItem.menu?.cancelTracking()
     }
-    serverItem.view = serverView
-    serverView.heightAnchor.constraint(greaterThanOrEqualToConstant: 32).isActive = true
-    menu.addItem(serverItem)
+    menu.addItem(NSMenuItem.viewItem(with: serverView, minHeight: 32))
+  }
 
+  private func addSettings(to menu: NSMenu) {
     menu.addItem(.separator())
-    // Settings-like items
     let launchAtLogin = NSMenuItem(
       title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
     launchAtLogin.target = self
@@ -172,13 +163,13 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
     updatesItem.target = self
     menu.addItem(updatesItem)
+  }
 
-    // Footer: show effective system memory (actual or simulated) in Debug builds only
+  private func addDebugFooterIfNeeded(to menu: NSMenu) {
     #if DEBUG
       let memItem = NSMenuItem()
       memItem.isEnabled = false
       let memText = SystemMemory.formatMemory()
-      // Use subtle styling like section headers but regular size for readability
       memItem.attributedTitle = NSAttributedString(
         string: memText,
         attributes: [
@@ -187,9 +178,11 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         ]
       )
       menu.addItem(.separator())
-    menu.addItem(memItem)
+      menu.addItem(memItem)
     #endif
+  }
 
+  private func addQuit(to menu: NSMenu) {
     menu.addItem(.separator())
     let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
     quit.target = self
@@ -197,36 +190,37 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   }
 
   private func makeSectionHeaderItem(_ title: String) -> NSMenuItem {
-    let item = NSMenuItem()
-    item.title = title
+    let view = SectionHeaderMenuItemView(title: title)
+    let item = NSMenuItem.viewItem(with: view, minHeight: 18)
     item.isEnabled = false
-    item.attributedTitle = NSAttributedString(
-      string: title,
-      attributes: [
-        .font: NSFont.systemFont(ofSize: 10),
-        .foregroundColor: NSColor.secondaryLabelColor,
-      ]
-    )
     return item
   }
 
-  // Periodically refresh status bar icon + row views while menu is open.
-  private func startObservation() {
-    observationTimer?.invalidate()
-    let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+  // Observe server and download changes while the menu is open.
+  private func addObservers() {
+    removeObservers()
+    let center = NotificationCenter.default
+    observers.append(center.addObserver(forName: .LBServerStateDidChange, object: nil, queue: .main) { [weak self] _ in
       self?.performRefresh()
-    }
-    RunLoop.main.add(timer, forMode: .common)
-    // Ensure timer also fires while the menu is tracking events
-    RunLoop.main.add(timer, forMode: .eventTracking)
-    observationTimer = timer
-    // Immediate refresh so state change shows instantly
+    })
+    observers.append(center.addObserver(forName: .LBServerMemoryDidChange, object: nil, queue: .main) { [weak self] _ in
+      self?.performRefresh()
+    })
+    observers.append(center.addObserver(forName: .LBModelDownloadsDidChange, object: nil, queue: .main) { [weak self] _ in
+      self?.performRefresh()
+    })
+    observers.append(center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) { [weak self] _ in
+      // Model membership might change; refresh rows (closure actions still rebuild on user intent)
+      self?.performRefresh()
+    })
+    // Immediate refresh on open
     performRefresh()
   }
 
-  private func stopObservation() {
-    observationTimer?.invalidate()
-    observationTimer = nil
+  private func removeObservers() {
+    let center = NotificationCenter.default
+    observers.forEach { center.removeObserver($0) }
+    observers.removeAll()
   }
 
   private func performRefresh() {

@@ -2,11 +2,7 @@ import AppKit
 import Foundation
 
 /// Menu row for a downloadable model variant inside a family submenu.
-final class VariantMenuItemView: NSView {
-  private enum Font {
-    static let primary = NSFont.systemFont(ofSize: 13)
-    static let secondary = NSFont.systemFont(ofSize: 10, weight: .medium)
-  }
+final class VariantMenuItemView: MenuRowView {
   private let model: ModelCatalogEntry
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
@@ -15,10 +11,9 @@ final class VariantMenuItemView: NSView {
   private let labelField = NSTextField(labelWithString: "")
   private let sizeLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
-  private let backgroundView = NSView()
+  // Background handled by MenuRowView
 
-  private var trackingArea: NSTrackingArea?
-  private var isHighlighted = false { didSet { updateHighlight() } }
+  // Hover handling provided by MenuRowView
 
   init(
     model: ModelCatalogEntry, modelManager: ModelManager, membershipChanged: @escaping () -> Void
@@ -38,21 +33,19 @@ final class VariantMenuItemView: NSView {
 
   private func setup() {
     wantsLayer = true
-    backgroundView.translatesAutoresizingMaskIntoConstraints = false
-    backgroundView.wantsLayer = true
     statusIndicator.translatesAutoresizingMaskIntoConstraints = false
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
-    labelField.font = Font.primary
+    labelField.font = MenuTypography.primary
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
-    sizeLabel.font = Font.secondary
+    sizeLabel.font = MenuTypography.secondary
     sizeLabel.textColor = .secondaryLabelColor
     sizeLabel.lineBreakMode = .byTruncatingTail
     sizeLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    progressLabel.font = Font.secondary
+    progressLabel.font = MenuTypography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -78,34 +71,18 @@ final class VariantMenuItemView: NSView {
     hStack.spacing = 6
     hStack.alignment = .centerY
 
-    addSubview(backgroundView)
-    backgroundView.addSubview(hStack)
+    contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
-      backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
-      backgroundView.topAnchor.constraint(equalTo: topAnchor),
-      backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      statusIndicator.widthAnchor.constraint(equalToConstant: 14),
-      statusIndicator.heightAnchor.constraint(equalToConstant: 14),
-      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 48),
-      hStack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
-      hStack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
-      hStack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 4),
-      hStack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -4),
+      statusIndicator.widthAnchor.constraint(equalToConstant: MenuMetrics.smallIconSize),
+      statusIndicator.heightAnchor.constraint(equalToConstant: MenuMetrics.smallIconSize),
+      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.progressWidth),
+      hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+      hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+      hStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+      hStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
   }
-
-  override func updateTrackingAreas() {
-    super.updateTrackingAreas()
-    if let trackingArea { removeTrackingArea(trackingArea) }
-    let opts: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
-    trackingArea = NSTrackingArea(rect: bounds, options: opts, owner: self, userInfo: nil)
-    addTrackingArea(trackingArea!)
-  }
-
-  override func mouseEntered(with event: NSEvent) { isHighlighted = true }
-  override func mouseExited(with event: NSEvent) { isHighlighted = false }
   override func mouseDown(with event: NSEvent) {
     handleAction()
     refresh()
@@ -127,14 +104,7 @@ final class VariantMenuItemView: NSView {
     }
   }
 
-  private func updateHighlight() {
-    if isHighlighted {
-      backgroundView.layer?.backgroundColor = NSColor.cgColor(.lbHoverBackground, in: backgroundView)
-    } else {
-      backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-    backgroundView.layer?.cornerRadius = 4
-  }
+  // Hover highlight handled by base class
 
   func refresh() {
     let status = modelManager.getModelStatus(model)

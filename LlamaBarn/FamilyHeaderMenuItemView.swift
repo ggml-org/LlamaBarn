@@ -2,12 +2,7 @@ import AppKit
 import Foundation
 
 /// Displays a model family with variant badges summarizing status.
-final class FamilyHeaderMenuItemView: NSView {
-  fileprivate enum Font {
-    static let primary = NSFont.systemFont(ofSize: 13, weight: .regular)
-    // Reduced chip font size from 10 -> 8 per design update
-    static let chip = NSFont.systemFont(ofSize: 8, weight: .medium)
-  }
+final class FamilyHeaderMenuItemView: MenuRowView {
   private let family: String
   private let models: [ModelCatalogEntry]
   private unowned let modelManager: ModelManager
@@ -16,13 +11,12 @@ final class FamilyHeaderMenuItemView: NSView {
   private let familyLabel = NSTextField(labelWithString: "")
   private let badgesStack = NSStackView()
   private let chevron = NSImageView()
-  private let backgroundView = NSView()
+  // Background is provided by MenuRowView
   private var badgesMap: [String: BadgeView] = [:]
   // Identifier for ephemeral separator views between chips
   private let badgeSeparatorID = NSUserInterfaceItemIdentifier("badge-separator")
 
-  private var trackingArea: NSTrackingArea?
-  private var isHighlighted = false { didSet { updateHighlight() } }
+  // Hover handling provided by MenuRowView
 
   init(family: String, models: [ModelCatalogEntry], modelManager: ModelManager) {
     self.family = family
@@ -40,8 +34,6 @@ final class FamilyHeaderMenuItemView: NSView {
 
   private func setup() {
     wantsLayer = true
-    backgroundView.translatesAutoresizingMaskIntoConstraints = false
-    backgroundView.wantsLayer = true
     iconView.image = NSImage(named: models.first?.icon ?? "")
     iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.imageScaling = .scaleProportionallyDown
@@ -50,7 +42,7 @@ final class FamilyHeaderMenuItemView: NSView {
 
     familyLabel.stringValue = family
     // Match primary row font size used elsewhere (Installed models, server status, catalog entries)
-    familyLabel.font = Font.primary
+    familyLabel.font = MenuTypography.primary
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
     badgesStack.orientation = .horizontal
@@ -84,46 +76,20 @@ final class FamilyHeaderMenuItemView: NSView {
     hStack.alignment = .centerY  // overall row still vertically centered in its container
     hStack.translatesAutoresizingMaskIntoConstraints = false
 
-    addSubview(backgroundView)
-    backgroundView.addSubview(hStack)
+    contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
-      backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
-      backgroundView.topAnchor.constraint(equalTo: topAnchor),
-      backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      // Reduced from 18 -> 16 to make logos a bit smaller and align with 16x16 action icons
-      iconView.widthAnchor.constraint(equalToConstant: 16),
-      iconView.heightAnchor.constraint(equalToConstant: 16),
-      chevron.widthAnchor.constraint(equalToConstant: 16),
-      chevron.heightAnchor.constraint(equalToConstant: 16),
-      hStack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
-      hStack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
-      hStack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 4),
-      hStack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -4),
+      iconView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      iconView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      chevron.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      chevron.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+      hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+      hStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+      hStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
   }
-
-  override func updateTrackingAreas() {
-    super.updateTrackingAreas()
-    if let trackingArea { removeTrackingArea(trackingArea) }
-    let opts: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
-    trackingArea = NSTrackingArea(rect: bounds, options: opts, owner: self, userInfo: nil)
-    addTrackingArea(trackingArea!)
-  }
-
-  override func mouseEntered(with event: NSEvent) { isHighlighted = true }
-  override func mouseExited(with event: NSEvent) { isHighlighted = false }
-
-  private func updateHighlight() {
-    if isHighlighted {
-      backgroundView.layer?.backgroundColor = NSColor.cgColor(.lbHoverBackground, in: backgroundView)
-    } else {
-      backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-    backgroundView.layer?.cornerRadius = 6
-    applyIconTint()
-  }
+  override func hoverHighlightDidChange(_ highlighted: Bool) { applyIconTint() }
 
   func refresh() {
     let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
@@ -184,7 +150,7 @@ final class FamilyHeaderMenuItemView: NSView {
   }
 
   private func applyIconTint() {
-    iconView.contentTintColor = isHighlighted ? .labelColor : .secondaryLabelColor
+    iconView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
   }
 
 }
@@ -206,7 +172,7 @@ private final class BadgeView: NSView {
     check.translatesAutoresizingMaskIntoConstraints = false
     check.symbolConfiguration = .init(pointSize: 7, weight: .bold)
     // Match smaller badge font size
-    label.font = FamilyHeaderMenuItemView.Font.chip
+    label.font = MenuTypography.chip
     label.translatesAutoresizingMaskIntoConstraints = false
     innerStack.orientation = .horizontal
     innerStack.spacing = 2
@@ -255,7 +221,6 @@ private final class BadgeView: NSView {
     applyColors(force: true)
   }
   private func applyColors(force: Bool) {
-    guard let layer else { return }
     // Avoid redundant work & flicker if appearance name hasn't changed unless forced.
     let currentName =
       effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) ?? effectiveAppearance.name

@@ -94,10 +94,6 @@ extension AppDelegate: SPUStandardUserDriverDelegate {
 // MARK: - SPUUpdaterDelegate
 
 extension AppDelegate: SPUUpdaterDelegate {
-  func updaterWillCheck(forUpdates updater: SPUUpdater) {
-    logger.debug("Sparkle: will check for updates")
-  }
-
   func updater(_ updater: SPUUpdater, didFailToCheckForUpdatesWithError error: Error) {
     logger.error("Sparkle: failed to check updates: \(error.localizedDescription, privacy: .public)")
   }

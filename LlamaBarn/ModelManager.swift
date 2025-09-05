@@ -144,6 +144,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
 
     // Immediately remove from UI for responsive feedback
     downloadedModels.removeAll { $0.id == model.id }
+    NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
 
     // Perform actual file deletion asynchronously
     Task {
@@ -164,6 +165,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
         _ = await MainActor.run {
           self.modelsBeingDeleted.remove(model.id)
         }
+        NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
       } catch {
         // If deletion fails, add the model back to the list and remove from being deleted
         _ = await MainActor.run {
@@ -173,6 +175,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
             self.downloadedModels.append(model)
           }
         }
+        NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
         logger.error("Failed to delete model: \(error.localizedDescription)")
       }
     }
@@ -194,6 +197,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
   /// Scans the local models directory and updates the list of downloaded models
   func refreshDownloadedModels() {
     downloadedModels = ModelCatalog.models.filter { $0.isDownloaded }
+    NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
   }
 
   /// Cancels an ongoing download and removes it from tracking
@@ -202,6 +206,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       for (_, task) in download.tasks { task.cancel() }
       activeDownloads.removeValue(forKey: model.id)
     }
+    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 
   // MARK: - URLSessionDownloadDelegate
@@ -219,6 +224,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     aggregate.progress.completedUnitCount = totalBytes
     activeDownloads[modelId] = aggregate
     downloadUpdateTrigger += 1
+    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 
   func urlSession(
@@ -303,6 +309,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     download.progress.completedUnitCount = total
     self.activeDownloads[modelId] = download
     self.downloadUpdateTrigger += 1
+    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {

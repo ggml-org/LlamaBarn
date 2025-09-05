@@ -2,19 +2,15 @@ import AppKit
 import Foundation
 
 /// Menu row showing llama-server status with a link indicator.
-final class ServerMenuItemView: NSView {
-  private enum Font {
-    static let primary = NSFont.systemFont(ofSize: 13)
-  }
+final class ServerMenuItemView: MenuRowView {
   private unowned let server: LlamaServer
   private let onOpen: () -> Void
 
   private let iconView = NSImageView()
   private let textField = NSTextField(labelWithString: "")
   private let linkIndicator = NSImageView()
-  private let backgroundView = NSView()
-  private var trackingArea: NSTrackingArea?
-  private var isHighlighted = false { didSet { updateHighlight() } }
+  // Hover handled by MenuRowView; only enable while server is running
+  override var hoverHighlightEnabled: Bool { server.isRunning }
 
   init(server: LlamaServer, onOpen: @escaping () -> Void) {
     self.server = server
@@ -31,14 +27,12 @@ final class ServerMenuItemView: NSView {
 
   private func setup() {
     wantsLayer = true
-    backgroundView.translatesAutoresizingMaskIntoConstraints = false
-    backgroundView.wantsLayer = true
     iconView.image = NSImage(systemSymbolName: "server.rack", accessibilityDescription: nil)
     iconView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
     iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.contentTintColor = .secondaryLabelColor
 
-    textField.font = Font.primary
+    textField.font = MenuTypography.primary
     textField.lineBreakMode = .byTruncatingTail
     textField.translatesAutoresizingMaskIntoConstraints = false
 
@@ -55,53 +49,26 @@ final class ServerMenuItemView: NSView {
     stack.orientation = .horizontal
     stack.alignment = .centerY
     stack.spacing = 6
-    addSubview(backgroundView)
-    backgroundView.addSubview(stack)
+    contentView.addSubview(stack)
 
     NSLayoutConstraint.activate([
-      backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 5),
-      backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
-      backgroundView.topAnchor.constraint(equalTo: topAnchor),
-      backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      iconView.widthAnchor.constraint(equalToConstant: 18),
-      iconView.heightAnchor.constraint(equalToConstant: 18),
-      linkIndicator.widthAnchor.constraint(equalToConstant: 14),
-      linkIndicator.heightAnchor.constraint(equalToConstant: 14),
-      stack.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 8),
-      stack.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -8),
-      stack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
-      stack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
+      iconView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      iconView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      linkIndicator.widthAnchor.constraint(equalToConstant: MenuMetrics.smallIconSize),
+      linkIndicator.heightAnchor.constraint(equalToConstant: MenuMetrics.smallIconSize),
+      stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+      stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+      stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 2),
+      stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -2),
     ])
   }
-
-  override func updateTrackingAreas() {
-    super.updateTrackingAreas()
-    if let trackingArea { removeTrackingArea(trackingArea) }
-    let opts: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
-    trackingArea = NSTrackingArea(rect: bounds, options: opts, owner: self, userInfo: nil)
-    addTrackingArea(trackingArea!)
-  }
-
-  override func mouseEntered(with event: NSEvent) {
-    guard server.isRunning else { return }
-    isHighlighted = true
-  }
-
-  override func mouseExited(with event: NSEvent) { isHighlighted = false }
 
   override func mouseDown(with event: NSEvent) {
     guard server.isRunning else { return }
     onOpen()
   }
 
-  private func updateHighlight() {
-    if isHighlighted {
-      backgroundView.layer?.backgroundColor = NSColor.cgColor(.lbHoverBackground, in: backgroundView)
-    } else {
-      backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-    backgroundView.layer?.cornerRadius = 6
-  }
+  // Hover highlight handled by base class
 
   func refresh() {
     if server.isRunning {
@@ -114,7 +81,7 @@ final class ServerMenuItemView: NSView {
       textField.textColor = .secondaryLabelColor
       iconView.contentTintColor = .secondaryLabelColor
       linkIndicator.contentTintColor = .tertiaryLabelColor
-      isHighlighted = false
+      setHoverHighlight(false)
     }
     needsDisplay = true
   }
