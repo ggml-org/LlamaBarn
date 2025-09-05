@@ -238,7 +238,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         button.image?.isTemplate = true
       }
     }
-    // Update dynamic title (memory usage)
+    // Update title
     titleView?.refresh()
     // Update memory footer text to reflect any env var changes or formatting
     // No need to refresh memory footer: RAM doesn't change at runtime, and

@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Top menu title view showing app name, dynamic memory usage (when running), and a subtitle with version info.
+/// Top menu title view showing app name and a subtitle with version info.
 final class TitleMenuItemView: NSView {
   private enum Font {
     static let title = NSFont.systemFont(ofSize: 13, weight: .semibold)
@@ -85,35 +85,14 @@ final class TitleMenuItemView: NSView {
   }
 
   func refresh() {
-    // Build dynamic title with optional memory usage
-    if server.isRunning && server.memoryUsageMB > 0 {
-      let memMB = server.memoryUsageMB
-      let (value, unit): (Double, String) = memMB >= 1024 ? (memMB / 1024, "GB") : (memMB, "MB")
-      let formatter = (value < 10 && unit == "GB") ? Self.nf1 : Self.nf0
-      let valueStr = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
-      let full = appBaseTitle + "  •  " + valueStr + " " + unit
-      let attr = NSMutableAttributedString(string: full)
-      attr.addAttributes(
-        [
-          .font: Font.title,
-          .foregroundColor: NSColor.labelColor,
-        ], range: NSRange(location: 0, length: appBaseTitle.count))
-      let memRange = NSRange(location: appBaseTitle.count, length: full.count - appBaseTitle.count)
-      attr.addAttributes(
-        [
-          .font: NSFont.systemFont(ofSize: 11, weight: .regular),
-          .foregroundColor: NSColor.secondaryLabelColor,
-        ], range: memRange)
-      titleLabel.attributedStringValue = attr
-    } else {
-      titleLabel.attributedStringValue = NSAttributedString(
-        string: appBaseTitle,
-        attributes: [
-          .font: Font.title,
-          .foregroundColor: NSColor.labelColor,
-        ]
-      )
-    }
+    // Always show a clean title; RAM usage now lives on the running model row.
+    titleLabel.attributedStringValue = NSAttributedString(
+      string: appBaseTitle,
+      attributes: [
+        .font: Font.title,
+        .foregroundColor: NSColor.labelColor,
+      ]
+    )
     needsDisplay = true
   }
 }
