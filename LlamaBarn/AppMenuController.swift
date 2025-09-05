@@ -76,7 +76,6 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     addCatalog(to: menu)
     addServer(to: menu)
     addSettings(to: menu)
-    addDebugFooterIfNeeded(to: menu)
     addQuit(to: menu)
   }
 
@@ -153,20 +152,27 @@ final class AppMenuController: NSObject, NSMenuDelegate {
 
   private func addSettings(to menu: NSMenu) {
     menu.addItem(.separator())
+    // Settings submenu container
+    let settingsItem = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
+    let settingsMenu = NSMenu(title: "Settings")
+    settingsMenu.autoenablesItems = false
+
+    // Launch at Login toggle
     let launchAtLogin = NSMenuItem(
       title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
     launchAtLogin.target = self
     launchAtLogin.state = LaunchAtLogin.isEnabled ? .on : .off
-    menu.addItem(launchAtLogin)
+    settingsMenu.addItem(launchAtLogin)
 
+    // Sparkle updates
     let updatesItem = NSMenuItem(
       title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
     updatesItem.target = self
-    menu.addItem(updatesItem)
-  }
+    settingsMenu.addItem(updatesItem)
 
-  private func addDebugFooterIfNeeded(to menu: NSMenu) {
     #if DEBUG
+      // Memory info (debug only), visually subdued
+      settingsMenu.addItem(.separator())
       let memItem = NSMenuItem()
       memItem.isEnabled = false
       let memText = SystemMemory.formatMemory()
@@ -177,9 +183,11 @@ final class AppMenuController: NSObject, NSMenuDelegate {
           .foregroundColor: NSColor.secondaryLabelColor,
         ]
       )
-      menu.addItem(.separator())
-      menu.addItem(memItem)
+      settingsMenu.addItem(memItem)
     #endif
+
+    settingsItem.submenu = settingsMenu
+    menu.addItem(settingsItem)
   }
 
   private func addQuit(to menu: NSMenu) {
