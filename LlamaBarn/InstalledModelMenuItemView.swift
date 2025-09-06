@@ -3,9 +3,9 @@ import Foundation
 
 /// Menu row representing a single installed model.
 /// Visual states:
-/// - Idle: icon + label + play symbol
-/// - Loading: icon + label + spinner + stop symbol
-/// - Running: icon + label + green circle + stop symbol
+/// - Idle: circular icon (inactive) + label
+/// - Loading: circular icon (active) + spinner
+/// - Running: circular icon (active)
 final class InstalledModelMenuItemView: MenuRowView {
   private let model: ModelCatalogEntry
   private unowned let server: LlamaServer
@@ -13,11 +13,10 @@ final class InstalledModelMenuItemView: MenuRowView {
   private let membershipChanged: () -> Void
 
   // Subviews
-  private let iconView = NSImageView()
+  private let circleIcon = CircularIconView()
   private let labelField = NSTextField(labelWithString: "")
   private let stateContainer = NSView()
   private let spinner = NSProgressIndicator()
-  private let greenDot = NSView()
   private let indicatorImageView = NSImageView()
   private let progressLabel = NSTextField(labelWithString: "")
   // Second-line label: used for progress during downloads and for
@@ -48,13 +47,7 @@ final class InstalledModelMenuItemView: MenuRowView {
 
   private func setup() {
     wantsLayer = true
-    iconView.image = NSImage(named: model.icon)
-    iconView.translatesAutoresizingMaskIntoConstraints = false
-    iconView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
-    iconView.imageScaling = .scaleProportionallyDown
-    // Normalize logo contrast by forcing template rendering so we can tint.
-    if let img = iconView.image { img.isTemplate = true }
-    iconView.contentTintColor = .secondaryLabelColor
+    circleIcon.setImage(NSImage(named: model.icon))
 
     labelField.stringValue = model.displayName
     labelField.font = MenuTypography.primary
@@ -65,11 +58,6 @@ final class InstalledModelMenuItemView: MenuRowView {
     spinner.controlSize = .small
     spinner.translatesAutoresizingMaskIntoConstraints = false
     spinner.isDisplayedWhenStopped = false
-
-    greenDot.wantsLayer = true
-    greenDot.translatesAutoresizingMaskIntoConstraints = false
-    greenDot.layer?.cornerRadius = 4
-    greenDot.layer?.backgroundColor = NSColor.llamaGreen.cgColor
 
     indicatorImageView.translatesAutoresizingMaskIntoConstraints = false
     indicatorImageView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
@@ -115,10 +103,11 @@ final class InstalledModelMenuItemView: MenuRowView {
     nameStack.spacing = 1
     nameStack.alignment = .leading
 
-    let leading = NSStackView(views: [iconView, nameStack])
+    let leading = NSStackView(views: [circleIcon, nameStack])
     leading.translatesAutoresizingMaskIntoConstraints = false
     leading.orientation = .horizontal
-    leading.alignment = .top
+    // Vertically center the circular icon relative to the two-line text, like Wi‑Fi menu
+    leading.alignment = .centerY
     leading.spacing = 6
 
     // Right: status/progress/delete/action in a row
@@ -136,8 +125,8 @@ final class InstalledModelMenuItemView: MenuRowView {
     contentView.addSubview(rootStack)
 
     NSLayoutConstraint.activate([
-      iconView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
-      iconView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      circleIcon.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      circleIcon.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
       stateContainer.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       stateContainer.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       indicatorImageView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
@@ -207,14 +196,6 @@ final class InstalledModelMenuItemView: MenuRowView {
         spinner.centerYAnchor.constraint(equalTo: stateContainer.centerYAnchor),
       ])
       spinner.startAnimation(nil)
-    } else if isRunning {
-      stateContainer.addSubview(greenDot)
-      NSLayoutConstraint.activate([
-        greenDot.widthAnchor.constraint(equalToConstant: 8),
-        greenDot.heightAnchor.constraint(equalToConstant: 8),
-        greenDot.centerXAnchor.constraint(equalTo: stateContainer.centerXAnchor),
-        greenDot.centerYAnchor.constraint(equalTo: stateContainer.centerYAnchor),
-      ])
     }
     // Compose a default secondary line (size + capability badges) used when not downloading
     let defaultSecondary: String = model.totalSize
@@ -250,10 +231,8 @@ final class InstalledModelMenuItemView: MenuRowView {
       progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
       bytesLabel.isHidden = false
-      let symbolName = (isLoadingServer || isRunning) ? "stop" : "play"
-      indicatorImageView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-      indicatorImageView.contentTintColor =
-        (isLoadingServer || isRunning) ? .systemRed : .controlAccentColor
+      // No play/stop affordance; active state is conveyed by circular icon.
+      indicatorImageView.image = nil
       // Only show on hover
       if isHoverHighlighted { deleteImageView.isHidden = false }
     case .available:
@@ -263,6 +242,8 @@ final class InstalledModelMenuItemView: MenuRowView {
       indicatorImageView.image = nil
       deleteImageView.isHidden = true
     }
+    // Update leading circular badge state and tinting
+    circleIcon.isActive = isLoadingServer || isRunning
     applyIconTint(isActive: isLoadingServer || isRunning)
     needsDisplay = true
   }
@@ -278,10 +259,9 @@ final class InstalledModelMenuItemView: MenuRowView {
       let isActiveModel = server.isActive(model: model)
       statusIsActive = isActiveModel && (server.isLoading || server.isRunning)
     }
-    if statusIsActive || isHoverHighlighted {
-      iconView.contentTintColor = .labelColor
-    } else {
-      iconView.contentTintColor = .secondaryLabelColor
+    // When active, circular view sets white tint; only tweak in inactive state.
+    if !statusIsActive {
+      circleIcon.imageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
     }
   }
 

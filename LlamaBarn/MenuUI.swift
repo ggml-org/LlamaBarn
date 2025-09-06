@@ -6,8 +6,11 @@ enum MenuMetrics {
   static let innerHorizontalPadding: CGFloat = 8
   static let verticalPadding: CGFloat = 4
   static let cornerRadius: CGFloat = 6
+  // Visual size for small inline glyphs.
   static let iconSize: CGFloat = 16
-  static let smallIconSize: CGFloat = 14
+  // Circular badge container size for leading model icon (closer to Wi‑Fi menu).
+  static let iconBadgeSize: CGFloat = 28
+  static let smallIconSize: CGFloat = 18
   static let progressWidth: CGFloat = 48
 }
 

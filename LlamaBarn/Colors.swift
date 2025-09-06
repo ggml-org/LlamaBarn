@@ -48,6 +48,18 @@ extension NSColor {
       : NSColor.black.withAlphaComponent(lightAlpha)
   }
 
+  /// Neutral circular badge background for inactive icons.
+  /// Slightly stronger than the hover background so the shape reads as a chip.
+  static let lbBadgeBackground: NSColor = NSColor(name: NSColor.Name("lbBadgeBackground")) { appearance in
+    let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+    // Even fainter; still visible enough to suggest a chip.
+    let lightAlpha: CGFloat = increaseContrast ? 0.08 : 0.05
+    let darkAlpha: CGFloat = increaseContrast ? 0.14 : 0.10
+    return isDark(appearance)
+      ? NSColor.white.withAlphaComponent(darkAlpha)
+      : NSColor.black.withAlphaComponent(lightAlpha)
+  }
+
   /// Resolve a dynamic color to a `CGColor` for a specific view/appearance.
   /// Hides the `performAsCurrentDrawingAppearance` boilerplate used when assigning to CALayer properties.
   static func cgColor(_ color: NSColor, in view: NSView) -> CGColor {
