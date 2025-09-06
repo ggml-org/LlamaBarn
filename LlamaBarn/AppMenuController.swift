@@ -230,7 +230,17 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   /// Keeps the submenu open by updating views in place and ensuring the
   /// Installed section reflects membership for downloading items.
   private func didChangeDownloadStatus(for model: ModelCatalogEntry) {
-    ensureInstalledRow(for: model)
+    // Reflect membership changes in the Installed section without full rebuild.
+    switch modelManager.getModelStatus(model) {
+    case .downloading:
+      ensureInstalledRow(for: model)
+    case .available:
+      // Remove transient row that we might have inserted when download started.
+      removeInstalledRow(for: model)
+    case .downloaded:
+      // Will appear via downloadedModels; no action needed here.
+      break
+    }
     performRefresh()
   }
 
@@ -261,6 +271,28 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     let item = NSMenuItem.viewItem(with: view, minHeight: 28)
     item.representedObject = model.id as NSString
     menu.insertItem(item, at: range.endIndex)
+  }
+
+  /// Removes an Installed row previously inserted for a model that is no longer downloading
+  /// and not yet fully downloaded, without rebuilding the entire menu.
+  private func removeInstalledRow(for model: ModelCatalogEntry) {
+    guard let menu = statusItem.menu else { return }
+    guard let range = installedSectionRange(in: menu) else { return }
+    if let idx = menu.items[range].firstIndex(where: { ($0.representedObject as? NSString) == (model.id as NSString) }) {
+      let absolute = idx + range.startIndex
+      menu.removeItem(at: absolute)
+      // If Installed section becomes empty, show the placeholder again
+      let remaining = menu.items[installedSectionRange(in: menu) ?? range]
+      let hasRows = remaining.contains { $0.view is InstalledModelMenuItemView }
+      if !hasRows {
+        let emptyItem = NSMenuItem()
+        emptyItem.title = "No installed models"
+        emptyItem.isEnabled = false
+        if let newRange = installedSectionRange(in: menu) {
+          menu.insertItem(emptyItem, at: newRange.startIndex)
+        }
+      }
+    }
   }
 
   /// Returns the open interval range [start, end) of items that belong to the Installed section.
