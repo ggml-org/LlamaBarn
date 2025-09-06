@@ -22,8 +22,8 @@ final class InstalledModelMenuItemView: MenuRowView {
   // Second-line label: used for progress during downloads and for
   // consistent two-line layout (size/badges) when idle/running.
   private let bytesLabel = NSTextField(labelWithString: "")
-  // Replaces prior NSButton (which rendered black in dark mode inside menu views) with template image view.
-  private let deleteImageView = NSImageView()
+  // Proper control for delete; avoids manual hit-testing.
+  private let deleteButton = NSButton()
 
   // Hover handling is provided by MenuRowView
 
@@ -62,6 +62,7 @@ final class InstalledModelMenuItemView: MenuRowView {
     indicatorImageView.translatesAutoresizingMaskIntoConstraints = false
     indicatorImageView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
     indicatorImageView.contentTintColor = .controlAccentColor
+    indicatorImageView.isHidden = true
 
     progressLabel.font = MenuTypography.secondary
     progressLabel.textColor = .secondaryLabelColor
@@ -74,15 +75,14 @@ final class InstalledModelMenuItemView: MenuRowView {
     bytesLabel.translatesAutoresizingMaskIntoConstraints = false
     bytesLabel.isHidden = false
 
-    deleteImageView.image = NSImage(
-      systemSymbolName: "trash", accessibilityDescription: "Delete model")
-    deleteImageView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
-    if let img = deleteImageView.image { img.isTemplate = true }
-    deleteImageView.translatesAutoresizingMaskIntoConstraints = false
-    // Start with a low-emphasis tertiary tint; hover/highlight will elevate contrast slightly.
-    deleteImageView.contentTintColor = .tertiaryLabelColor
-    deleteImageView.toolTip = "Delete model"
-    deleteImageView.isHidden = true
+    deleteButton.translatesAutoresizingMaskIntoConstraints = false
+    deleteButton.isBordered = false
+    deleteButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete model")
+    deleteButton.contentTintColor = .tertiaryLabelColor
+    deleteButton.target = self
+    deleteButton.action = #selector(handleDelete)
+    deleteButton.toolTip = "Delete model"
+    deleteButton.isHidden = true
 
     // Order: icon | (label over bytes) | spacer | (state, progress, delete, action)
     // Spacer expands so trailing visuals sit flush right.
@@ -111,11 +111,14 @@ final class InstalledModelMenuItemView: MenuRowView {
     leading.spacing = 6
 
     // Right: status/progress/delete/action in a row
-    let rightStack = NSStackView(views: [stateContainer, progressLabel, deleteImageView, indicatorImageView])
+    let rightStack = NSStackView(views: [stateContainer, progressLabel, deleteButton, indicatorImageView])
     rightStack.translatesAutoresizingMaskIntoConstraints = false
     rightStack.orientation = .horizontal
     rightStack.spacing = 6
     rightStack.alignment = .centerY
+    // Hidden arranged subviews should be fully detached from layout so they
+    // don't reserve space when not visible (e.g., the legacy play/stop slot).
+    rightStack.detachesHiddenViews = true
 
     let rootStack = NSStackView(views: [leading, spacer, rightStack])
     rootStack.translatesAutoresizingMaskIntoConstraints = false
@@ -131,25 +134,31 @@ final class InstalledModelMenuItemView: MenuRowView {
       stateContainer.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       indicatorImageView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       indicatorImageView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
-      deleteImageView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
-      deleteImageView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      deleteButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      deleteButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.progressWidth),
       rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+      // Pin trailing controls to the backgroundView’s edge (hover highlight),
+      // not the contentView’s inner padding, so the trash icon visually
+      // reaches the end of the item.
+      // Respect the item’s standard inner padding so the trash aligns
+      // consistently with other rows.
       rootStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       rootStack.topAnchor.constraint(equalTo: contentView.topAnchor),
       rootStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
   }
 
-  // Custom hit test so clicking the trash icon deletes instead of toggling run state.
-  override func mouseDown(with event: NSEvent) {
-    let loc = convert(event.locationInWindow, from: nil)
-    if !deleteImageView.isHidden && deleteImageView.frame.contains(loc) {
-      handleDelete()
-      return
+  // Row click recognizer to toggle, letting the delete button handle its own action.
+  override func viewDidMoveToWindow() {
+    super.viewDidMoveToWindow()
+    if gestureRecognizers.isEmpty {
+      let click = NSClickGestureRecognizer(target: self, action: #selector(didClickRow))
+      addGestureRecognizer(click)
     }
-    toggle()
   }
+
+  @objc private func didClickRow() { toggle() }
 
   private func toggle() {
     let status = modelManager.getModelStatus(model)
@@ -169,9 +178,9 @@ final class InstalledModelMenuItemView: MenuRowView {
     // Show delete only when hovered & model is downloaded
     let status = modelManager.getModelStatus(model)
     if case .downloaded = status {
-      deleteImageView.isHidden = !highlighted
+      deleteButton.isHidden = !highlighted
     } else {
-      deleteImageView.isHidden = true
+      deleteButton.isHidden = true
     }
     // Update icon tint when highlight changes.
     applyIconTint()
@@ -211,13 +220,9 @@ final class InstalledModelMenuItemView: MenuRowView {
       }
       progressLabel.stringValue = "\(percent)%"
       // Second line: show downloaded/total in GB with two decimals
-      func formatGB(_ bytes: Int64) -> String {
-        let gb = Double(bytes) / 1_000_000_000.0
-        return String(format: "%.2f GB", gb)
-      }
-      let completedText = formatGB(progress.completedUnitCount)
+      let completedText = ByteFormatters.gbTwoDecimals(progress.completedUnitCount)
       if progress.totalUnitCount > 0 {
-        let totalText = formatGB(progress.totalUnitCount)
+        let totalText = ByteFormatters.gbTwoDecimals(progress.totalUnitCount)
         bytesLabel.stringValue = "\(completedText) / \(totalText)"
       } else {
         bytesLabel.stringValue = completedText
@@ -225,7 +230,8 @@ final class InstalledModelMenuItemView: MenuRowView {
       bytesLabel.isHidden = false
       indicatorImageView.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
       indicatorImageView.contentTintColor = .systemRed
-      deleteImageView.isHidden = true
+      indicatorImageView.isHidden = false
+      deleteButton.isHidden = true
     case .downloaded:
       // Memory usage now lives in the header; keep the right side empty when not downloading.
       progressLabel.stringValue = ""
@@ -233,19 +239,22 @@ final class InstalledModelMenuItemView: MenuRowView {
       bytesLabel.isHidden = false
       // No play/stop affordance; active state is conveyed by circular icon.
       indicatorImageView.image = nil
+      indicatorImageView.isHidden = true
       // Only show on hover
-      if isHoverHighlighted { deleteImageView.isHidden = false }
+      deleteButton.isHidden = !isHoverHighlighted
     case .available:
       progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
       bytesLabel.isHidden = false
       indicatorImageView.image = nil
-      deleteImageView.isHidden = true
+      indicatorImageView.isHidden = true
+      deleteButton.isHidden = true
     }
     // Update leading circular badge state and tinting
     // Icon should become blue only after the model is done loading (running)
     circleIcon.isActive = isRunning
     applyIconTint(isActive: isRunning)
+    applyDeleteTint()
     needsDisplay = true
   }
 
@@ -269,12 +278,12 @@ final class InstalledModelMenuItemView: MenuRowView {
 
   // Neutral adaptive tint for the delete (trash) symbol; avoid semantic "destructive" red to reduce visual noise.
   private func applyDeleteTint() {
-    guard !deleteImageView.isHidden else { return }
+    guard !deleteButton.isHidden else { return }
     let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     if isHoverHighlighted {
-      deleteImageView.contentTintColor = increaseContrast ? .labelColor : .secondaryLabelColor
+      deleteButton.contentTintColor = increaseContrast ? .labelColor : .secondaryLabelColor
     } else {
-      deleteImageView.contentTintColor =
+      deleteButton.contentTintColor =
         increaseContrast ? .secondaryLabelColor : .tertiaryLabelColor
     }
   }
