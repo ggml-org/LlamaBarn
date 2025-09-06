@@ -86,7 +86,10 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   }
 
   private func addInstalled(to menu: NSMenu) {
-    menu.addItem(makeSectionHeaderItem("Installed models"))
+    let header = makeSectionHeaderItem("Installed models")
+    // Tag the Installed header so we can locate this section reliably later.
+    header.representedObject = "installed-header"
+    menu.addItem(header)
 
     let downloadingModels = ModelCatalog.allEntries().filter { m in
       if case .downloading = modelManager.getModelStatus(m) { return true }
@@ -141,7 +144,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       for model in sortedModels {
         let view = VariantMenuItemView(model: model, modelManager: modelManager) {
           [weak self] in
-          if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
+          // Keep submenu open: refresh views and ensure the Installed section
+          // gains a row for the newly-downloading model without a full rebuild.
+          self?.didChangeDownloadStatus(for: model)
         }
         let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
         modelItem.representedObject = model.id as NSString
@@ -217,6 +222,55 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
     quit.target = self
     menu.addItem(quit)
+  }
+
+  // MARK: - Live updates without closing submenus
+
+  /// Called from variant rows when a user starts/cancels a download.
+  /// Keeps the submenu open by updating views in place and ensuring the
+  /// Installed section reflects membership for downloading items.
+  private func didChangeDownloadStatus(for model: ModelCatalogEntry) {
+    ensureInstalledRow(for: model)
+    performRefresh()
+  }
+
+  /// Inserts an Installed row for a model that just transitioned to `.downloading`,
+  /// without rebuilding the entire menu. If the row already exists, no-op.
+  private func ensureInstalledRow(for model: ModelCatalogEntry) {
+    guard let menu = statusItem.menu else { return }
+    guard var range = installedSectionRange(in: menu) else { return }
+
+    // If already present, nothing to do
+    let alreadyPresent = menu.items[range].contains {
+      ($0.representedObject as? NSString) == (model.id as NSString)
+    }
+    if alreadyPresent { return }
+
+    // Remove placeholder if present, then recompute range to be safe
+    if let placeholderRelative = menu.items[range].firstIndex(where: { !$0.isEnabled && $0.title == "No installed models" }) {
+      let absolute = placeholderRelative + range.startIndex
+      menu.removeItem(at: absolute)
+      if let newRange = installedSectionRange(in: menu) { range = newRange }
+    }
+
+    // Insert a new InstalledModelMenuItemView row at the end of the Installed section
+    let view = InstalledModelMenuItemView(model: model, server: server, modelManager: modelManager) { [weak self] in
+      // Deletions still rebuild to simplify membership updates.
+      if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
+    }
+    let item = NSMenuItem.viewItem(with: view, minHeight: 28)
+    item.representedObject = model.id as NSString
+    menu.insertItem(item, at: range.endIndex)
+  }
+
+  /// Returns the open interval range [start, end) of items that belong to the Installed section.
+  /// The range starts just after the Installed header and ends at the next separator or end of menu.
+  private func installedSectionRange(in menu: NSMenu) -> Range<Int>? {
+    guard let headerIndex = menu.items.firstIndex(where: { ($0.representedObject as? String) == "installed-header" }) else { return nil }
+    let tail = menu.items.suffix(from: headerIndex + 1)
+    let endOffset = tail.firstIndex(where: { $0.isSeparatorItem }) ?? tail.endIndex
+    let endIndex = (headerIndex + 1) + (endOffset - tail.startIndex)
+    return (headerIndex + 1)..<endIndex
   }
 
   private func makeSectionHeaderItem(_ title: String) -> NSMenuItem {
