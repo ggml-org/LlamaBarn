@@ -2,9 +2,9 @@ import AppKit
 import Foundation
 
 /// Submenu header that shows the model family "business card":
-/// circular family icon, family name, and a short description.
+/// rounded-rect family icon, family name, and a short description.
 final class FamilyInfoMenuItemView: NSView {
-  private let iconView = CircularIconView()
+  private let iconView = RoundedRectIconView()
   private let titleLabel = NSTextField(labelWithString: "")
   private let metaLabel = NSTextField(labelWithString: "")
   private let descriptionLabel = NSTextField(labelWithString: "")

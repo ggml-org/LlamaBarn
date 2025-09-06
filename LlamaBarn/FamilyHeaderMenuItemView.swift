@@ -7,7 +7,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
   private let models: [ModelCatalogEntry]
   private unowned let modelManager: ModelManager
 
-  private let circleIcon = CircularIconView()
+  private let iconView = RoundedRectIconView()
   private let familyLabel = NSTextField(labelWithString: "")
   private let badgesStack = NSStackView()
   private let chevron = NSImageView()
@@ -34,10 +34,10 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
   private func setup() {
     wantsLayer = true
-    circleIcon.translatesAutoresizingMaskIntoConstraints = false
-    circleIcon.setImage(NSImage(named: models.first?.icon ?? ""))
+    iconView.translatesAutoresizingMaskIntoConstraints = false
+    iconView.setImage(NSImage(named: models.first?.icon ?? ""))
     // Family rows never become "active" blue; keep inactive style always.
-    circleIcon.isActive = false
+    iconView.isActive = false
 
     familyLabel.stringValue = family
     // Match primary row font size used elsewhere (Installed models, server status, catalog entries)
@@ -63,7 +63,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
     textColumn.translatesAutoresizingMaskIntoConstraints = false
 
     // Nest icon + text column so we can align icon with first line (family label) instead of vertical center.
-    let leadingStack = NSStackView(views: [circleIcon, textColumn])
+    let leadingStack = NSStackView(views: [iconView, textColumn])
     leadingStack.orientation = .horizontal
     leadingStack.spacing = 6
     // Match InstalledModelMenuItemView: vertically center circular badge relative to two-line text.
@@ -79,8 +79,8 @@ final class FamilyHeaderMenuItemView: MenuRowView {
     contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      circleIcon.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      circleIcon.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      iconView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      iconView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
       chevron.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       chevron.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
       hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -150,8 +150,8 @@ final class FamilyHeaderMenuItemView: MenuRowView {
   }
 
   private func applyIconTint() {
-    // Keep circular badge background neutral; emphasize glyph tint on hover.
-    circleIcon.imageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
+    // Keep neutral rounded-rect background; emphasize glyph tint on hover.
+    iconView.imageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
   }
 
 }
