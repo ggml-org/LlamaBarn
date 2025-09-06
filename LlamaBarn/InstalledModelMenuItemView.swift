@@ -272,14 +272,19 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
         percent = 0
       }
       progressLabel.stringValue = "\(percent)%"
-      // Second line: show downloaded/total in GB with two decimals
+      // Second line: always show downloaded/total in GB with two decimals.
+      // When the network hasn't reported a total yet (0), fall back to catalog size.
       let completedText = ByteFormatters.gbTwoDecimals(progress.completedUnitCount)
-      if progress.totalUnitCount > 0 {
-        let totalText = ByteFormatters.gbTwoDecimals(progress.totalUnitCount)
-        bytesLabel.stringValue = "\(completedText) / \(totalText)"
-      } else {
-        bytesLabel.stringValue = completedText
-      }
+      let totalBytes: Int64 = {
+        if progress.totalUnitCount > 0 {
+          return progress.totalUnitCount
+        } else {
+          // fileSizeMB is our catalog estimate for the full model (all parts).
+          return Int64(model.fileSizeMB) * 1_000_000
+        }
+      }()
+      let totalText = ByteFormatters.gbTwoDecimals(totalBytes)
+      bytesLabel.stringValue = "\(completedText) / \(totalText)"
       bytesLabel.isHidden = false
       indicatorImageView.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
       indicatorImageView.contentTintColor = .systemRed
