@@ -243,8 +243,9 @@ final class InstalledModelMenuItemView: MenuRowView {
       deleteImageView.isHidden = true
     }
     // Update leading circular badge state and tinting
-    circleIcon.isActive = isLoadingServer || isRunning
-    applyIconTint(isActive: isLoadingServer || isRunning)
+    // Icon should become blue only after the model is done loading (running)
+    circleIcon.isActive = isRunning
+    applyIconTint(isActive: isRunning)
     needsDisplay = true
   }
 
@@ -257,7 +258,8 @@ final class InstalledModelMenuItemView: MenuRowView {
       statusIsActive = isActive
     } else {
       let isActiveModel = server.isActive(model: model)
-      statusIsActive = isActiveModel && (server.isLoading || server.isRunning)
+      // Consider active (blue) only when the server is running
+      statusIsActive = isActiveModel && server.isRunning
     }
     // When active, circular view sets white tint; only tweak in inactive state.
     if !statusIsActive {
