@@ -88,7 +88,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private func addInstalled(to menu: NSMenu) {
     menu.addItem(makeSectionHeaderItem("Installed models"))
 
-    let downloadingModels = ModelCatalog.models.filter { m in
+    let downloadingModels = ModelCatalog.allEntries().filter { m in
       if case .downloading = modelManager.getModelStatus(m) { return true }
       return false
     }
@@ -110,19 +110,20 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   }
 
   private func addCatalog(to menu: NSMenu) {
-    let familiesDict = Dictionary(grouping: ModelCatalog.models, by: { $0.family })
-    let sortedFamilies = familiesDict.keys.sorted()
-    guard !sortedFamilies.isEmpty else { return }
+    let families = ModelCatalog.uiFamilies
+    guard !families.isEmpty else { return }
     menu.addItem(.separator())
     menu.addItem(makeSectionHeaderItem("Catalog"))
 
-    for family in sortedFamilies {
-      guard let models = familiesDict[family] else { continue }
-      let famView = FamilyHeaderMenuItemView(family: family, models: models, modelManager: modelManager)
+    for family in families.sorted(by: { $0.name < $1.name }) {
+      let models = family.variants.flatMap { variant in
+        variant.builds.map { $0.asEntry(family: family, variant: variant) }
+      }
+      let famView = FamilyHeaderMenuItemView(family: family.name, models: models, modelManager: modelManager)
       let familyItem = NSMenuItem.viewItem(with: famView)
       familyItem.isEnabled = true  // must be enabled so the submenu opens on hover
-      familyItem.representedObject = family as NSString
-      let submenu = NSMenu(title: family)
+      familyItem.representedObject = family.name as NSString
+      let submenu = NSMenu(title: family.name)
       submenu.autoenablesItems = false
       let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
       for model in sortedModels {

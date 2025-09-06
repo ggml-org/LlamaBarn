@@ -196,7 +196,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
 
   /// Scans the local models directory and updates the list of downloaded models
   func refreshDownloadedModels() {
-    downloadedModels = ModelCatalog.models.filter { $0.isDownloaded }
+    downloadedModels = ModelCatalog.allEntries().filter { $0.isDownloaded }
     NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
   }
 
@@ -232,7 +232,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     didFinishDownloadingTo location: URL
   ) {
     guard let modelId = downloadTask.taskDescription,
-      let model = ModelCatalog.models.first(where: { $0.id == modelId })
+      let model = ModelCatalog.entry(forId: modelId)
     else {
       return
     }
