@@ -9,3 +9,29 @@ enum ByteFormatters {
   }
 }
 
+enum DateFormatters {
+  /// Cached medium style date formatter for UI labels.
+  private static let medium: DateFormatter = {
+    let df = DateFormatter()
+    df.dateStyle = .medium
+    df.timeStyle = .none
+    return df
+  }()
+
+  static func mediumString(_ date: Date) -> String { medium.string(from: date) }
+}
+
+enum TokenFormatters {
+  /// Formats token counts like 262_144 as "262k" or "32k" for UI chips.
+  static func shortTokens(_ tokens: Int) -> String {
+    if tokens >= 1_000_000 {
+      return String(format: "%.0fm", Double(tokens) / 1_000_000.0)
+    } else if tokens >= 10_000 {
+      return String(format: "%.0fk", Double(tokens) / 1_000.0)
+    } else if tokens >= 1_000 {
+      return String(format: "%.1fk", Double(tokens) / 1_000.0)
+    } else {
+      return "\(tokens)"
+    }
+  }
+}
