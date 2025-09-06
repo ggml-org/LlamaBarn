@@ -7,6 +7,7 @@ final class HeaderMenuItemView: NSView {
   private unowned let server: LlamaServer
   private let titleLabel = NSTextField(labelWithString: "")
   private let subtitleLabel = NSTextField(labelWithString: "")
+  private lazy var subtitleClickRecognizer = NSClickGestureRecognizer(target: self, action: #selector(openServerURL))
   private let backgroundView = NSView()
   private let appBaseTitle = "LlamaBarn"
   private let versionString: String
@@ -47,6 +48,8 @@ final class HeaderMenuItemView: NSView {
     subtitleLabel.lineBreakMode = .byTruncatingTail
     // Subtitle content now reflects server status; versions move to Settings submenu.
     subtitleLabel.stringValue = ""
+    subtitleLabel.addGestureRecognizer(subtitleClickRecognizer)
+    subtitleClickRecognizer.isEnabled = false
 
     let stack = NSStackView(views: [titleLabel, subtitleLabel])
     stack.orientation = .vertical
@@ -95,13 +98,46 @@ final class HeaderMenuItemView: NSView {
         }
       }()
       let memText = memMB > 0 ? " · \(valueText) \(unit)" : ""
-      subtitleLabel.stringValue = "Running on localhost:\(LlamaServer.defaultPort)\(memText)"
-      subtitleLabel.textColor = .labelColor
+      let base = "Running on "
+      let linkText = "localhost:\(LlamaServer.defaultPort)"
+      let suffix = memText
+      let full = base + linkText + suffix
+
+      let attributed = NSMutableAttributedString(string: full, attributes: [
+        .font: MenuTypography.subtitle,
+        .foregroundColor: NSColor.labelColor,
+      ])
+      // Make just the host:port look like a link.
+      if let range = full.range(of: linkText) {
+        let nsRange = NSRange(range, in: full)
+        attributed.addAttributes([
+          .foregroundColor: NSColor.linkColor,
+          .underlineStyle: NSUnderlineStyle.single.rawValue,
+        ], range: nsRange)
+      }
+      subtitleLabel.attributedStringValue = attributed
+      subtitleLabel.toolTip = "Open llama-server"
+      subtitleClickRecognizer.isEnabled = true
     } else {
-      subtitleLabel.stringValue = "Server not running"
-      subtitleLabel.textColor = .secondaryLabelColor
+      subtitleLabel.attributedStringValue = NSAttributedString(
+        string: "Server not running",
+        attributes: [
+          .font: MenuTypography.subtitle,
+          .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+      )
+      subtitleLabel.toolTip = nil
+      subtitleClickRecognizer.isEnabled = false
     }
 
     needsDisplay = true
   }
+
+  @objc private func openServerURL() {
+    guard server.isRunning else { return }
+    if let url = URL(string: "http://localhost:\(LlamaServer.defaultPort)/") {
+      NSWorkspace.shared.open(url)
+    }
+  }
+
 }
