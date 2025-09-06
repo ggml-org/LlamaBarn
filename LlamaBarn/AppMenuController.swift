@@ -74,7 +74,6 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     addHeader(to: menu)
     addInstalled(to: menu)
     addCatalog(to: menu)
-    addServer(to: menu)
     addSettings(to: menu)
     addQuit(to: menu)
   }
@@ -140,15 +139,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
   }
 
-  private func addServer(to menu: NSMenu) {
-    menu.addItem(.separator())
-    let serverView = ServerMenuItemView(server: server) { [weak self] in
-      guard let url = URL(string: "http://localhost:\(LlamaServer.defaultPort)/") else { return }
-      NSWorkspace.shared.open(url)
-      self?.statusItem.menu?.cancelTracking()
-    }
-    menu.addItem(NSMenuItem.viewItem(with: serverView, minHeight: 32))
-  }
+  // Server status is shown in the header now; dedicated server row removed.
 
   private func addSettings(to menu: NSMenu) {
     menu.addItem(.separator())
@@ -169,6 +160,24 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
     updatesItem.target = self
     settingsMenu.addItem(updatesItem)
+
+    // App and component versions (moved from header)
+    do {
+      let ver = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+      let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+      let versionsItem = NSMenuItem()
+      versionsItem.isEnabled = false
+      let versionsText = "v\(ver) · build \(build) · llama.cpp \(llamaCppVersion)"
+      versionsItem.attributedTitle = NSAttributedString(
+        string: versionsText,
+        attributes: [
+          .font: NSFont.systemFont(ofSize: 11),
+          .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+      )
+      settingsMenu.addItem(.separator())
+      settingsMenu.addItem(versionsItem)
+    }
 
     #if DEBUG
       // Memory info (debug only), visually subdued
@@ -247,7 +256,6 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     // the menu rebuild sets it correctly on open.
     statusItem.menu?.items.forEach { menuItem in
       if let view = menuItem.view as? InstalledModelMenuItemView { view.refresh() }
-      if let view = menuItem.view as? ServerMenuItemView { view.refresh() }
       // Update all catalog model submenu items
       if let submenu = menuItem.submenu {
         for subItem in submenu.items {

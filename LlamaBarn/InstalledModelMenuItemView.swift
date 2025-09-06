@@ -246,18 +246,8 @@ final class InstalledModelMenuItemView: MenuRowView {
       indicatorImageView.contentTintColor = .systemRed
       deleteImageView.isHidden = true
     case .downloaded:
-      // If this model is currently running, show live RAM usage on the right.
-      if isRunning && server.memoryUsageMB > 0 {
-        let memMB = server.memoryUsageMB
-        let (value, unit): (Double, String) = memMB >= 1024 ? (memMB / 1024, "GB") : (memMB, "MB")
-        let valueStr: String = {
-          if unit == "GB" && value < 10 { return String(format: "%.1f", value) }
-          return String(format: "%.0f", value)
-        }()
-        progressLabel.stringValue = "\(valueStr) \(unit)"
-      } else {
-        progressLabel.stringValue = ""
-      }
+      // Memory usage now lives in the header; keep the right side empty when not downloading.
+      progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
       bytesLabel.isHidden = false
       let symbolName = (isLoadingServer || isRunning) ? "stop" : "play"

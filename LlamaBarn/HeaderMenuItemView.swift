@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Header row showing app name and versions.
+/// Header row showing app name and server status.
 final class HeaderMenuItemView: NSView {
 
   private unowned let server: LlamaServer
@@ -45,7 +45,8 @@ final class HeaderMenuItemView: NSView {
     subtitleLabel.textColor = .secondaryLabelColor
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.lineBreakMode = .byTruncatingTail
-    subtitleLabel.stringValue = "\(versionString) · \(buildString) · \(llamaCppVersion)"
+    // Subtitle content now reflects server status; versions move to Settings submenu.
+    subtitleLabel.stringValue = ""
 
     let stack = NSStackView(views: [titleLabel, subtitleLabel])
     stack.orientation = .vertical
@@ -73,7 +74,7 @@ final class HeaderMenuItemView: NSView {
   }
 
   func refresh() {
-    // Always show a clean title; RAM usage now lives on the running model row.
+    // Always show a clean title.
     titleLabel.attributedStringValue = NSAttributedString(
       string: appBaseTitle,
       attributes: [
@@ -81,6 +82,26 @@ final class HeaderMenuItemView: NSView {
         .foregroundColor: NSColor.labelColor,
       ]
     )
+
+    // Merge server status into the header subtitle. Include server memory footprint when running.
+    if server.isRunning {
+      let memMB = server.memoryUsageMB
+      let (value, unit): (Double, String) = memMB >= 1024 ? (memMB / 1024, "GB") : (memMB, "MB")
+      let valueText: String = {
+        if unit == "GB" {
+          return value < 10 ? String(format: "%.1f", value) : String(format: "%.0f", value)
+        } else {
+          return String(format: "%.0f", value)
+        }
+      }()
+      let memText = memMB > 0 ? " · \(valueText) \(unit)" : ""
+      subtitleLabel.stringValue = "Running on localhost:\(LlamaServer.defaultPort)\(memText)"
+      subtitleLabel.textColor = .labelColor
+    } else {
+      subtitleLabel.stringValue = "Server not running"
+      subtitleLabel.textColor = .secondaryLabelColor
+    }
+
     needsDisplay = true
   }
 }
