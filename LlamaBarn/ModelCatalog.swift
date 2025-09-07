@@ -582,6 +582,31 @@ enum ModelCatalog {
     return estimatedMemoryUsageMB <= availableMemoryMB
   }
 
+  /// If incompatible, returns a short human-readable reason showing
+  /// estimated memory needed (rounded to whole GB).
+  /// Example: "needs ~12 GB of mem". Returns nil if compatible.
+  static func incompatibilitySummary(_ model: ModelCatalogEntry) -> String? {
+    let systemMemoryMB = getSystemMemoryMB()
+    let estimatedMemoryUsageMB = UInt64(Double(model.fileSizeMB) * memoryUsageMultiplier)
+    // Compute total RAM required so that our available fraction would fit the model.
+    // Round up to avoid under‑specing.
+    let requiredTotalMB = UInt64(ceil(Double(estimatedMemoryUsageMB) / availableMemoryFraction))
+    func gbStringCeilPlus(_ mb: UInt64) -> String {
+      let gb = ceil(Double(mb) / 1024.0)
+      return String(format: "%.0f GB+", gb)
+    }
+
+    // If we can't detect system memory, still show the total needed spec.
+    if systemMemoryMB == 0 {
+      return "requires \(gbStringCeilPlus(requiredTotalMB)) of memory"
+    }
+
+    let availableMemoryMB = UInt64(Double(systemMemoryMB) * availableMemoryFraction)
+    if estimatedMemoryUsageMB <= availableMemoryMB { return nil }
+
+    return "requires \(gbStringCeilPlus(requiredTotalMB)) of memory"
+  }
+
   /// Returns all model families, showing the best model from each family regardless of memory constraints
   /// If no models in a family fit in memory, shows the smallest model from that family
   static func allFamiliesForSystem() -> [ModelCatalogEntry] {

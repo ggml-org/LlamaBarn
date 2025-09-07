@@ -129,7 +129,12 @@ final class VariantMenuItemView: MenuRowView {
     var title = "\(model.displayName)"
     if model.quantization == "Q8_0" { title += " (\(model.quantization))" }
     labelField.stringValue = title
-    sizeLabel.stringValue = model.totalSize
+    if compatible {
+      sizeLabel.stringValue = model.totalSize
+    } else {
+      let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
+      sizeLabel.stringValue = "\(model.totalSize) • \(reason)"
+    }
     // Use semantic disabled text so dark mode contrast remains acceptable (alpha on secondaryLabelColor was too dim).
     labelField.textColor = compatible ? .labelColor : .tertiaryLabelColor
     sizeLabel.textColor = compatible ? .secondaryLabelColor : .tertiaryLabelColor
