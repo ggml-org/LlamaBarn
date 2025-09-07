@@ -11,6 +11,7 @@ final class VariantMenuItemView: MenuRowView {
   private let labelField = NSTextField(labelWithString: "")
   private let sizeLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
+  private let installedChip = ChipView(text: "Installed")
   // Background handled by MenuRowView
 
   // Hover handling provided by MenuRowView
@@ -66,7 +67,7 @@ final class VariantMenuItemView: MenuRowView {
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    // Two-line text column (title + size/badges)
+    // Two-line text column (title + size)
     let textColumn = NSStackView(views: [labelField, sizeLabel])
     textColumn.translatesAutoresizingMaskIntoConstraints = false
     textColumn.orientation = .vertical
@@ -80,8 +81,14 @@ final class VariantMenuItemView: MenuRowView {
     leading.alignment = .top
     leading.spacing = 6
 
-    // Main horizontal row with flexible space and trailing progress
-    let hStack = NSStackView(views: [leading, NSView(), progressLabel])
+    // Main horizontal row with flexible space and trailing visuals (Installed chip, progress)
+    let trailing = NSStackView(views: [installedChip, progressLabel])
+    trailing.translatesAutoresizingMaskIntoConstraints = false
+    trailing.orientation = .horizontal
+    trailing.alignment = .centerY
+    trailing.spacing = 6
+
+    let hStack = NSStackView(views: [leading, NSView(), trailing])
     hStack.translatesAutoresizingMaskIntoConstraints = false
     hStack.orientation = .horizontal
     hStack.spacing = 6
@@ -126,6 +133,7 @@ final class VariantMenuItemView: MenuRowView {
   func refresh() {
     let status = modelManager.getModelStatus(model)
     let compatible = ModelCatalog.isModelCompatible(model)
+    let actionable = hoverHighlightEnabled
     var title = "\(model.displayName)"
     if model.quantization == "Q8_0" { title += " (\(model.quantization))" }
     labelField.stringValue = title
@@ -135,17 +143,30 @@ final class VariantMenuItemView: MenuRowView {
       let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
       sizeLabel.stringValue = "\(model.totalSize) • \(reason)"
     }
-    // Use semantic disabled text so dark mode contrast remains acceptable (alpha on secondaryLabelColor was too dim).
-    labelField.textColor = compatible ? .labelColor : .tertiaryLabelColor
-    sizeLabel.textColor = compatible ? .secondaryLabelColor : .tertiaryLabelColor
+    // Visual affordances:
+    // - Incompatible: tertiary (disabled) coloring
+    // - Downloaded: dim to indicate non-interactive
+    // - Actionable (available or downloading): regular colors
+    if !compatible {
+      labelField.textColor = .tertiaryLabelColor
+      sizeLabel.textColor = .tertiaryLabelColor
+    } else if !actionable {
+      labelField.textColor = .secondaryLabelColor
+      sizeLabel.textColor = .tertiaryLabelColor
+    } else {
+      labelField.textColor = .labelColor
+      sizeLabel.textColor = .secondaryLabelColor
+    }
 
     progressLabel.stringValue = ""
     switch status {
     case .downloaded:
-      // Monochrome: indicate completion without green.
+      // Installed variants are not clickable in this submenu; show a neutral check and dim colors.
       statusIndicator.image = NSImage(
-        systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
-      statusIndicator.contentTintColor = .labelColor
+        systemSymbolName: "checkmark.circle", accessibilityDescription: nil)
+      statusIndicator.contentTintColor = .tertiaryLabelColor
+      toolTip = "Already installed"
+      installedChip.isHidden = false
     case .downloading(let progress):
       let pct: Int
       if progress.totalUnitCount > 0 {
@@ -158,6 +179,7 @@ final class VariantMenuItemView: MenuRowView {
         systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
       statusIndicator.contentTintColor = .secondaryLabelColor
       progressLabel.stringValue = "\(pct)%"
+      installedChip.isHidden = true
     case .available:
       if compatible {
         statusIndicator.image = NSImage(
@@ -168,10 +190,40 @@ final class VariantMenuItemView: MenuRowView {
         // Monochrome disabled/incompatible indicator.
         statusIndicator.contentTintColor = .tertiaryLabelColor
       }
+      installedChip.isHidden = true
     }
     // If the item is no longer actionable, clear any lingering hover highlight.
     if !hoverHighlightEnabled { setHoverHighlight(false) }
     needsDisplay = true
   }
 
+}
+
+// Lightweight rounded chip used in variant rows for short status labels.
+private final class ChipView: NSView {
+  private let label = NSTextField(labelWithString: "")
+  private let paddingX: CGFloat = 6
+  private let paddingY: CGFloat = 2
+
+  init(text: String) {
+    super.init(frame: .zero)
+    translatesAutoresizingMaskIntoConstraints = false
+    wantsLayer = true
+    label.translatesAutoresizingMaskIntoConstraints = false
+    label.font = MenuTypography.chip
+    label.textColor = .secondaryLabelColor
+    label.stringValue = text
+    addSubview(label)
+    NSLayoutConstraint.activate([
+      label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: paddingX),
+      label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -paddingX),
+      label.topAnchor.constraint(equalTo: topAnchor, constant: paddingY),
+      label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -paddingY),
+    ])
+    layer?.cornerRadius = 6
+    layer?.backgroundColor = NSColor.cgColor(.lbBadgeBackground, in: self)
+    isHidden = true
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
