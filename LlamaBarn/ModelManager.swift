@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import AppKit
 import Observation
 import os.log
 
@@ -78,6 +79,32 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
   func downloadModel(_ model: ModelCatalogEntry) {
     let filesToDownload = filesRequired(for: model)
     guard !filesToDownload.isEmpty else {
+      return
+    }
+
+    // Before starting, ensure there's enough free disk space on the models volume.
+    // Estimate remaining bytes needed as catalog total minus already-present files.
+    let totalBytes = Int64(model.fileSizeMB) * 1_000_000
+    let existingBytes: Int64 = model.allLocalModelPaths.reduce(0) { sum, path in
+      guard FileManager.default.fileExists(atPath: path),
+            let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+            let size = (attrs[.size] as? NSNumber)?.int64Value else { return sum }
+      return sum + size
+    }
+    let remainingBytes = max(totalBytes - existingBytes, 0)
+    let modelsDir = URL(fileURLWithPath: model.modelFilePath).deletingLastPathComponent()
+    let available = DiskSpace.availableBytes(at: modelsDir)
+
+    if available > 0 && remainingBytes > available {
+      // Not enough space — inform the user and do not start the download.
+      let needStr = DiskSpace.formatGB(remainingBytes)
+      let haveStr = DiskSpace.formatGB(available)
+      let alert = NSAlert()
+      alert.alertStyle = .warning
+      alert.messageText = "Not enough disk space"
+      alert.informativeText = "\(model.displayName) requires \(needStr) free in ~/.llamabarn, but only \(haveStr) is available. Free up space or choose a smaller model."
+      alert.addButton(withTitle: "OK")
+      alert.runModal()
       return
     }
 
