@@ -135,7 +135,9 @@ final class VariantMenuItemView: MenuRowView {
     let compatible = ModelCatalog.isModelCompatible(model)
     let actionable = hoverHighlightEnabled
     var title = "\(model.displayName)"
-    if model.quantization == "Q8_0" { title += " (\(model.quantization))" }
+    // Only mark true deviations from full‑precision quality.
+    // Q8_0 is effectively parity, so don't label it.
+    if model.quantization.uppercased() == "Q4_K_M" { title += " (quantized)" }
     labelField.stringValue = title
     if compatible {
       sizeLabel.stringValue = model.totalSize
