@@ -14,6 +14,8 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private var titleView: HeaderMenuItemView?
   // No stored reference needed for the memory footer.
   private var observers: [NSObjectProtocol] = []
+  // Single source of truth for the Installed section's empty placeholder title
+  private static let installedPlaceholderTitle = "No installed models"
 
   init(modelManager: ModelManager = .shared, server: LlamaServer = .shared) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -98,7 +100,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     let installed = modelManager.downloadedModels + downloadingModels
     if installed.isEmpty {
       let emptyItem = NSMenuItem()
-      emptyItem.title = "No installed models"
+      emptyItem.title = Self.installedPlaceholderTitle
       emptyItem.isEnabled = false
       menu.addItem(emptyItem)
     } else {
@@ -256,10 +258,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
     if alreadyPresent { return }
 
-    // Remove placeholder if present, then recompute range to be safe
-    if let placeholderRelative = menu.items[range].firstIndex(where: { !$0.isEnabled && $0.title == "No installed models" }) {
-      let absolute = placeholderRelative + range.startIndex
-      menu.removeItem(at: absolute)
+  // Remove placeholder if present (match by title only), then recompute range to be safe
+    if let placeholderAbsolute = menu.items[range].firstIndex(where: { Self.isInstalledPlaceholder($0) }) {
+      menu.removeItem(at: placeholderAbsolute)
       if let newRange = installedSectionRange(in: menu) { range = newRange }
     }
 
@@ -278,15 +279,14 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private func removeInstalledRow(for model: ModelCatalogEntry) {
     guard let menu = statusItem.menu else { return }
     guard let range = installedSectionRange(in: menu) else { return }
-    if let idx = menu.items[range].firstIndex(where: { ($0.representedObject as? NSString) == (model.id as NSString) }) {
-      let absolute = idx + range.startIndex
-      menu.removeItem(at: absolute)
+    if let absoluteIdx = menu.items[range].firstIndex(where: { ($0.representedObject as? NSString) == (model.id as NSString) }) {
+      menu.removeItem(at: absoluteIdx)
       // If Installed section becomes empty, show the placeholder again
       let remaining = menu.items[installedSectionRange(in: menu) ?? range]
       let hasRows = remaining.contains { $0.view is InstalledModelMenuItemView }
       if !hasRows {
         let emptyItem = NSMenuItem()
-        emptyItem.title = "No installed models"
+  emptyItem.title = Self.installedPlaceholderTitle
         emptyItem.isEnabled = false
         if let newRange = installedSectionRange(in: menu) {
           menu.insertItem(emptyItem, at: newRange.startIndex)
@@ -363,6 +363,19 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       }
       if let famView = menuItem.view as? FamilyHeaderMenuItemView { famView.refresh() }
     }
+
+    // While any model is downloading, ensure the Installed placeholder is hidden.
+  if let menu = statusItem.menu, !modelManager.activeDownloads.isEmpty,
+     let range = installedSectionRange(in: menu),
+     let absoluteIdx = menu.items[range].firstIndex(where: { Self.isInstalledPlaceholder($0) }) {
+    menu.removeItem(at: absoluteIdx)
+    }
+  }
+
+  // MARK: - Helpers
+
+  private static func isInstalledPlaceholder(_ item: NSMenuItem) -> Bool {
+    item.title == installedPlaceholderTitle
   }
 
   // Legacy updateTitleItem removed (replaced by HeaderMenuItemView)
