@@ -1,6 +1,7 @@
 _*
 .claude
 .cursor
+.gemini-clipboard
 .github
 .vscode
 build
