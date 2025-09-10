@@ -1,28 +1,34 @@
 # LlamaBarn
 
-Run local LLMs on your Mac with a friendly menu bar app and an OpenAI-compatible API.
+Run local LLMs on your Mac with a friendly menu bar app. Launch any model with a single click, then chat with it via the built-in web UI or use it via the REST API. LlamaBarn automatically configures models based on your Mac's hardware to ensure optimal performance and stability.
 
-Get the latest build from [Releases ↗](https://github.com/ggml-org/LlamaBarn/releases)
+Download the latest version from [Releases ↗](https://github.com/ggml-org/LlamaBarn/releases)
 
 ![LlamaBarn](https://i.imgur.com/S2jzV6Y.png)
 
 ## Highlights
 
-- Lightweight app -- `~12 MB` or `~6 MB` zipped
-- Curated model catalog with sensible defaults
-- Optimal model configs based on your Mac's memory and GPU
-- Guardrails against running models that would freeze your Mac
-- Built-in chat via llama.cpp's web UI
-- Compatible API
+- Lightweight -- `~12 MB` or `~6 MB` zipped
+- Curated model catalog
+- Model configurations that adapt to device's memory and GPU
+- Basic Web UI for interacting with running models
+- Familiar REST API for developers
+
+## How it works
+
+- LlamaBarn is a thin wrapper around `llama.cpp`
+- When you run a model, it launches `llama-server` on `localhost:2276`
+- You can chat in the server's web UI or via the API
 
 ## API Endpoints
 
-Check server health
+Check server health:
+
 ```sh
 curl http://localhost:2276/v1/health
 ```
 
-List running models (right now, you can only run one at a time)
+List running models (limited to one at a time for now):
 ```sh
 curl http://localhost:2276/v1/models
 ```
@@ -36,20 +42,14 @@ curl http://localhost:2276/v1/chat/completions \
 
 Learn more at in the `llama-server` [docs](https://github.com/ggml-org/llama.cpp/tree/master/tools/server#api-endpoints).
 
-## How it works
-
-- LlamaBarn is a thin wrapper around `llama.cpp`
-- When you run a model, it launches `llama-server` on `localhost:2276`
-- You can chat in the server's web UI or via the API
-
 ## Roadmap
 
-- [ ] Support for running multiple models at once -- e.g., chat + embeddings
 - [ ] Support for Embedding models
 - [ ] Support for Completion models
+- [ ] Support for running multiple models at a time -- e.g., chat + embeddings
 - [ ] Support for parallel requests 
 - [ ] Vision support for vision-capable models
-- [ ] Expose advanced settings like context length, temperature, etc.
+- [ ] Advanced settings for power users -- without complicating things for everyone else
 
 ## License and acknowledgements
 
