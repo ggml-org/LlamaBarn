@@ -147,7 +147,7 @@ class LlamaServer {
     let llamaServerPath = libFolderPath + "/llama-server"
 
     let env = ["GGML_METAL_NO_RESIDENCY": "1"]
-    var arguments = [
+  var arguments = [
       "--model", modelPath,
       "--port", String(port),
       "--alias", modelName,
@@ -163,7 +163,9 @@ class LlamaServer {
       arguments.append(contentsOf: ["-ub", "2048", "-b", "2048"])
     }
 
-    arguments.append(contentsOf: extraArgs)
+  // Merge in caller-provided args (may include ctx-size from catalog), but we'll prepend
+  // an auto-selected ctx-size later if none is provided.
+  arguments.append(contentsOf: extraArgs)
 
     let workingDirectory = URL(fileURLWithPath: llamaServerPath).deletingLastPathComponent().path
 
@@ -293,10 +295,28 @@ class LlamaServer {
 
   /// Convenience method to start server using a ModelCatalogEntry
   func start(model: ModelCatalogEntry) {
+    // If the catalog already dictates a ctx-size, respect it.
+    let hasCtxArg: Bool = {
+      let lower = model.serverArgs.map { $0.lowercased() }
+      return lower.contains("-c") || lower.contains("--ctx-size")
+    }()
+
+    var args = model.serverArgs
+    if !hasCtxArg {
+      // Auto-calculate ctx only when not explicitly provided by the catalog
+      // Heuristic: ctx tokens ~= 0.5 * RAM(GB) * 1024, bounded by model max and never below 4k
+      let memGB = Double(SystemMemory.getMemoryMB()) / 1024.0
+      let desired = Int((memGB / 2.0) * 1024.0)
+      let clamped = max(4096, min(model.contextLength, desired))
+      // Round down to nearest 1024 to avoid odd sizes
+      let rounded = (clamped / 1024) * 1024
+      args = ["-c", String(rounded)] + args
+    }
+
     start(
       modelName: model.displayName,
       modelPath: model.modelFilePath,
-      extraArgs: model.serverArgs
+      extraArgs: args
     )
   }
 

@@ -50,6 +50,8 @@ struct ModelCatalogEntry: Identifiable, Codable {
     "\(family) \(variant)"
   }
 
+  // Removed: isSlidingWindowFamily; models that should run with max context include "-c 0" in serverArgs.
+
   /// Total size including all model files
   var totalSize: String {
     let formatter = ByteCountFormatter()

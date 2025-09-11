@@ -170,7 +170,8 @@ enum ModelCatalog {
       icon: "ModelLogos/OpenAI",
       blurb: "An open, GPT-style instruction-tuned family aimed at general-purpose assistance on local hardware.",
       license: "Open license",
-      serverArgs: nil,
+      // Sliding-window family: use max context by default
+      serverArgs: ["-c", "0"],
       variants: [
         ModelVariant(
           label: "20B",
@@ -252,7 +253,8 @@ enum ModelCatalog {
       icon: "ModelLogos/Gemma",
       blurb: "Google's efficient Gemma 3n line tuned for on‑device performance with solid instruction following at small scales.",
       license: "Gemma License",
-      serverArgs: ["-ot", "per_layer_token_embd.weight=CPU", "--no-mmap"],
+      // Sliding-window family: force max context and keep Gemma-specific overrides
+      serverArgs: ["-c", "0", "-ot", "per_layer_token_embd.weight=CPU", "--no-mmap"],
       variants: [
         ModelVariant(
           label: "E4B",
