@@ -10,7 +10,7 @@ Download the latest version from [Releases ↗](https://github.com/ggml-org/Llam
 
 <br>
 
-## Features
+## Highlights
 
 - **Simple.** Just a thin (`12 MB`) wrapper around `llama.cpp` for minimal resource usage and instant startup.
 - **Native.** Built with macOS technologies and UI patterns for seamless integration and familiar interactions.
@@ -79,7 +79,7 @@ Find the full documentation for the API endpoints in the `llama.cpp` [docs](http
 - [ ] Support for completion models
 - [ ] Support for running multiple models at a time -- e.g., chat + embeddings
 - [ ] Support for parallel requests
-- [ ] Support vision for vision-capable models
+- [ ] Support for vision in vision-capable models
 - [ ] Advanced settings for power users -- without complicating things for everyone else
 
 <br>
