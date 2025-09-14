@@ -609,43 +609,5 @@ enum ModelCatalog {
     return "requires \(gbStringCeilPlus(requiredTotalMB)) of memory"
   }
 
-  /// Returns all model families, showing the best model from each family regardless of memory constraints
-  /// If no models in a family fit in memory, shows the smallest model from that family
-  static func allFamiliesForSystem() -> [ModelCatalogEntry] {
-    guard getSystemMemoryMB() > 0 else { return [] }
-
-    // Group models by family and select representative model for each
-    let modelsByFamily = Dictionary(grouping: allEntries(), by: { $0.family })
-
-    return modelsByFamily.compactMap { (_, familyModels) in
-      selectRepresentativeModel(from: familyModels)
-    }
-    .sorted { lhs, rhs in lhs.family < rhs.family }
-  }
-
-  /// Selects the best representative model from a family
-  /// Returns largest compatible model, or smallest model if none are compatible
-  private static func selectRepresentativeModel(from familyModels: [ModelCatalogEntry])
-    -> ModelCatalogEntry?
-  {
-    let compatibleModels = familyModels.filter(isModelCompatible)
-
-    if !compatibleModels.isEmpty {
-      // Return largest compatible model
-      return compatibleModels.max(by: compareModelsBySize)
-    } else {
-      // Return smallest model from family
-      return familyModels.min(by: compareModelsBySize)
-    }
-  }
-
-  /// Compares models by size (file size first, then parameters as tiebreaker)
-  private static func compareModelsBySize(_ lhs: ModelCatalogEntry, _ rhs: ModelCatalogEntry)
-    -> Bool
-  {
-    if lhs.fileSizeMB != rhs.fileSizeMB {
-      return lhs.fileSizeMB < rhs.fileSizeMB
-    }
-    return lhs.sizeInBillions < rhs.sizeInBillions
-  }
+  
 }
