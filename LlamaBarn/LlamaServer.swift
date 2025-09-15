@@ -320,6 +320,22 @@ class LlamaServer {
     )
   }
 
+  /// Convenience method to start server using a ModelCatalogEntry and a specific context length
+  func start(model: ModelCatalogEntry, contextLength: Int) {
+    var args = model.serverArgs
+    if contextLength == 0 {
+      args.append(contentsOf: ["-c", String(model.contextLength)])
+    } else {
+      args.append(contentsOf: ["-c", String(contextLength)])
+    }
+
+    start(
+      modelName: model.displayName,
+      modelPath: model.modelFilePath,
+      extraArgs: args
+    )
+  }
+
   // Removed: startWithMaxContext(model:) — not used by current UI.
   // Removed: toggle(model:) — UI calls start/stop explicitly.
 
