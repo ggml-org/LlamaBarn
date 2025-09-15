@@ -9,7 +9,10 @@ final class VariantMenuItemView: MenuRowView {
 
   private let statusIndicator = NSImageView()
   private let labelField = NSTextField(labelWithString: "")
+  private let infoRow = NSStackView()
   private let sizeLabel = NSTextField(labelWithString: "")
+  private let ctxLabel = NSTextField(labelWithString: "")
+  private let dateLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
   private let installedChip = ChipView(text: "Installed")
   // Background handled by MenuRowView
@@ -57,10 +60,23 @@ final class VariantMenuItemView: MenuRowView {
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
-    sizeLabel.font = MenuTypography.secondary
-    sizeLabel.textColor = .secondaryLabelColor
-    sizeLabel.lineBreakMode = .byTruncatingTail
-    sizeLabel.translatesAutoresizingMaskIntoConstraints = false
+    let labels = [sizeLabel, ctxLabel, dateLabel]
+    for label in labels {
+      label.font = MenuTypography.secondary
+      label.textColor = .secondaryLabelColor
+      label.lineBreakMode = .byTruncatingTail
+      label.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    infoRow.orientation = .horizontal
+    infoRow.spacing = 4
+    infoRow.alignment = .centerY
+    infoRow.translatesAutoresizingMaskIntoConstraints = false
+    infoRow.addArrangedSubview(sizeLabel)
+    infoRow.addArrangedSubview(makeSeparator())
+    infoRow.addArrangedSubview(ctxLabel)
+    infoRow.addArrangedSubview(makeSeparator())
+    infoRow.addArrangedSubview(dateLabel)
 
     progressLabel.font = MenuTypography.secondary
     progressLabel.textColor = .secondaryLabelColor
@@ -68,7 +84,7 @@ final class VariantMenuItemView: MenuRowView {
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
     // Two-line text column (title + size)
-    let textColumn = NSStackView(views: [labelField, sizeLabel])
+    let textColumn = NSStackView(views: [labelField, infoRow])
     textColumn.translatesAutoresizingMaskIntoConstraints = false
     textColumn.orientation = .vertical
     textColumn.alignment = .leading
@@ -139,25 +155,33 @@ final class VariantMenuItemView: MenuRowView {
     // Q8_0 is effectively parity, so don't label it.
     if model.quantization.uppercased() == "Q4_K_M" { title += " (quantized)" }
     labelField.stringValue = title
-    if compatible {
-      sizeLabel.stringValue = model.totalSize
-    } else {
+
+    sizeLabel.stringValue = model.totalSize
+    ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(model.contextLength))"
+    dateLabel.stringValue = DateFormatters.mediumString(model.releaseDate)
+
+    if !compatible {
       let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
-      sizeLabel.stringValue = "\(model.totalSize) • \(reason)"
+      infoRow.toolTip = reason
     }
+
     // Visual affordances:
     // - Incompatible: tertiary (disabled) coloring
     // - Downloaded: dim to indicate non-interactive
     // - Actionable (available or downloading): regular colors
+    let infoColor: NSColor
     if !compatible {
       labelField.textColor = .tertiaryLabelColor
-      sizeLabel.textColor = .tertiaryLabelColor
+      infoColor = .tertiaryLabelColor
     } else if !actionable {
       labelField.textColor = .secondaryLabelColor
-      sizeLabel.textColor = .tertiaryLabelColor
+      infoColor = .tertiaryLabelColor
     } else {
       labelField.textColor = .labelColor
-      sizeLabel.textColor = .secondaryLabelColor
+      infoColor = .secondaryLabelColor
+    }
+    for case let label as NSTextField in infoRow.arrangedSubviews {
+      label.textColor = infoColor
     }
 
     progressLabel.stringValue = ""
@@ -199,6 +223,12 @@ final class VariantMenuItemView: MenuRowView {
     needsDisplay = true
   }
 
+  private func makeSeparator() -> NSView {
+    let sep = NSTextField(labelWithString: "•")
+    sep.font = MenuTypography.secondary
+    sep.textColor = .tertiaryLabelColor
+    return sep
+  }
 }
 
 // Lightweight rounded chip used in variant rows for short status labels.

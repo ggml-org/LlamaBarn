@@ -11,18 +11,18 @@ final class FamilyInfoMenuItemView: NSView {
   private let chipsStack = NSStackView()
   private let container = NSView()
 
-  init(familyName: String, iconName: String, blurb: String, releaseDate: Date?, contextTokens: Int?) {
+  init(familyName: String, iconName: String, blurb: String) {
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
-    setup(familyName: familyName, iconName: iconName, blurb: blurb, releaseDate: releaseDate, contextTokens: contextTokens)
+    setup(familyName: familyName, iconName: iconName, blurb: blurb)
   }
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
   override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 70) }
 
-  private func setup(familyName: String, iconName: String, blurb: String, releaseDate: Date?, contextTokens: Int?) {
+  private func setup(familyName: String, iconName: String, blurb: String) {
     // Accessibility
     setAccessibilityElement(true)
     setAccessibilityRole(.group)
@@ -55,14 +55,6 @@ final class FamilyInfoMenuItemView: NSView {
     chipsStack.alignment = .centerY
     chipsStack.spacing = 6
     chipsStack.translatesAutoresizingMaskIntoConstraints = false
-
-    // Build chips: date and context length
-    if let date = releaseDate {
-      chipsStack.addArrangedSubview(ChipView(text: DateFormatters.mediumString(date)))
-    }
-    if let ctx = contextTokens {
-      chipsStack.addArrangedSubview(ChipView(text: "Ctx \(TokenFormatters.shortTokens(ctx))"))
-    }
 
     let textStack = NSStackView(views: [titleLabel, chipsStack, descriptionLabel])
     textStack.orientation = .vertical

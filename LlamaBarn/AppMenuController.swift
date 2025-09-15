@@ -131,14 +131,10 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       let submenu = NSMenu(title: family.name)
       submenu.autoenablesItems = false
       // Add family "business card" header inside the submenu
-      let latestRelease = family.variants.map { $0.releaseDate }.max()
-      let maxContext = family.variants.map { $0.contextLength }.max()
       let infoView = FamilyInfoMenuItemView(
         familyName: family.name,
         iconName: family.icon,
-        blurb: family.blurb,
-        releaseDate: latestRelease,
-        contextTokens: maxContext
+        blurb: family.blurb
       )
       submenu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
       submenu.addItem(.separator())
