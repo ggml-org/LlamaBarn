@@ -18,7 +18,16 @@ enum DateFormatters {
     return df
   }()
 
+  /// Cached month and year style date formatter for UI labels.
+  private static let monthAndYear: DateFormatter = {
+    let df = DateFormatter()
+    df.dateFormat = "MMM yyyy"
+    return df
+  }()
+
   static func mediumString(_ date: Date) -> String { medium.string(from: date) }
+
+  static func monthAndYearString(_ date: Date) -> String { monthAndYear.string(from: date) }
 }
 
 enum TokenFormatters {

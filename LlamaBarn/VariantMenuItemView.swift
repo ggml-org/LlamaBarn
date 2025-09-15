@@ -72,11 +72,11 @@ final class VariantMenuItemView: MenuRowView {
     infoRow.spacing = 4
     infoRow.alignment = .centerY
     infoRow.translatesAutoresizingMaskIntoConstraints = false
+    infoRow.addArrangedSubview(dateLabel)
+    infoRow.addArrangedSubview(makeSeparator())
     infoRow.addArrangedSubview(sizeLabel)
     infoRow.addArrangedSubview(makeSeparator())
     infoRow.addArrangedSubview(ctxLabel)
-    infoRow.addArrangedSubview(makeSeparator())
-    infoRow.addArrangedSubview(dateLabel)
 
     progressLabel.font = MenuTypography.secondary
     progressLabel.textColor = .secondaryLabelColor
@@ -158,7 +158,7 @@ final class VariantMenuItemView: MenuRowView {
 
     sizeLabel.stringValue = model.totalSize
     ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(model.contextLength))"
-    dateLabel.stringValue = DateFormatters.mediumString(model.releaseDate)
+    dateLabel.stringValue = DateFormatters.monthAndYearString(model.releaseDate)
 
     if !compatible {
       let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
