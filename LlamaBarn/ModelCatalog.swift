@@ -300,11 +300,11 @@ enum ModelCatalog {
         ),
       ]
     ),
-    // MARK: Gemma 3 (QAT-trained variants) (migrated)
+    // MARK: Gemma 3 (QAT-trained) (migrated)
     ModelFamily(
       name: "Gemma 3",
       icon: "ModelLogos/Gemma",
-      blurb: "Gemma 3 variants trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
+      blurb: "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
       license: "Gemma License",
       serverArgs: nil,
       variants: [
@@ -399,7 +399,7 @@ enum ModelCatalog {
     ModelFamily(
       name: "Qwen3 2507 Thinking",
       icon: "ModelLogos/Qwen",
-      blurb: "Qwen3 variants biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
+      blurb: "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
       license: "Qwen License",
       serverArgs: nil,
       variants: [
@@ -484,7 +484,7 @@ enum ModelCatalog {
     ModelFamily(
       name: "DeepSeek R1 0528",
       icon: "ModelLogos/DeepSeek",
-      blurb: "Reasoning‑forward DeepSeek R1 variants distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
+      blurb: "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
       license: "DeepSeek License",
       serverArgs: nil,
       variants: [
