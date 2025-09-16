@@ -543,7 +543,67 @@ enum ModelCatalog {
   }
 
   // MARK: - Accessors
-  static var uiFamilies: [ModelFamily] { families }
+  static var uiFamilies: [ModelFamily] {
+    filteredFamilies(showQuantizedVariants: UserSettings.showQuantizedVariants)
+  }
+
+  private static func filteredFamilies(showQuantizedVariants: Bool) -> [ModelFamily] {
+    guard !showQuantizedVariants else { return families }
+
+    return families.compactMap { family in
+      var removedQuantizedBuild = false
+      let filteredVariants: [ModelVariant] = family.variants.compactMap { variant in
+        let builds = variant.builds.filter { build in
+          !isQuantized(quantization: build.quantization)
+        }
+
+        if builds.count == variant.builds.count {
+          return variant
+        }
+
+        removedQuantizedBuild = true
+        guard !builds.isEmpty else { return nil }
+
+        return ModelVariant(
+          label: variant.label,
+          sizeInBillions: variant.sizeInBillions,
+          releaseDate: variant.releaseDate,
+          contextLength: variant.contextLength,
+          serverArgs: variant.serverArgs,
+          builds: builds
+        )
+      }
+
+      guard !filteredVariants.isEmpty else { return nil }
+      return removedQuantizedBuild
+        ? ModelFamily(
+          name: family.name,
+          series: family.series,
+          blurb: family.blurb,
+          serverArgs: family.serverArgs,
+          variants: filteredVariants
+        )
+        : family
+    }
+  }
+
+  /// Very small helper so the UI can hide true low-bit variants.
+  /// Some families (e.g. Gemma 3 QAT, GPT-OSS) only ship in formats like
+  /// `Q4_0` or `MXFP4`; treat those as baseline precision so they survive
+  /// the filter.
+  static func isQuantized(quantization: String) -> Bool {
+    let normalized = quantization.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    guard !normalized.isEmpty else { return false }
+
+    if normalized.hasPrefix("Q8") { return false }
+    if normalized == "Q4_0" { return false }
+    if normalized == "MXFP4" { return false }
+    if normalized.hasPrefix("Q") { return true }
+    if normalized.hasPrefix("I") { return true }
+    if normalized.contains("MXFP") { return true }
+    if normalized.contains("NF") { return true }
+    return false
+  }
 
   static func allEntries() -> [ModelCatalogEntry] {
     families.flatMap { family in

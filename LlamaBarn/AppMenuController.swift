@@ -258,6 +258,10 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       // Model membership might change; refresh rows (closure actions still rebuild on user intent)
       self?.performRefresh()
     })
+    observers.append(center.addObserver(forName: .LBUserSettingsDidChange, object: nil, queue: .main) { [weak self] _ in
+      guard let self, let menu = self.statusItem.menu else { return }
+      self.rebuildMenu(menu)
+    })
     // Immediate refresh on open
     performRefresh()
   }
