@@ -59,7 +59,7 @@ final class RoundedRectIconView: NSView {
     } else {
       layer.borderWidth = 0
       layer.backgroundColor = NSColor.cgColor(.lbBadgeBackground, in: self)
-      imageView.contentTintColor = .secondaryLabelColor
+      imageView.contentTintColor = .labelColor
     }
   }
 }

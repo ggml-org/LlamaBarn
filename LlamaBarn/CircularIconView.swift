@@ -1,7 +1,7 @@
 import AppKit
 
 /// Small circular badge that hosts a template image centered inside.
-/// - Inactive: clear background, subtle border, secondary tint.
+/// - Inactive: clear background, subtle border, primary tint.
 /// - Active: filled with `controlAccentColor`, no border, white glyph.
 final class CircularIconView: NSView {
   let imageView = NSImageView()
@@ -82,7 +82,7 @@ final class CircularIconView: NSView {
       layer.borderWidth = 0
       layer.backgroundColor = NSColor.cgColor(.lbBadgeBackground, in: self)
       // Default (may be overridden by caller for hover emphasis)
-      imageView.contentTintColor = .secondaryLabelColor
+      imageView.contentTintColor = .labelColor
     }
   }
 }

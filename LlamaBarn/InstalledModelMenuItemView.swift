@@ -432,9 +432,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     }
   }
 
-  /// Adjusts the icon tint to reduce excessive contrast of colorful brand logos vs text labels.
-  /// Idle/normal: secondary label color so text (primary) leads.
-  /// Active (loading/running) or highlighted: primary label color for emphasis.
+  /// Installed model icons use the primary label tint unless the server is running,
+  /// in which case the circular badge handles the white active glyph.
   private func applyIconTint(isActive: Bool? = nil) {
     let statusIsActive: Bool
     if let isActive = isActive {
@@ -446,8 +445,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     }
     // When active, circular view sets white tint; only tweak in inactive state.
     if !statusIsActive {
-      circleIcon.imageView.contentTintColor =
-        isHoverHighlighted ? .labelColor : .secondaryLabelColor
+      circleIcon.imageView.contentTintColor = .labelColor
     }
   }
 

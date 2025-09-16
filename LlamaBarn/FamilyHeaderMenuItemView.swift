@@ -153,7 +153,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
   private func applyIconTint() {
     // Keep neutral rounded-rect background; emphasize glyph tint on hover.
-    iconView.imageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
+    iconView.imageView.contentTintColor = .labelColor
   }
 
 }
