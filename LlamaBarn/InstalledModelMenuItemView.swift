@@ -357,7 +357,19 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     }()
     let defaultSecondary: String = {
       if let runningContext {
-        return "\(model.totalSize) | \(runningContext)"
+        // When running, show context and live memory usage on line 2.
+        let memMB = server.memoryUsageMB
+        let secondaryMem: String = {
+          if memMB <= 0 { return "" }
+          if memMB >= 1024 {
+            let gb = memMB / 1024
+            let gbText = gb < 10 ? String(format: "%.1f", gb) : String(format: "%.0f", gb)
+            return " · \(gbText) GB"
+          } else {
+            return String(format: " · %.0f MB", memMB)
+          }
+        }()
+        return "\(model.totalSize) | \(runningContext)\(secondaryMem)"
       }
       return model.totalSize
     }()
@@ -389,7 +401,6 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
       // Removed indicator image in favor of simplified state display
       updateActionsVisibility(for: .downloading(progress), highlighted: isHoverHighlighted)
     case .downloaded:
-      // Memory usage now lives in the header; keep the right side empty when not downloading.
       progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
       bytesLabel.isHidden = false

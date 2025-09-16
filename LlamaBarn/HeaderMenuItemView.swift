@@ -88,20 +88,9 @@ final class HeaderMenuItemView: NSView {
 
     // Merge server status into the header subtitle. Include server memory footprint when running.
     if server.isRunning {
-      let memMB = server.memoryUsageMB
-      let (value, unit): (Double, String) = memMB >= 1024 ? (memMB / 1024, "GB") : (memMB, "MB")
-      let valueText: String = {
-        if unit == "GB" {
-          return value < 10 ? String(format: "%.1f", value) : String(format: "%.0f", value)
-        } else {
-          return String(format: "%.0f", value)
-        }
-      }()
-      let memText = memMB > 0 ? " · \(valueText) \(unit)" : ""
       let base = "Running on "
       let linkText = "localhost:\(LlamaServer.defaultPort)"
-      let suffix = memText
-      let full = base + linkText + suffix
+      let full = base + linkText
 
       let attributed = NSMutableAttributedString(string: full, attributes: [
         .font: MenuTypography.subtitle,
