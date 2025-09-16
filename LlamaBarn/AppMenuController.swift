@@ -97,7 +97,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       if case .downloading = modelManager.getModelStatus(m) { return true }
       return false
     }
-    let installed = modelManager.downloadedModels + downloadingModels
+    // Keep ordering consistent with family submenus: smallest size first
+    let installed = (modelManager.downloadedModels + downloadingModels)
+      .sorted(by: ModelCatalogEntry.displayOrder(_:_:))
     if installed.isEmpty {
       let emptyItem = NSMenuItem()
       emptyItem.title = Self.installedPlaceholderTitle
