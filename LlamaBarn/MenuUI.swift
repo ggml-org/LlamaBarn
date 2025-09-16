@@ -20,8 +20,6 @@ enum MenuTypography {
   static let primarySemibold = NSFont.systemFont(ofSize: 13, weight: .semibold)
   // Secondary/line-2 text used across rows (variants, installed, family) for consistency
   static let secondary = NSFont.systemFont(ofSize: 11, weight: .regular)
-  static let subtitle = NSFont.systemFont(ofSize: 11)
-  static let chip = NSFont.systemFont(ofSize: 9, weight: .medium)
 }
 
 extension NSView {

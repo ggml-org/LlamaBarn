@@ -40,13 +40,13 @@ final class FamilyInfoMenuItemView: NSView {
     titleLabel.lineBreakMode = .byTruncatingTail
 
     metaLabel.translatesAutoresizingMaskIntoConstraints = false
-    metaLabel.font = MenuTypography.subtitle
+    metaLabel.font = MenuTypography.secondary
     metaLabel.textColor = .tertiaryLabelColor
     metaLabel.stringValue = "" // We now use chips for metadata; keep this for future copy if needed.
     metaLabel.isHidden = true
 
     descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
-    descriptionLabel.font = MenuTypography.subtitle
+    descriptionLabel.font = MenuTypography.secondary
     descriptionLabel.textColor = .secondaryLabelColor
     descriptionLabel.stringValue = blurb
     descriptionLabel.lineBreakMode = .byWordWrapping
@@ -99,7 +99,7 @@ final class FamilyInfoMenuItemView: NSView {
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
     label.translatesAutoresizingMaskIntoConstraints = false
-    label.font = MenuTypography.chip
+    label.font = MenuTypography.secondary
     label.textColor = .secondaryLabelColor
     label.stringValue = text
     addSubview(label)

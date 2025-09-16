@@ -242,7 +242,7 @@ private final class ChipView: NSView {
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
     label.translatesAutoresizingMaskIntoConstraints = false
-    label.font = MenuTypography.chip
+    label.font = MenuTypography.secondary
     label.textColor = .secondaryLabelColor
     label.stringValue = text
     addSubview(label)

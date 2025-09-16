@@ -42,7 +42,7 @@ final class HeaderMenuItemView: NSView {
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.lineBreakMode = .byTruncatingTail
 
-    subtitleLabel.font = MenuTypography.subtitle
+    subtitleLabel.font = MenuTypography.secondary
     subtitleLabel.textColor = .secondaryLabelColor
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.lineBreakMode = .byTruncatingTail
@@ -93,7 +93,7 @@ final class HeaderMenuItemView: NSView {
       let full = base + linkText
 
       let attributed = NSMutableAttributedString(string: full, attributes: [
-        .font: MenuTypography.subtitle,
+        .font: MenuTypography.secondary,
         .foregroundColor: NSColor.labelColor,
       ])
       // Make just the host:port look like a link.
@@ -111,7 +111,7 @@ final class HeaderMenuItemView: NSView {
       subtitleLabel.attributedStringValue = NSAttributedString(
         string: "Server not running",
         attributes: [
-          .font: MenuTypography.subtitle,
+          .font: MenuTypography.secondary,
           .foregroundColor: NSColor.secondaryLabelColor,
         ]
       )
