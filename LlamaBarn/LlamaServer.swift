@@ -58,6 +58,7 @@ class LlamaServer {
     didSet { NotificationCenter.default.post(name: .LBServerStateDidChange, object: self) }
   }
   var activeModelPath: String?
+  private(set) var activeContextLength: Int?
   var memoryUsageMB: Double = 0 {
     didSet { NotificationCenter.default.post(name: .LBServerMemoryDidChange, object: self) }
   }
@@ -121,6 +122,7 @@ class LlamaServer {
   func start(
     modelName: String,
     modelPath: String,
+    appliedContextLength: Int,
     extraArgs: [String] = []
   ) {
     let port = Self.defaultPort
@@ -143,11 +145,12 @@ class LlamaServer {
 
     state = .loading
     activeModelPath = modelPath
+    activeContextLength = appliedContextLength
 
     let llamaServerPath = libFolderPath + "/llama-server"
 
     let env = ["GGML_METAL_NO_RESIDENCY": "1"]
-  var arguments = [
+    var arguments = [
       "--model", modelPath,
       "--port", String(port),
       "--alias", modelName,
@@ -156,16 +159,15 @@ class LlamaServer {
       "--jinja",
     ]
 
-
     // Add batch size optimization for devices with 32+ GB RAM
     let systemMemoryGB = Double(SystemMemory.getMemoryMB()) / 1024.0
     if systemMemoryGB >= 32.0 {
       arguments.append(contentsOf: ["-ub", "2048", "-b", "2048"])
     }
 
-  // Merge in caller-provided args (may include ctx-size from catalog), but we'll prepend
-  // an auto-selected ctx-size later if none is provided.
-  arguments.append(contentsOf: extraArgs)
+    // Merge in caller-provided args (may include ctx-size from catalog), but we'll prepend
+    // an auto-selected ctx-size later if none is provided.
+    arguments.append(contentsOf: extraArgs)
 
     let workingDirectory = URL(fileURLWithPath: llamaServerPath).deletingLastPathComponent().path
 
@@ -213,6 +215,7 @@ class LlamaServer {
       DispatchQueue.main.async {
         self.state = .error(.launchFailed(errorMessage))
         self.activeModelPath = nil
+        self.activeContextLength = nil
       }
       return
     }
@@ -221,6 +224,7 @@ class LlamaServer {
       DispatchQueue.main.async {
         self.state = .error(.launchFailed("Process creation failed"))
         self.activeModelPath = nil
+        self.activeContextLength = nil
       }
       return
     }
@@ -256,6 +260,7 @@ class LlamaServer {
     self.activeProcess = nil
     self.state = .idle
     self.activeModelPath = nil
+    self.activeContextLength = nil
     self.memoryUsageMB = 0
   }
 
@@ -302,6 +307,7 @@ class LlamaServer {
     }()
 
     var args = model.serverArgs
+    var appliedContext: Int
     if !hasCtxArg {
       // Auto-calculate ctx only when not explicitly provided by the catalog
       // Heuristic: ctx tokens ~= 0.5 * RAM(GB) * 1024, bounded by model max and never below 4k
@@ -311,11 +317,15 @@ class LlamaServer {
       // Round down to nearest 1024 to avoid odd sizes
       let rounded = (clamped / 1024) * 1024
       args = ["-c", String(rounded)] + args
+      appliedContext = rounded
+    } else {
+      appliedContext = model.contextLength
     }
 
     start(
       modelName: model.displayName,
       modelPath: model.modelFilePath,
+      appliedContextLength: appliedContext,
       extraArgs: args
     )
   }
@@ -323,15 +333,19 @@ class LlamaServer {
   /// Convenience method to start server using a ModelCatalogEntry and a specific context length
   func start(model: ModelCatalogEntry, contextLength: Int) {
     var args = model.serverArgs
+    let applied: Int
     if contextLength == 0 {
+      applied = model.contextLength
       args.append(contentsOf: ["-c", String(model.contextLength)])
     } else {
+      applied = contextLength
       args.append(contentsOf: ["-c", String(contextLength)])
     }
 
     start(
       modelName: model.displayName,
       modelPath: model.modelFilePath,
+      appliedContextLength: applied,
       extraArgs: args
     )
   }

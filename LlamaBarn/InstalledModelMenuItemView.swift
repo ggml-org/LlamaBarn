@@ -350,7 +350,17 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     // Spinner is now displayed inside the circular icon instead of the right side.
     circleIcon.setLoading(isLoadingServer)
     // Compose a default secondary line (size + capability badges) used when not downloading
-    let defaultSecondary: String = model.totalSize
+    let runningContext: String? = {
+      guard isRunning, let ctx = server.activeContextLength else { return nil }
+      let ctxLabel = TokenFormatters.shortTokens(ctx)
+      return "Ctx \(ctxLabel)"
+    }()
+    let defaultSecondary: String = {
+      if let runningContext {
+        return "\(model.totalSize) | \(runningContext)"
+      }
+      return model.totalSize
+    }()
 
     // Download progress / action area
     switch status {
