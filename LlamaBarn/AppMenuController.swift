@@ -133,7 +133,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       // Add family "business card" header inside the submenu
       let infoView = FamilyInfoMenuItemView(
         familyName: family.name,
-        iconName: family.icon,
+        iconName: family.iconName,
         blurb: family.blurb
       )
       submenu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))

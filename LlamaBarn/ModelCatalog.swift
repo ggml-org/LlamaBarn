@@ -37,7 +37,7 @@ enum ModelCatalog {
         downloadUrl: downloadUrl,
         additionalParts: additionalParts,
         serverArgs: effectiveArgs,
-        icon: family.icon,
+        icon: family.iconName,
         quantization: quantization
       )
     }
@@ -54,23 +54,27 @@ enum ModelCatalog {
 
   struct ModelFamily {
     let name: String             // e.g. "Qwen3 2507"
-    let icon: String             // asset name
+    let series: String           // e.g. "qwen"
     let blurb: String            // short one- or two-sentence description
     let serverArgs: [String]?    // optional defaults for all variants/builds
     let variants: [ModelVariant]
 
     init(
       name: String,
-      icon: String,
+      series: String,
       blurb: String,
       serverArgs: [String]? = nil,
       variants: [ModelVariant]
     ) {
       self.name = name
-      self.icon = icon
+      self.series = series
       self.blurb = blurb
       self.serverArgs = serverArgs
       self.variants = variants
+    }
+
+    var iconName: String {
+      "ModelLogos/\(series.lowercased())"
     }
   }
 
@@ -79,7 +83,7 @@ enum ModelCatalog {
     // MARK: Qwen3 2507 (migrated to hierarchical form)
     ModelFamily(
       name: "Qwen3 2507",
-      icon: "ModelLogos/Qwen",
+      series: "qwen",
       blurb: "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
       serverArgs: nil,
       variants: [
@@ -163,7 +167,7 @@ enum ModelCatalog {
     // MARK: GPT-OSS (migrated)
     ModelFamily(
       name: "GPT-OSS",
-      icon: "ModelLogos/OpenAI",
+      series: "gpt",
       blurb: "An open, GPT-style instruction-tuned family aimed at general-purpose assistance on local hardware.",
       // Sliding-window family: use max context by default
       serverArgs: ["-c", "0"],
@@ -210,7 +214,7 @@ enum ModelCatalog {
     // MARK: Qwen 3 Coder (migrated)
     ModelFamily(
       name: "Qwen 3 Coder",
-      icon: "ModelLogos/Qwen",
+      series: "qwen",
       blurb: "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
       serverArgs: nil,
       variants: [
@@ -244,7 +248,7 @@ enum ModelCatalog {
     // MARK: Gemma 3n (migrated)
     ModelFamily(
       name: "Gemma 3n",
-      icon: "ModelLogos/Gemma",
+      series: "gemma",
       blurb: "Google's efficient Gemma 3n line tuned for on‑device performance with solid instruction following at small scales.",
       // Sliding-window family: force max context and keep Gemma-specific overrides
       serverArgs: ["-c", "0", "-ot", "per_layer_token_embd.weight=CPU", "--no-mmap"],
@@ -296,7 +300,7 @@ enum ModelCatalog {
     // MARK: Gemma 3 (QAT-trained) (migrated)
     ModelFamily(
       name: "Gemma 3",
-      icon: "ModelLogos/Gemma",
+      series: "gemma",
       blurb: "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
       serverArgs: nil,
       variants: [
@@ -390,7 +394,7 @@ enum ModelCatalog {
     // MARK: Qwen3 2507 Thinking (migrated)
     ModelFamily(
       name: "Qwen3 2507 Thinking",
-      icon: "ModelLogos/Qwen",
+      series: "qwen",
       blurb: "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
       serverArgs: nil,
       variants: [
@@ -474,7 +478,7 @@ enum ModelCatalog {
     // MARK: DeepSeek R1 0528 (migrated)
     ModelFamily(
       name: "DeepSeek R1 0528",
-      icon: "ModelLogos/DeepSeek",
+      series: "deepseek",
       blurb: "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
       serverArgs: nil,
       variants: [
