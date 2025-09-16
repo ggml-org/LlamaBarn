@@ -9,6 +9,7 @@ final class HeaderMenuItemView: NSView {
   private let subtitleLabel = NSTextField(labelWithString: "")
   private lazy var subtitleClickRecognizer = NSClickGestureRecognizer(target: self, action: #selector(openServerURL))
   private let backgroundView = NSView()
+  private let quitButton = NSButton()
   private let appBaseTitle = "LlamaBarn"
   private let versionString: String
   private let buildString: String
@@ -57,8 +58,30 @@ final class HeaderMenuItemView: NSView {
     stack.spacing = 2
     stack.translatesAutoresizingMaskIntoConstraints = false
 
+    // Trailing Quit control (header button)
+    quitButton.bezelStyle = .texturedRounded
+    quitButton.title = "Quit"
+    quitButton.font = MenuTypography.secondary
+    quitButton.translatesAutoresizingMaskIntoConstraints = false
+    quitButton.setButtonType(.momentaryPushIn)
+    quitButton.target = self
+    quitButton.action = #selector(quitApp)
+    quitButton.keyEquivalent = "q"
+
+    // Horizontal container: [stack][spacer][quit]
+    let h = NSStackView()
+    h.orientation = .horizontal
+    h.alignment = .centerY
+    h.spacing = 8
+    h.translatesAutoresizingMaskIntoConstraints = false
+    h.addArrangedSubview(stack)
+    h.addArrangedSubview(NSView()) // flexible spacer
+    h.addArrangedSubview(quitButton)
+    (h.arrangedSubviews[1] as? NSView)?.setContentHuggingPriority(.defaultLow, for: .horizontal)
+    (h.arrangedSubviews[1] as? NSView)?.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
     addSubview(backgroundView)
-    backgroundView.addSubview(stack)
+    backgroundView.addSubview(h)
 
     NSLayoutConstraint.activate([
       backgroundView.leadingAnchor.constraint(
@@ -67,12 +90,13 @@ final class HeaderMenuItemView: NSView {
         equalTo: trailingAnchor, constant: -MenuMetrics.outerHorizontalPadding),
       backgroundView.topAnchor.constraint(equalTo: topAnchor),
       backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      stack.leadingAnchor.constraint(
+      h.leadingAnchor.constraint(
         equalTo: backgroundView.leadingAnchor, constant: MenuMetrics.innerHorizontalPadding),
-      stack.trailingAnchor.constraint(
+      h.trailingAnchor.constraint(
         equalTo: backgroundView.trailingAnchor, constant: -MenuMetrics.innerHorizontalPadding),
-      stack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
-      stack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
+      h.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
+      h.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
+      quitButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 22),
     ])
   }
 
@@ -127,6 +151,10 @@ final class HeaderMenuItemView: NSView {
     if let url = URL(string: "http://localhost:\(LlamaServer.defaultPort)/") {
       NSWorkspace.shared.open(url)
     }
+  }
+
+  @objc private func quitApp() {
+    NSApplication.shared.terminate(nil)
   }
 
 }

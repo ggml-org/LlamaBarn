@@ -64,7 +64,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     addInstalled(to: menu)
     addCatalog(to: menu)
     addSettings(to: menu)
-    addQuit(to: menu)
+    addVersionFooter(to: menu)
   }
 
   private func addHeader(to menu: NSMenu) {
@@ -157,12 +157,15 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     menu.addItem(settingsItem)
   }
 
-  private func addQuit(to menu: NSMenu) {
+  private func addVersionFooter(to menu: NSMenu) {
     menu.addItem(.separator())
-    let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
-    quit.target = self
-    menu.addItem(quit)
+    let item = NSMenuItem()
+    item.isEnabled = false
+    item.title = "v\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
+    menu.addItem(item)
   }
+
+  // Footer Quit item removed; Quit is now a header button.
 
   // MARK: - Live updates without closing submenus
 
@@ -322,9 +325,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
 
   // Old catalog item update/action logic removed (replaced with custom view implementation).
 
-  @objc private func quitApp() {
-    NSApplication.shared.terminate(nil)
-  }
+  // quitApp moved to HeaderMenuItemView
 
   // MARK: - Settings Item Actions
 

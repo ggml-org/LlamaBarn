@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
   @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
+  // Version summary moved to menu footer; keep string for potential future use if needed in debug/UI tests.
   private let versionSummary = "v\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
 
   var body: some View {
@@ -20,16 +21,13 @@ struct SettingsView: View {
 
       Divider()
 
-      VStack(alignment: .leading, spacing: 4) {
-        Text(versionSummary)
-          .font(.callout)
-          .foregroundStyle(.secondary)
-        #if DEBUG
+      #if DEBUG
+        VStack(alignment: .leading, spacing: 4) {
           Text(SystemMemory.formatMemory())
             .font(.callout)
             .foregroundStyle(.secondary)
-        #endif
-      }
+        }
+      #endif
     }
     .onAppear {
       launchAtLogin = LaunchAtLogin.isEnabled
