@@ -58,7 +58,8 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
     let textColumn = NSStackView(views: [familyLabel, badgesStack])
     textColumn.orientation = .vertical
-    textColumn.spacing = 1
+    // Use same vertical spacing as other two-line rows for visual consistency
+    textColumn.spacing = 2
     textColumn.alignment = .leading
     textColumn.translatesAutoresizingMaskIntoConstraints = false
 
@@ -173,9 +174,9 @@ private final class BadgeView: NSView {
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
     check.translatesAutoresizingMaskIntoConstraints = false
-    check.symbolConfiguration = .init(pointSize: 7, weight: .bold)
-    // Match smaller badge font size
-    label.font = MenuTypography.chip
+    // Align checkmark and text with standard secondary line size
+    check.symbolConfiguration = .init(pointSize: 10, weight: .semibold)
+    label.font = MenuTypography.secondary
     label.translatesAutoresizingMaskIntoConstraints = false
     innerStack.orientation = .horizontal
     innerStack.spacing = 2
