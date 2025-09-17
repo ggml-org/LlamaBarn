@@ -6,7 +6,8 @@ struct SettingsView: View {
   @State private var showQuantizedVariants = UserSettings.showQuantizedVariants
 
   // Version summary moved to menu footer; keep string for potential future use if needed in debug/UI tests.
-  private let versionSummary = "v\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
+  private let versionSummary =
+    "v\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
 
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {

@@ -201,7 +201,10 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     maxContextButton.isBordered = false
     maxContextButton.imagePosition = .imageOnly
     maxContextButton.setButtonType(.momentaryChange)
-    if let img = NSImage(systemSymbolName: "gauge.with.dots.needle.100percent", accessibilityDescription: "Run at Max Context") {
+    if let img = NSImage(
+      systemSymbolName: "gauge.with.dots.needle.100percent",
+      accessibilityDescription: "Run at Max Context")
+    {
       img.isTemplate = true
       maxContextImageView.image = img
     }
@@ -249,7 +252,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
 
     // Right: status/progress/delete/action in a row
     let rightStack = NSStackView(views: [
-      stateContainer, progressLabel, ellipsisContainer, stopButton, deleteButton, revealButton, maxContextButton,
+      stateContainer, progressLabel, ellipsisContainer, stopButton, deleteButton, revealButton,
+      maxContextButton,
     ])
     rightStack.translatesAutoresizingMaskIntoConstraints = false
     rightStack.orientation = .horizontal
@@ -357,7 +361,9 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   ) -> Bool {
     let location = convert(event.locationInWindow, from: nil)
     // If click is inside any of the action buttons, let the button handle it.
-    let actionViews: [NSView] = [ellipsisContainer, ellipsisButton, stopButton, revealButton, deleteButton, maxContextButton]
+    let actionViews: [NSView] = [
+      ellipsisContainer, ellipsisButton, stopButton, revealButton, deleteButton, maxContextButton,
+    ]
     for v in actionViews where !v.isHidden {
       let frame = v.convert(v.bounds, to: self)
       if frame.contains(location) { return false }
@@ -538,7 +544,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
         ellipsisImageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
       }
       // Also tint stopButton inner image if visible
-      if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first {
+      if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first
+      {
         iv.contentTintColor = isHoverHighlighted ? .systemRed : .systemRed
       }
       return
@@ -547,7 +554,9 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     visibleImageViews.forEach { $0.contentTintColor = tint }
     // Keep ellipsis same tinting rules as other action buttons
     if !ellipsisContainer.isHidden { ellipsisImageView.contentTintColor = tint }
-    if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first { iv.contentTintColor = .systemRed }
+    if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first {
+      iv.contentTintColor = .systemRed
+    }
   }
 
   override func viewDidChangeEffectiveAppearance() {

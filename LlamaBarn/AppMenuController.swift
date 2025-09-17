@@ -74,7 +74,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   }
 
   private func addInstalled(to menu: NSMenu) {
-  let header = makeSectionHeaderItem("Installed")
+    let header = makeSectionHeaderItem("Installed")
     // Tag the Installed header so we can locate this section reliably later.
     header.representedObject = "installed-header"
     menu.addItem(header)
@@ -93,7 +93,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       menu.addItem(emptyItem)
     } else {
       for model in installed {
-        let view = InstalledModelMenuItemView(model: model, server: server, modelManager: modelManager) {
+        let view = InstalledModelMenuItemView(
+          model: model, server: server, modelManager: modelManager
+        ) {
           [weak self] in
           if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
         }
@@ -106,13 +108,14 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     let families = ModelCatalog.uiFamilies
     guard !families.isEmpty else { return }
     menu.addItem(.separator())
-  menu.addItem(makeSectionHeaderItem("Available"))
+    menu.addItem(makeSectionHeaderItem("Available"))
 
     for family in families.sorted(by: { $0.name < $1.name }) {
       let models = family.variants.flatMap { variant in
         variant.builds.map { $0.asEntry(family: family, variant: variant) }
       }
-      let famView = FamilyHeaderMenuItemView(family: family.name, models: models, modelManager: modelManager)
+      let famView = FamilyHeaderMenuItemView(
+        family: family.name, models: models, modelManager: modelManager)
       let familyItem = NSMenuItem.viewItem(with: famView)
       familyItem.isEnabled = true  // must be enabled so the submenu opens on hover
       familyItem.representedObject = family.name as NSString
@@ -149,7 +152,8 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     menu.addItem(.separator())
     let item = NSMenuItem()
     item.isEnabled = false
-    item.title = "\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
+    item.title =
+      "\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
     menu.addItem(item)
   }
 
@@ -187,14 +191,17 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
     if alreadyPresent { return }
 
-  // Remove placeholder if present (match by title only), then recompute range to be safe
-    if let placeholderAbsolute = menu.items[range].firstIndex(where: { Self.isInstalledPlaceholder($0) }) {
+    // Remove placeholder if present (match by title only), then recompute range to be safe
+    if let placeholderAbsolute = menu.items[range].firstIndex(where: {
+      Self.isInstalledPlaceholder($0)
+    }) {
       menu.removeItem(at: placeholderAbsolute)
       if let newRange = installedSectionRange(in: menu) { range = newRange }
     }
 
     // Insert a new InstalledModelMenuItemView row at the end of the Installed section
-    let view = InstalledModelMenuItemView(model: model, server: server, modelManager: modelManager) { [weak self] in
+    let view = InstalledModelMenuItemView(model: model, server: server, modelManager: modelManager)
+    { [weak self] in
       // Deletions still rebuild to simplify membership updates.
       if let menu = self?.statusItem.menu { self?.rebuildMenu(menu) }
     }
@@ -208,14 +215,16 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private func removeInstalledRow(for model: ModelCatalogEntry) {
     guard let menu = statusItem.menu else { return }
     guard let range = installedSectionRange(in: menu) else { return }
-    if let absoluteIdx = menu.items[range].firstIndex(where: { ($0.representedObject as? NSString) == (model.id as NSString) }) {
+    if let absoluteIdx = menu.items[range].firstIndex(where: {
+      ($0.representedObject as? NSString) == (model.id as NSString)
+    }) {
       menu.removeItem(at: absoluteIdx)
       // If Installed section becomes empty, show the placeholder again
       let remaining = menu.items[installedSectionRange(in: menu) ?? range]
       let hasRows = remaining.contains { $0.view is InstalledModelMenuItemView }
       if !hasRows {
         let emptyItem = NSMenuItem()
-  emptyItem.title = Self.installedPlaceholderTitle
+        emptyItem.title = Self.installedPlaceholderTitle
         emptyItem.isEnabled = false
         if let newRange = installedSectionRange(in: menu) {
           menu.insertItem(emptyItem, at: newRange.startIndex)
@@ -227,7 +236,11 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   /// Returns the open interval range [start, end) of items that belong to the Installed section.
   /// The range starts just after the Installed header and ends at the next separator or end of menu.
   private func installedSectionRange(in menu: NSMenu) -> Range<Int>? {
-    guard let headerIndex = menu.items.firstIndex(where: { ($0.representedObject as? String) == "installed-header" }) else { return nil }
+    guard
+      let headerIndex = menu.items.firstIndex(where: {
+        ($0.representedObject as? String) == "installed-header"
+      })
+    else { return nil }
     let tail = menu.items.suffix(from: headerIndex + 1)
     let endOffset = tail.firstIndex(where: { $0.isSeparatorItem }) ?? tail.endIndex
     let endIndex = (headerIndex + 1) + (endOffset - tail.startIndex)
@@ -245,23 +258,33 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private func addObservers() {
     removeObservers()
     let center = NotificationCenter.default
-    observers.append(center.addObserver(forName: .LBServerStateDidChange, object: nil, queue: .main) { [weak self] _ in
-      self?.performRefresh()
-    })
-    observers.append(center.addObserver(forName: .LBServerMemoryDidChange, object: nil, queue: .main) { [weak self] _ in
-      self?.performRefresh()
-    })
-    observers.append(center.addObserver(forName: .LBModelDownloadsDidChange, object: nil, queue: .main) { [weak self] _ in
-      self?.performRefresh()
-    })
-    observers.append(center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) { [weak self] _ in
-      // Model membership might change; refresh rows (closure actions still rebuild on user intent)
-      self?.performRefresh()
-    })
-    observers.append(center.addObserver(forName: .LBUserSettingsDidChange, object: nil, queue: .main) { [weak self] _ in
-      guard let self, let menu = self.statusItem.menu else { return }
-      self.rebuildMenu(menu)
-    })
+    observers.append(
+      center.addObserver(forName: .LBServerStateDidChange, object: nil, queue: .main) {
+        [weak self] _ in
+        self?.performRefresh()
+      })
+    observers.append(
+      center.addObserver(forName: .LBServerMemoryDidChange, object: nil, queue: .main) {
+        [weak self] _ in
+        self?.performRefresh()
+      })
+    observers.append(
+      center.addObserver(forName: .LBModelDownloadsDidChange, object: nil, queue: .main) {
+        [weak self] _ in
+        self?.performRefresh()
+      })
+    observers.append(
+      center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) {
+        [weak self] _ in
+        // Model membership might change; refresh rows (closure actions still rebuild on user intent)
+        self?.performRefresh()
+      })
+    observers.append(
+      center.addObserver(forName: .LBUserSettingsDidChange, object: nil, queue: .main) {
+        [weak self] _ in
+        guard let self, let menu = self.statusItem.menu else { return }
+        self.rebuildMenu(menu)
+      })
     // Immediate refresh on open
     performRefresh()
   }
@@ -298,10 +321,11 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
 
     // While any model is downloading, ensure the Installed placeholder is hidden.
-  if let menu = statusItem.menu, !modelManager.activeDownloads.isEmpty,
-     let range = installedSectionRange(in: menu),
-     let absoluteIdx = menu.items[range].firstIndex(where: { Self.isInstalledPlaceholder($0) }) {
-    menu.removeItem(at: absoluteIdx)
+    if let menu = statusItem.menu, !modelManager.activeDownloads.isEmpty,
+      let range = installedSectionRange(in: menu),
+      let absoluteIdx = menu.items[range].firstIndex(where: { Self.isInstalledPlaceholder($0) })
+    {
+      menu.removeItem(at: absoluteIdx)
     }
   }
 

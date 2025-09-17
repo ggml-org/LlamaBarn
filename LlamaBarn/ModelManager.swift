@@ -1,6 +1,6 @@
+import AppKit
 import Combine
 import Foundation
-import AppKit
 import Observation
 import os.log
 
@@ -33,8 +33,8 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     var progress: Progress
     var tasks: [Int: URLSessionDownloadTask]  // key: taskIdentifier
     var bytesWritten: [Int: Int64]  // per-task completed bytes
-    var expectedBytes: [Int: Int64] // per-task expected bytes (if known)
-    var totalExpectedBytes: Int64   // aggregate expected (dynamic)
+    var expectedBytes: [Int: Int64]  // per-task expected bytes (if known)
+    var totalExpectedBytes: Int64  // aggregate expected (dynamic)
   }
   var activeDownloads: [String: ActiveDownload] = [:]
   var modelsBeingDeleted: Set<String> = []
@@ -87,8 +87,9 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     let totalBytes = Int64(model.fileSizeMB) * 1_000_000
     let existingBytes: Int64 = model.allLocalModelPaths.reduce(0) { sum, path in
       guard FileManager.default.fileExists(atPath: path),
-            let attrs = try? FileManager.default.attributesOfItem(atPath: path),
-            let size = (attrs[.size] as? NSNumber)?.int64Value else { return sum }
+        let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+        let size = (attrs[.size] as? NSNumber)?.int64Value
+      else { return sum }
       return sum + size
     }
     let remainingBytes = max(totalBytes - existingBytes, 0)
@@ -102,7 +103,8 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       let alert = NSAlert()
       alert.alertStyle = .warning
       alert.messageText = "Not enough disk space"
-      alert.informativeText = "\(model.displayName) requires \(needStr) free in ~/.llamabarn, but only \(haveStr) is available. Free up space or choose a smaller model."
+      alert.informativeText =
+        "\(model.displayName) requires \(needStr) free in ~/.llamabarn, but only \(haveStr) is available. Free up space or choose a smaller model."
       alert.addButton(withTitle: "OK")
       alert.runModal()
       return
@@ -111,15 +113,17 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     logger.info("Starting download for model: \(model.displayName)")
 
     // Create or reuse aggregate state for this model's downloads
-    var aggregate = activeDownloads[model.id] ?? ActiveDownload(
-      // Start at 0 and grow as we learn expected sizes from the server/filesystem.
-      // Using a fixed catalog estimate can briefly make completed > total when some shards report unknown sizes.
-      progress: Progress(totalUnitCount: 0),
-      tasks: [:],
-      bytesWritten: [:],
-      expectedBytes: [:],
-      totalExpectedBytes: 0
-    )
+    var aggregate =
+      activeDownloads[model.id]
+      ?? ActiveDownload(
+        // Start at 0 and grow as we learn expected sizes from the server/filesystem.
+        // Using a fixed catalog estimate can briefly make completed > total when some shards report unknown sizes.
+        progress: Progress(totalUnitCount: 0),
+        tasks: [:],
+        bytesWritten: [:],
+        expectedBytes: [:],
+        totalExpectedBytes: 0
+      )
 
     // Publish aggregate before starting tasks to avoid race with delegate callbacks
     activeDownloads[model.id] = aggregate
@@ -250,7 +254,9 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     let fileManager = FileManager.default
     let baseDir = URL(fileURLWithPath: model.modelFilePath).deletingLastPathComponent()
     // Place each file by its original filename inside the models directory
-    let filename = downloadTask.originalRequest?.url?.lastPathComponent ?? URL(fileURLWithPath: model.modelFilePath).lastPathComponent
+    let filename =
+      downloadTask.originalRequest?.url?.lastPathComponent
+      ?? URL(fileURLWithPath: model.modelFilePath).lastPathComponent
     let destinationURL = baseDir.appendingPathComponent(filename)
 
     do {
@@ -263,8 +269,9 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       if var aggregate = self.activeDownloads[modelId] {
         aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
         // Determine actual file size and promote to expected if unknown
-        let fileSize = (try? FileManager.default.attributesOfItem(
-          atPath: destinationURL.path)[.size] as? NSNumber)?.int64Value ?? 0
+        let fileSize =
+          (try? FileManager.default.attributesOfItem(
+            atPath: destinationURL.path)[.size] as? NSNumber)?.int64Value ?? 0
         aggregate.bytesWritten[downloadTask.taskIdentifier] = fileSize
         if (aggregate.expectedBytes[downloadTask.taskIdentifier] ?? 0) <= 0 {
           aggregate.expectedBytes[downloadTask.taskIdentifier] = fileSize
@@ -299,7 +306,8 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
   ) {
     // Delegate callbacks are delivered on main; update shared state directly.
     guard let modelId = downloadTask.taskDescription,
-          var download = self.activeDownloads[modelId] else {
+      var download = self.activeDownloads[modelId]
+    else {
       return
     }
     download.bytesWritten[downloadTask.taskIdentifier] = totalBytesWritten

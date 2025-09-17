@@ -25,7 +25,8 @@ enum MenuTypography {
 extension NSView {
   /// Applies or clears the standard hover highlight background on a container view.
   /// Uses dynamic colors resolved for the view’s effective appearance and sets a rounded corner.
-  func lbSetHoverHighlighted(_ highlighted: Bool, cornerRadius: CGFloat = MenuMetrics.cornerRadius) {
+  func lbSetHoverHighlighted(_ highlighted: Bool, cornerRadius: CGFloat = MenuMetrics.cornerRadius)
+  {
     wantsLayer = true
     let color: NSColor = highlighted ? .lbHoverBackground : .clear
     layer?.backgroundColor = NSColor.cgColor(color, in: self)
@@ -39,7 +40,9 @@ extension NSMenuItem {
     let item = NSMenuItem()
     item.isEnabled = false
     item.view = view
-    if let minHeight { view.heightAnchor.constraint(greaterThanOrEqualToConstant: minHeight).isActive = true }
+    if let minHeight {
+      view.heightAnchor.constraint(greaterThanOrEqualToConstant: minHeight).isActive = true
+    }
     return item
   }
 }

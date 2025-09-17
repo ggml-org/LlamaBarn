@@ -17,7 +17,7 @@ enum ModelCatalog {
   // MARK: - New hierarchical catalog
 
   struct ModelBuild {
-    let id: String?              // explicit ID for the leaf (preferred)
+    let id: String?  // explicit ID for the leaf (preferred)
     let quantization: String
     let fileSizeMB: Int
     let downloadUrl: URL
@@ -27,7 +27,8 @@ enum ModelCatalog {
     func asEntry(family: ModelFamily, variant: ModelVariant) -> ModelCatalogEntry {
       let effectiveArgs = (family.serverArgs ?? []) + (variant.serverArgs ?? []) + serverArgs
       return ModelCatalogEntry(
-        id: id ?? ModelCatalog.makeId(family: family.name, variantLabel: variant.label, build: self),
+        id: id
+          ?? ModelCatalog.makeId(family: family.name, variantLabel: variant.label, build: self),
         family: family.name,
         variant: variant.label,
         sizeInBillions: variant.sizeInBillions,
@@ -44,19 +45,19 @@ enum ModelCatalog {
   }
 
   struct ModelVariant {
-    let label: String            // e.g. "4B", "30B"
+    let label: String  // e.g. "4B", "30B"
     let sizeInBillions: Double
     let releaseDate: Date
     let contextLength: Int
-    let serverArgs: [String]?    // optional defaults for all builds
+    let serverArgs: [String]?  // optional defaults for all builds
     let builds: [ModelBuild]
   }
 
   struct ModelFamily {
-    let name: String             // e.g. "Qwen3 2507"
-    let series: String           // e.g. "qwen"
-    let blurb: String            // short one- or two-sentence description
-    let serverArgs: [String]?    // optional defaults for all variants/builds
+    let name: String  // e.g. "Qwen3 2507"
+    let series: String  // e.g. "qwen"
+    let blurb: String  // short one- or two-sentence description
+    let serverArgs: [String]?  // optional defaults for all variants/builds
     let variants: [ModelVariant]
 
     init(
@@ -84,7 +85,8 @@ enum ModelCatalog {
     ModelFamily(
       name: "Qwen3 2507",
       series: "qwen",
-      blurb: "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
+      blurb:
+        "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
       serverArgs: nil,
       variants: [
         ModelVariant(
@@ -98,7 +100,10 @@ enum ModelCatalog {
               id: "qwen3-2507-235b-q8",
               quantization: "Q8_0",
               fileSizeMB: 256_000,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -106,7 +111,10 @@ enum ModelCatalog {
               id: "qwen3-2507-235b",
               quantization: "Q4_K_M",
               fileSizeMB: 114_688,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -123,7 +131,10 @@ enum ModelCatalog {
               id: "qwen3-2507-30b-q8",
               quantization: "Q8_0",
               fileSizeMB: 32_768,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -131,7 +142,10 @@ enum ModelCatalog {
               id: "qwen3-2507-30b",
               quantization: "Q4_K_M",
               fileSizeMB: 15_052,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -148,7 +162,10 @@ enum ModelCatalog {
               id: "qwen3-2507-4b-q8",
               quantization: "Q8_0",
               fileSizeMB: 4_384,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -156,7 +173,10 @@ enum ModelCatalog {
               id: "qwen3-2507-4b",
               quantization: "Q4_K_M",
               fileSizeMB: 2_560,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -168,7 +188,8 @@ enum ModelCatalog {
     ModelFamily(
       name: "GPT-OSS",
       series: "gpt",
-      blurb: "An open, GPT-style instruction-tuned family aimed at general-purpose assistance on local hardware.",
+      blurb:
+        "An open, GPT-style instruction-tuned family aimed at general-purpose assistance on local hardware.",
       // Sliding-window family: use max context by default
       serverArgs: ["-c", "0"],
       variants: [
@@ -183,10 +204,13 @@ enum ModelCatalog {
               id: "gpt-oss-20b-mxfp4",
               quantization: "mxfp4",
               fileSizeMB: 12_390,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-mxfp4.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-mxfp4.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
         ModelVariant(
@@ -200,13 +224,22 @@ enum ModelCatalog {
               id: "gpt-oss-120b-mxfp4",
               quantization: "mxfp4",
               fileSizeMB: 63_387,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00001-of-00003.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00001-of-00003.gguf"
+              )!,
               additionalParts: [
-                URL(string: "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00002-of-00003.gguf")!,
-                URL(string: "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00003-of-00003.gguf")!,
+                URL(
+                  string:
+                    "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00002-of-00003.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00003-of-00003.gguf"
+                )!,
               ],
               serverArgs: []
-            ),
+            )
           ]
         ),
       ]
@@ -215,7 +248,8 @@ enum ModelCatalog {
     ModelFamily(
       name: "Qwen 3 Coder",
       series: "qwen",
-      blurb: "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
+      blurb:
+        "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
       serverArgs: nil,
       variants: [
         ModelVariant(
@@ -229,7 +263,10 @@ enum ModelCatalog {
               id: "qwen3-coder-30b-q8",
               quantization: "Q8_0",
               fileSizeMB: 33_280,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -237,19 +274,23 @@ enum ModelCatalog {
               id: "qwen3-coder-30b",
               quantization: "Q4_K_M",
               fileSizeMB: 19_046,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
           ]
-        ),
+        )
       ]
     ),
     // MARK: Gemma 3n (migrated)
     ModelFamily(
       name: "Gemma 3n",
       series: "gemma",
-      blurb: "Google's efficient Gemma 3n line tuned for on‑device performance with solid instruction following at small scales.",
+      blurb:
+        "Google's efficient Gemma 3n line tuned for on‑device performance with solid instruction following at small scales.",
       // Sliding-window family: force max context and keep Gemma-specific overrides
       serverArgs: ["-c", "0", "-ot", "per_layer_token_embd.weight=CPU", "--no-mmap"],
       variants: [
@@ -264,7 +305,10 @@ enum ModelCatalog {
               id: "gemma-3n-e4b-q8",
               quantization: "Q8_0",
               fileSizeMB: 7_526,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -272,7 +316,10 @@ enum ModelCatalog {
               id: "gemma-3n-e4b",
               quantization: "Q4_K_M",
               fileSizeMB: 4_505,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -289,10 +336,13 @@ enum ModelCatalog {
               id: "gemma-3n-e2b",
               quantization: "Q4_K_M",
               fileSizeMB: 3_103,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
       ]
@@ -301,7 +351,8 @@ enum ModelCatalog {
     ModelFamily(
       name: "Gemma 3",
       series: "gemma",
-      blurb: "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
+      blurb:
+        "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
       serverArgs: nil,
       variants: [
         ModelVariant(
@@ -315,10 +366,13 @@ enum ModelCatalog {
               id: "gemma-3-qat-27b",
               quantization: "Q4_0",
               fileSizeMB: 15_909,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
         ModelVariant(
@@ -332,10 +386,13 @@ enum ModelCatalog {
               id: "gemma-3-qat-12b",
               quantization: "Q4_0",
               fileSizeMB: 7_131,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
         ModelVariant(
@@ -349,10 +406,13 @@ enum ModelCatalog {
               id: "gemma-3-qat-4b",
               quantization: "Q4_0",
               fileSizeMB: 2_526,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
         ModelVariant(
@@ -366,10 +426,13 @@ enum ModelCatalog {
               id: "gemma-3-qat-1b",
               quantization: "Q4_0",
               fileSizeMB: 720,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gemma-3-1b-it-qat-GGUF/resolve/main/gemma-3-1b-it-qat-Q4_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gemma-3-1b-it-qat-GGUF/resolve/main/gemma-3-1b-it-qat-Q4_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
         ModelVariant(
@@ -383,10 +446,13 @@ enum ModelCatalog {
               id: "gemma-3-qat-270m",
               quantization: "Q4_0",
               fileSizeMB: 241,
-              downloadUrl: URL(string: "https://huggingface.co/ggml-org/gemma-3-270m-it-qat-GGUF/resolve/main/gemma-3-270m-it-qat-Q4_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/ggml-org/gemma-3-270m-it-qat-GGUF/resolve/main/gemma-3-270m-it-qat-Q4_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
       ]
@@ -395,7 +461,8 @@ enum ModelCatalog {
     ModelFamily(
       name: "Qwen3 2507 Thinking",
       series: "qwen",
-      blurb: "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
+      blurb:
+        "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
       serverArgs: nil,
       variants: [
         ModelVariant(
@@ -409,7 +476,10 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-235b-q8",
               quantization: "Q8_0",
               fileSizeMB: 256_000,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -417,7 +487,10 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-235b",
               quantization: "Q4_K_M",
               fileSizeMB: 114_688,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -434,7 +507,10 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-30b-q8",
               quantization: "Q8_0",
               fileSizeMB: 32_768,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -442,7 +518,10 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-30b",
               quantization: "Q4_K_M",
               fileSizeMB: 15_052,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -459,7 +538,10 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-4b-q8",
               quantization: "Q8_0",
               fileSizeMB: 4_384,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -467,7 +549,10 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-4b",
               quantization: "Q4_K_M",
               fileSizeMB: 2_560,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -479,7 +564,8 @@ enum ModelCatalog {
     ModelFamily(
       name: "DeepSeek R1 0528",
       series: "deepseek",
-      blurb: "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
+      blurb:
+        "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
       serverArgs: nil,
       variants: [
         ModelVariant(
@@ -493,7 +579,10 @@ enum ModelCatalog {
               id: "deepseek-r1-0528-qwen3-8b-q8",
               quantization: "Q8_0",
               fileSizeMB: 8_934,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
@@ -501,12 +590,15 @@ enum ModelCatalog {
               id: "deepseek-r1-0528-qwen3-8b",
               quantization: "Q4_K_M",
               fileSizeMB: 5_151,
-              downloadUrl: URL(string: "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf")!,
+              downloadUrl: URL(
+                string:
+                  "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf"
+              )!,
               additionalParts: nil,
               serverArgs: []
             ),
           ]
-        ),
+        )
       ]
     ),
   ]
@@ -514,7 +606,8 @@ enum ModelCatalog {
   // MARK: - ID + flatten helpers
 
   private static func slug(_ s: String) -> String {
-    return s
+    return
+      s
       .lowercased()
       .replacingOccurrences(of: " ", with: "-")
       .replacingOccurrences(of: "/", with: "-")
@@ -663,5 +756,4 @@ enum ModelCatalog {
     return "requires \(gbStringCeilPlus(requiredTotalMB)) of memory"
   }
 
-  
 }

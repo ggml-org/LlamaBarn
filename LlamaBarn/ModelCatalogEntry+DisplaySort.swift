@@ -8,4 +8,3 @@ extension ModelCatalogEntry {
     return lhs.sizeInBillions < rhs.sizeInBillions
   }
 }
-

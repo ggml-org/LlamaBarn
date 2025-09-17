@@ -27,7 +27,8 @@ extension NSColor {
 
   /// Stronger separator for higher contrast than `.separatorColor`.
   /// Slightly darker in light mode and slightly brighter in dark mode.
-  static let lbStrongSeparator: NSColor = NSColor(name: NSColor.Name("lbStrongSeparator")) { appearance in
+  static let lbStrongSeparator: NSColor = NSColor(name: NSColor.Name("lbStrongSeparator")) {
+    appearance in
     let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     if isDark(appearance) {
       // Stronger/light-on-dark; bump further when Increase Contrast is on
@@ -39,7 +40,8 @@ extension NSColor {
   }
 
   /// Hover background for interactive rows.
-  static let lbHoverBackground: NSColor = NSColor(name: NSColor.Name("lbHoverBackground")) { appearance in
+  static let lbHoverBackground: NSColor = NSColor(name: NSColor.Name("lbHoverBackground")) {
+    appearance in
     let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     let lightAlpha: CGFloat = increaseContrast ? 0.08 : 0.06  // black on light background
     let darkAlpha: CGFloat = increaseContrast ? 0.14 : 0.11  // white on dark background
@@ -50,7 +52,8 @@ extension NSColor {
 
   /// Neutral circular badge background for inactive icons.
   /// Slightly stronger than the hover background so the shape reads as a chip.
-  static let lbBadgeBackground: NSColor = NSColor(name: NSColor.Name("lbBadgeBackground")) { appearance in
+  static let lbBadgeBackground: NSColor = NSColor(name: NSColor.Name("lbBadgeBackground")) {
+    appearance in
     let increaseContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     // Even fainter; still visible enough to suggest a chip.
     let lightAlpha: CGFloat = increaseContrast ? 0.08 : 0.05

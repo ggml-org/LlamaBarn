@@ -28,4 +28,3 @@ enum DiskSpace {
     return formatter.string(fromByteCount: bytes)
   }
 }
-

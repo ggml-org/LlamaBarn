@@ -8,7 +8,8 @@ enum SystemMemory {
   private static let cachedMemoryBytes: UInt64 = {
     // Check for simulated memory override (for testing different memory configurations)
     if let simulatedGB = ProcessInfo.processInfo.environment["BARN_SIMULATE_MEM_GB"],
-       let gb = Double(simulatedGB), gb > 0 {
+      let gb = Double(simulatedGB), gb > 0
+    {
       return UInt64(gb * 1024 * 1024 * 1024)
     }
     var size = MemoryLayout<UInt64>.size

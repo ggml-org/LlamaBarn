@@ -81,4 +81,3 @@ class MenuRowView: NSView {
     hoverHighlightDidChange(highlighted)
   }
 }
-

@@ -106,7 +106,8 @@ extension AppDelegate: SPUStandardUserDriverDelegate {
 
 extension AppDelegate: SPUUpdaterDelegate {
   func updater(_ updater: SPUUpdater, didFailToCheckForUpdatesWithError error: Error) {
-    logger.error("Sparkle: failed to check updates: \(error.localizedDescription, privacy: .public)")
+    logger.error(
+      "Sparkle: failed to check updates: \(error.localizedDescription, privacy: .public)")
   }
 }
 

@@ -7,7 +7,8 @@ final class HeaderMenuItemView: NSView {
   private unowned let server: LlamaServer
   private let titleLabel = NSTextField(labelWithString: "")
   private let subtitleLabel = NSTextField(labelWithString: "")
-  private lazy var subtitleClickRecognizer = NSClickGestureRecognizer(target: self, action: #selector(openServerURL))
+  private lazy var subtitleClickRecognizer = NSClickGestureRecognizer(
+    target: self, action: #selector(openServerURL))
   private let backgroundView = NSView()
   private let quitButton = NSButton()
   private let settingsButton = NSButton()
@@ -85,11 +86,12 @@ final class HeaderMenuItemView: NSView {
     h.spacing = 8
     h.translatesAutoresizingMaskIntoConstraints = false
     h.addArrangedSubview(stack)
-    h.addArrangedSubview(NSView()) // flexible spacer
+    h.addArrangedSubview(NSView())  // flexible spacer
     h.addArrangedSubview(settingsButton)
     h.addArrangedSubview(quitButton)
     (h.arrangedSubviews[1] as? NSView)?.setContentHuggingPriority(.defaultLow, for: .horizontal)
-    (h.arrangedSubviews[1] as? NSView)?.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    (h.arrangedSubviews[1] as? NSView)?.setContentCompressionResistancePriority(
+      .defaultLow, for: .horizontal)
 
     addSubview(backgroundView)
     backgroundView.addSubview(h)
@@ -128,17 +130,20 @@ final class HeaderMenuItemView: NSView {
       let linkText = "localhost:\(LlamaServer.defaultPort)"
       let full = base + linkText
 
-      let attributed = NSMutableAttributedString(string: full, attributes: [
-        .font: MenuTypography.secondary,
-        .foregroundColor: NSColor.labelColor,
-      ])
+      let attributed = NSMutableAttributedString(
+        string: full,
+        attributes: [
+          .font: MenuTypography.secondary,
+          .foregroundColor: NSColor.labelColor,
+        ])
       // Make just the host:port look like a link.
       if let range = full.range(of: linkText) {
         let nsRange = NSRange(range, in: full)
-        attributed.addAttributes([
-          .foregroundColor: NSColor.linkColor,
-          .underlineStyle: NSUnderlineStyle.single.rawValue,
-        ], range: nsRange)
+        attributed.addAttributes(
+          [
+            .foregroundColor: NSColor.linkColor,
+            .underlineStyle: NSUnderlineStyle.single.rawValue,
+          ], range: nsRange)
       }
       subtitleLabel.attributedStringValue = attributed
       subtitleLabel.toolTip = "Open llama-server"

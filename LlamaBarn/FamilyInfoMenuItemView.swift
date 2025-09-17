@@ -42,7 +42,7 @@ final class FamilyInfoMenuItemView: NSView {
     metaLabel.translatesAutoresizingMaskIntoConstraints = false
     metaLabel.font = MenuTypography.secondary
     metaLabel.textColor = .tertiaryLabelColor
-    metaLabel.stringValue = "" // We now use chips for metadata; keep this for future copy if needed.
+    metaLabel.stringValue = ""  // We now use chips for metadata; keep this for future copy if needed.
     metaLabel.isHidden = true
 
     descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -72,16 +72,20 @@ final class FamilyInfoMenuItemView: NSView {
     container.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      container.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MenuMetrics.outerHorizontalPadding),
-      container.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuMetrics.outerHorizontalPadding),
+      container.leadingAnchor.constraint(
+        equalTo: leadingAnchor, constant: MenuMetrics.outerHorizontalPadding),
+      container.trailingAnchor.constraint(
+        equalTo: trailingAnchor, constant: -MenuMetrics.outerHorizontalPadding),
       container.topAnchor.constraint(equalTo: topAnchor),
       container.bottomAnchor.constraint(equalTo: bottomAnchor),
 
       iconView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
       iconView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
 
-      hStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: MenuMetrics.innerHorizontalPadding),
-      hStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -MenuMetrics.innerHorizontalPadding),
+      hStack.leadingAnchor.constraint(
+        equalTo: container.leadingAnchor, constant: MenuMetrics.innerHorizontalPadding),
+      hStack.trailingAnchor.constraint(
+        equalTo: container.trailingAnchor, constant: -MenuMetrics.innerHorizontalPadding),
       hStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
       hStack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6),
     ])
@@ -89,7 +93,7 @@ final class FamilyInfoMenuItemView: NSView {
 }
 
 // Simple rounded chip used for metadata in the family info view.
-  private final class ChipView: NSView {
+private final class ChipView: NSView {
   private let label = NSTextField(labelWithString: "")
   private let paddingX: CGFloat = 6
   private let paddingY: CGFloat = 2
