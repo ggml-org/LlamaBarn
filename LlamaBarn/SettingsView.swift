@@ -13,10 +13,12 @@ struct SettingsView: View {
     VStack(alignment: .leading, spacing: 24) {
       VStack(alignment: .leading, spacing: 12) {
         Toggle("Launch at Login", isOn: $launchAtLogin)
+          .toggleStyle(SwitchToggleStyle())
           .onChange(of: launchAtLogin) { _, newValue in
             LaunchAtLogin.isEnabled = newValue
           }
         Toggle("Show quantized model variants", isOn: $showQuantizedVariants)
+          .toggleStyle(SwitchToggleStyle())
           .onChange(of: showQuantizedVariants) { _, newValue in
             UserSettings.showQuantizedVariants = newValue
           }
