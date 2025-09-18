@@ -14,6 +14,7 @@ Download the latest version from [Releases ↗](https://github.com/ggml-org/Llam
 
 - **Simple.** Just a thin (`12 MB`) wrapper around `llama.cpp` for minimal resource usage and instant startup.
 - **Native.** Built with macOS technologies and UI patterns for seamless integration and familiar interactions.
+- **Hardware-aware.** Suggests models and uses configurations based on your Mac's hardware.
 - **Easy to use.** Run, manage, and monitor models directly from your macOS menu bar -- no setup or technical steps required.
 - **Easy to develop for.** Connect your own applications via a familiar REST API.
 - **Free and open source.** Licensed under the `MIT License`.
