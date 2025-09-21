@@ -31,7 +31,6 @@ enum ModelCatalog {
           ?? ModelCatalog.makeId(family: family.name, variantLabel: variant.label, build: self),
         family: family.name,
         variant: variant.label,
-        sizeInBillions: variant.sizeInBillions,
         releaseDate: variant.releaseDate,
         contextLength: variant.contextLength,
         fileSizeMB: fileSizeMB,
@@ -46,7 +45,6 @@ enum ModelCatalog {
 
   struct ModelVariant {
     let label: String  // e.g. "4B", "30B"
-    let sizeInBillions: Double
     let releaseDate: Date
     let contextLength: Int
     let serverArgs: [String]?  // optional defaults for all builds
@@ -91,7 +89,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "235B",
-          sizeInBillions: 235,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -122,7 +119,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "30B",
-          sizeInBillions: 30,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -153,7 +149,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "4B",
-          sizeInBillions: 4,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -195,7 +190,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "20B",
-          sizeInBillions: 20,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -215,7 +209,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "120B",
-          sizeInBillions: 120,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -254,7 +247,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "30B",
-          sizeInBillions: 30,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 31))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -296,7 +288,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "E4B",
-          sizeInBillions: 4,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 15))!,
           contextLength: 32_768,
           serverArgs: nil,
@@ -327,7 +318,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "E2B",
-          sizeInBillions: 1,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 1))!,
           contextLength: 32_768,
           serverArgs: nil,
@@ -353,7 +343,7 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            )
+            ),
           ]
         ),
       ]
@@ -368,7 +358,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "27B",
-          sizeInBillions: 27,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 24))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -388,7 +377,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "12B",
-          sizeInBillions: 12,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 21))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -408,7 +396,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "4B",
-          sizeInBillions: 4,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 22))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -428,7 +415,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "1B",
-          sizeInBillions: 1,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 27))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -448,7 +434,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "270M",
-          sizeInBillions: 0.27,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 14))!,
           contextLength: 32_768,
           serverArgs: nil,
@@ -478,7 +463,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "235B",
-          sizeInBillions: 235,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -509,7 +493,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "30B",
-          sizeInBillions: 30,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -540,7 +523,6 @@ enum ModelCatalog {
         ),
         ModelVariant(
           label: "4B",
-          sizeInBillions: 4,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
@@ -581,7 +563,6 @@ enum ModelCatalog {
       variants: [
         ModelVariant(
           label: "8B",
-          sizeInBillions: 8,
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 5, day: 29))!,
           contextLength: 131_072,
           serverArgs: nil,
@@ -670,7 +651,6 @@ enum ModelCatalog {
 
         return ModelVariant(
           label: variant.label,
-          sizeInBillions: variant.sizeInBillions,
           releaseDate: variant.releaseDate,
           contextLength: variant.contextLength,
           serverArgs: variant.serverArgs,

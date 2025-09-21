@@ -5,7 +5,6 @@ struct ModelCatalogEntry: Identifiable, Codable {
   let id: String  // Unique identifier for the model
   let family: String  // Model family name (e.g., "Qwen 3", "Gemma 3n")
   let variant: String  // Size/variant identifier (e.g., "8B", "E4B")
-  let sizeInBillions: Double  // Number of parameters in billions
   let releaseDate: Date  // Model release date
   let contextLength: Int  // Maximum context length in tokens
   let fileSizeMB: Int  // File size for progress tracking and display
@@ -21,7 +20,6 @@ struct ModelCatalogEntry: Identifiable, Codable {
     id: String,
     family: String,
     variant: String,
-    sizeInBillions: Double,
     releaseDate: Date,
     contextLength: Int,
     fileSizeMB: Int,
@@ -34,7 +32,6 @@ struct ModelCatalogEntry: Identifiable, Codable {
     self.id = id
     self.family = family
     self.variant = variant
-    self.sizeInBillions = sizeInBillions
     self.releaseDate = releaseDate
     self.contextLength = contextLength
     self.fileSizeMB = fileSizeMB
