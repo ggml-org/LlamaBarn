@@ -99,9 +99,30 @@ enum ModelCatalog {
               fileSizeMB: 256_000,
               downloadUrl: URL(
                 string:
-                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q8_0.gguf"
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00001-of-00006.gguf"
               )!,
-              additionalParts: nil,
+              additionalParts: [
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00002-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00003-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00004-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00005-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00006-of-00006.gguf"
+                )!,
+              ],
               serverArgs: []
             ),
             ModelBuild(
@@ -110,9 +131,18 @@ enum ModelCatalog {
               fileSizeMB: 114_688,
               downloadUrl: URL(
                 string:
-                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Qwen3-235B-A22B-Instruct-2507-Q4_K_M.gguf"
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Instruct-2507-Q4_K_M-00001-of-00003.gguf"
               )!,
-              additionalParts: nil,
+              additionalParts: [
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Instruct-2507-Q4_K_M-00002-of-00003.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Instruct-2507-Q4_K_M-00003-of-00003.gguf"
+                )!,
+              ],
               serverArgs: []
             ),
           ]
@@ -298,7 +328,7 @@ enum ModelCatalog {
               fileSizeMB: 7_526,
               downloadUrl: URL(
                 string:
-                  "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf"
+                  "https://huggingface.co/ggml-org/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf"
               )!,
               additionalParts: nil,
               serverArgs: []
@@ -306,7 +336,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3n-e4b",
               quantization: "Q4_K_M",
-              fileSizeMB: 4_505,
+              fileSizeMB: 4_659,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q4_K_M.gguf"
@@ -328,7 +358,7 @@ enum ModelCatalog {
               fileSizeMB: 4_909,
               downloadUrl: URL(
                 string:
-                  "https://huggingface.co/unsloth/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q8_0.gguf"
+                  "https://huggingface.co/ggml-org/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q8_0.gguf"
               )!,
               additionalParts: nil,
               serverArgs: []
@@ -473,9 +503,30 @@ enum ModelCatalog {
               fileSizeMB: 256_000,
               downloadUrl: URL(
                 string:
-                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q8_0.gguf"
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00001-of-00006.gguf"
               )!,
-              additionalParts: nil,
+              additionalParts: [
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00002-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00003-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00004-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00005-of-00006.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00006-of-00006.gguf"
+                )!,
+              ],
               serverArgs: []
             ),
             ModelBuild(
@@ -484,9 +535,18 @@ enum ModelCatalog {
               fileSizeMB: 114_688,
               downloadUrl: URL(
                 string:
-                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Qwen3-235B-A22B-Thinking-2507-Q4_K_M.gguf"
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Thinking-2507-Q4_K_M-00001-of-00003.gguf"
               )!,
-              additionalParts: nil,
+              additionalParts: [
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Thinking-2507-Q4_K_M-00002-of-00003.gguf"
+                )!,
+                URL(
+                  string:
+                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Thinking-2507-Q4_K_M-00003-of-00003.gguf"
+                )!,
+              ],
               serverArgs: []
             ),
           ]
