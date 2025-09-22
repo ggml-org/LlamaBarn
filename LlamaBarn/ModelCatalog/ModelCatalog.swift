@@ -20,6 +20,8 @@ enum ModelCatalog {
     let id: String?  // explicit ID for the leaf (preferred)
     let quantization: String
     let fileSizeMB: Int
+    /// Estimated KV-cache bytes needed for a 1k-token context.
+    let ctxFootprintBytes: Int
     let downloadUrl: URL
     let additionalParts: [URL]?
     let serverArgs: [String]
@@ -34,6 +36,7 @@ enum ModelCatalog {
         releaseDate: variant.releaseDate,
         contextLength: variant.contextLength,
         fileSizeMB: fileSizeMB,
+        ctxFootprintBytes: ctxFootprintBytes,
         downloadUrl: downloadUrl,
         additionalParts: additionalParts,
         serverArgs: effectiveArgs,
@@ -97,6 +100,7 @@ enum ModelCatalog {
               id: "qwen3-2507-235b-q8",
               quantization: "Q8_0",
               fileSizeMB: 256_000,
+              ctxFootprintBytes: 197_132_288,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00001-of-00006.gguf"
@@ -129,6 +133,7 @@ enum ModelCatalog {
               id: "qwen3-2507-235b",
               quantization: "Q4_K_M",
               fileSizeMB: 114_688,
+              ctxFootprintBytes: 197_132_288,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Instruct-2507-Q4_K_M-00001-of-00003.gguf"
@@ -157,6 +162,7 @@ enum ModelCatalog {
               id: "qwen3-2507-30b-q8",
               quantization: "Q8_0",
               fileSizeMB: 32_768,
+              ctxFootprintBytes: 100_663_296,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf"
@@ -168,6 +174,7 @@ enum ModelCatalog {
               id: "qwen3-2507-30b",
               quantization: "Q4_K_M",
               fileSizeMB: 15_052,
+              ctxFootprintBytes: 100_663_296,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
@@ -187,6 +194,7 @@ enum ModelCatalog {
               id: "qwen3-2507-4b-q8",
               quantization: "Q8_0",
               fileSizeMB: 4_384,
+              ctxFootprintBytes: 150_994_944,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q8_0.gguf"
@@ -198,6 +206,7 @@ enum ModelCatalog {
               id: "qwen3-2507-4b",
               quantization: "Q4_K_M",
               fileSizeMB: 2_560,
+              ctxFootprintBytes: 150_994_944,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
@@ -228,6 +237,7 @@ enum ModelCatalog {
               id: "gpt-oss-20b-mxfp4",
               quantization: "mxfp4",
               fileSizeMB: 12_390,
+              ctxFootprintBytes: 25_165_824,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-mxfp4.gguf"
@@ -247,6 +257,7 @@ enum ModelCatalog {
               id: "gpt-oss-120b-mxfp4",
               quantization: "mxfp4",
               fileSizeMB: 63_387,
+              ctxFootprintBytes: 37_748_736,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00001-of-00003.gguf"
@@ -285,6 +296,7 @@ enum ModelCatalog {
               id: "qwen3-coder-30b-q8",
               quantization: "Q8_0",
               fileSizeMB: 33_280,
+              ctxFootprintBytes: 100_663_296,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf"
@@ -296,6 +308,7 @@ enum ModelCatalog {
               id: "qwen3-coder-30b",
               quantization: "Q4_K_M",
               fileSizeMB: 19_046,
+              ctxFootprintBytes: 100_663_296,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf"
@@ -326,6 +339,7 @@ enum ModelCatalog {
               id: "gemma-3n-e4b-q8",
               quantization: "Q8_0",
               fileSizeMB: 7_526,
+              ctxFootprintBytes: 14_680_064,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf"
@@ -337,6 +351,7 @@ enum ModelCatalog {
               id: "gemma-3n-e4b",
               quantization: "Q4_K_M",
               fileSizeMB: 4_659,
+              ctxFootprintBytes: 14_680_064,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q4_K_M.gguf"
@@ -356,6 +371,7 @@ enum ModelCatalog {
               id: "gemma-3n-e2b-q8",
               quantization: "Q8_0",
               fileSizeMB: 4_909,
+              ctxFootprintBytes: 12_582_912,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q8_0.gguf"
@@ -367,6 +383,7 @@ enum ModelCatalog {
               id: "gemma-3n-e2b",
               quantization: "Q4_K_M",
               fileSizeMB: 3_103,
+              ctxFootprintBytes: 12_582_912,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q4_K_M.gguf"
@@ -396,6 +413,7 @@ enum ModelCatalog {
               id: "gemma-3-qat-27b",
               quantization: "Q4_0",
               fileSizeMB: 15_909,
+              ctxFootprintBytes: 83_886_080,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
@@ -415,6 +433,7 @@ enum ModelCatalog {
               id: "gemma-3-qat-12b",
               quantization: "Q4_0",
               fileSizeMB: 7_131,
+              ctxFootprintBytes: 67_108_864,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
@@ -434,6 +453,7 @@ enum ModelCatalog {
               id: "gemma-3-qat-4b",
               quantization: "Q4_0",
               fileSizeMB: 2_526,
+              ctxFootprintBytes: 20_971_520,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
@@ -453,6 +473,7 @@ enum ModelCatalog {
               id: "gemma-3-qat-1b",
               quantization: "Q4_0",
               fileSizeMB: 720,
+              ctxFootprintBytes: 4_194_304,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3-1b-it-qat-GGUF/resolve/main/gemma-3-1b-it-qat-Q4_0.gguf"
@@ -472,6 +493,7 @@ enum ModelCatalog {
               id: "gemma-3-qat-270m",
               quantization: "Q4_0",
               fileSizeMB: 241,
+              ctxFootprintBytes: 3_145_728,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/ggml-org/gemma-3-270m-it-qat-GGUF/resolve/main/gemma-3-270m-it-qat-Q4_0.gguf"
@@ -501,6 +523,7 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-235b-q8",
               quantization: "Q8_0",
               fileSizeMB: 256_000,
+              ctxFootprintBytes: 197_132_288,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00001-of-00006.gguf"
@@ -533,6 +556,7 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-235b",
               quantization: "Q4_K_M",
               fileSizeMB: 114_688,
+              ctxFootprintBytes: 197_132_288,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Thinking-2507-Q4_K_M-00001-of-00003.gguf"
@@ -561,6 +585,7 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-30b-q8",
               quantization: "Q8_0",
               fileSizeMB: 32_768,
+              ctxFootprintBytes: 100_663_296,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf"
@@ -572,6 +597,7 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-30b",
               quantization: "Q4_K_M",
               fileSizeMB: 15_052,
+              ctxFootprintBytes: 100_663_296,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/resolve/main/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf"
@@ -591,6 +617,7 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-4b-q8",
               quantization: "Q8_0",
               fileSizeMB: 4_384,
+              ctxFootprintBytes: 150_994_944,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q8_0.gguf"
@@ -602,6 +629,7 @@ enum ModelCatalog {
               id: "qwen3-2507-thinking-4b",
               quantization: "Q4_K_M",
               fileSizeMB: 2_560,
+              ctxFootprintBytes: 150_994_944,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf"
@@ -631,6 +659,7 @@ enum ModelCatalog {
               id: "deepseek-r1-0528-qwen3-8b-q8",
               quantization: "Q8_0",
               fileSizeMB: 8_934,
+              ctxFootprintBytes: 150_994_944,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf"
@@ -642,6 +671,7 @@ enum ModelCatalog {
               id: "deepseek-r1-0528-qwen3-8b",
               quantization: "Q4_K_M",
               fileSizeMB: 5_151,
+              ctxFootprintBytes: 150_994_944,
               downloadUrl: URL(
                 string:
                   "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf"

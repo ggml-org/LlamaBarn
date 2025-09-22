@@ -8,6 +8,9 @@ struct ModelCatalogEntry: Identifiable, Codable {
   let releaseDate: Date  // Model release date
   let contextLength: Int  // Maximum context length in tokens
   let fileSizeMB: Int  // File size for progress tracking and display
+  /// Estimated KV-cache footprint for a 1k-token context, in bytes.
+  /// This helps us preflight memory requirements before launching llama-server.
+  let ctxFootprintBytes: Int
   let downloadUrl: URL  // Remote download URL
   /// Optional additional model shards. When present, the first shard in `downloadUrl`
   /// should be passed to `--model` and llama-server will discover the rest in the same directory.
@@ -23,6 +26,7 @@ struct ModelCatalogEntry: Identifiable, Codable {
     releaseDate: Date,
     contextLength: Int,
     fileSizeMB: Int,
+    ctxFootprintBytes: Int,
     downloadUrl: URL,
     additionalParts: [URL]? = nil,
     serverArgs: [String],
@@ -35,6 +39,7 @@ struct ModelCatalogEntry: Identifiable, Codable {
     self.releaseDate = releaseDate
     self.contextLength = contextLength
     self.fileSizeMB = fileSizeMB
+    self.ctxFootprintBytes = ctxFootprintBytes
     self.downloadUrl = downloadUrl
     self.additionalParts = additionalParts
     self.serverArgs = serverArgs
