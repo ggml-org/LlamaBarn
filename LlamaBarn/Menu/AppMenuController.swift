@@ -320,6 +320,18 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       if let famView = menuItem.view as? FamilyHeaderMenuItemView { famView.refresh() }
     }
 
+    if let menu = statusItem.menu, let range = installedSectionRange(in: menu) {
+      let staleModels: [ModelCatalogEntry] = menu.items[range].compactMap { item in
+        guard
+          let id = item.representedObject as? NSString,
+          let entry = ModelCatalog.entry(forId: id as String)
+        else { return nil }
+        if case .available = modelManager.getModelStatus(entry) { return entry }
+        return nil
+      }
+      staleModels.forEach { removeInstalledRow(for: $0) }
+    }
+
     // While any model is downloading, ensure the Installed placeholder is hidden.
     if let menu = statusItem.menu, !modelManager.activeDownloads.isEmpty,
       let range = installedSectionRange(in: menu),

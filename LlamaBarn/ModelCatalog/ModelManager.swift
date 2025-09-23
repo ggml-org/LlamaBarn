@@ -251,6 +251,21 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       return
     }
 
+    // Ensure the transfer succeeded; Hugging Face returns 404 bodies with "Entry not found".
+    if let httpResponse = downloadTask.response as? HTTPURLResponse,
+      !(200...299).contains(httpResponse.statusCode)
+    {
+      handleDownloadFailure(
+        modelId: modelId,
+        model: model,
+        task: downloadTask,
+        tempLocation: location,
+        destinationURL: nil,
+        reason: "HTTP \(httpResponse.statusCode)"
+      )
+      return
+    }
+
     let fileManager = FileManager.default
     let baseDir = URL(fileURLWithPath: model.modelFilePath).deletingLastPathComponent()
     // Place each file by its original filename inside the models directory
@@ -265,13 +280,29 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
       }
       try fileManager.moveItem(at: location, to: destinationURL)
 
+      // Guard against tiny placeholder files that slipped past network validation
+      let fileSize =
+        (try? FileManager.default.attributesOfItem(
+          atPath: destinationURL.path)[.size] as? NSNumber)?.int64Value ?? 0
+      let tenMB: Int64 = 10 * 1_048_576
+      let minAcceptableBytes = min(model.fileSize / 2, tenMB)  // cap safeguard at ~10 MB
+      let minThreshold = max(Int64(1_048_576), minAcceptableBytes)  // require at least ~1 MB
+      if fileSize <= minThreshold {
+        try? fileManager.removeItem(at: destinationURL)
+        handleDownloadFailure(
+          modelId: modelId,
+          model: model,
+          task: downloadTask,
+          tempLocation: nil,
+          destinationURL: destinationURL,
+          reason: "file too small (\(fileSize) B)"
+        )
+        return
+      }
+
       // Mark this task as finished and finalize its byte counts (delegate already on main)
       if var aggregate = self.activeDownloads[modelId] {
         aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
-        // Determine actual file size and promote to expected if unknown
-        let fileSize =
-          (try? FileManager.default.attributesOfItem(
-            atPath: destinationURL.path)[.size] as? NSNumber)?.int64Value ?? 0
         aggregate.bytesWritten[downloadTask.taskIdentifier] = fileSize
         if (aggregate.expectedBytes[downloadTask.taskIdentifier] ?? 0) <= 0 {
           aggregate.expectedBytes[downloadTask.taskIdentifier] = fileSize
@@ -298,6 +329,40 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
         if aggregate.tasks.isEmpty { self.activeDownloads.removeValue(forKey: modelId) }
       }
     }
+  }
+
+  private func handleDownloadFailure(
+    modelId: String,
+    model: ModelCatalogEntry,
+    task: URLSessionDownloadTask,
+    tempLocation: URL?,
+    destinationURL: URL?,
+    reason: String
+  ) {
+    // Clean up temporary and destination files, ignoring errors.
+    let fileManager = FileManager.default
+    if let tempLocation {
+      try? fileManager.removeItem(at: tempLocation)
+    }
+    if let destinationURL, fileManager.fileExists(atPath: destinationURL.path) {
+      try? fileManager.removeItem(at: destinationURL)
+    }
+
+    logger.error("Model download failed (\(reason)) for model: \(model.displayName)")
+
+    if var aggregate = self.activeDownloads[modelId] {
+      // Stop any outstanding tasks so we don't keep downloading shards after a hard failure.
+      for (id, otherTask) in aggregate.tasks where id != task.taskIdentifier {
+        otherTask.cancel()
+      }
+      aggregate.tasks.removeAll()
+      aggregate.bytesWritten.removeAll()
+      aggregate.expectedBytes.removeAll()
+      self.activeDownloads.removeValue(forKey: modelId)
+    }
+
+    downloadUpdateTrigger += 1
+    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 
   func urlSession(
