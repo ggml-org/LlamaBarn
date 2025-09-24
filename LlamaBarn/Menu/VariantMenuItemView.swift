@@ -12,6 +12,15 @@ final class VariantMenuItemView: MenuRowView {
     return image
   }()
 
+  private static let memorySymbol: NSImage? = {
+    guard
+      let image = NSImage(systemSymbolName: "memorychip", accessibilityDescription: nil)?
+        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+    else { return nil }
+    image.isTemplate = true
+    return image
+  }()
+
   private let model: ModelCatalogEntry
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
@@ -22,6 +31,8 @@ final class VariantMenuItemView: MenuRowView {
   private let sizeLabel = NSTextField(labelWithString: "")
   private let separatorLabel = NSTextField(labelWithString: "•")
   private let ctxLabel = NSTextField(labelWithString: "")
+  private let memorySeparatorLabel = NSTextField(labelWithString: "•")
+  private let memoryLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
   private let installedChip = ChipView(text: "Installed")
   // Background handled by MenuRowView
@@ -69,7 +80,7 @@ final class VariantMenuItemView: MenuRowView {
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
-    let labels = [sizeLabel, ctxLabel]
+    let labels = [sizeLabel, ctxLabel, memoryLabel]
     for label in labels {
       label.font = MenuTypography.secondary
       label.textColor = .secondaryLabelColor
@@ -77,15 +88,20 @@ final class VariantMenuItemView: MenuRowView {
       label.translatesAutoresizingMaskIntoConstraints = false
     }
 
-    separatorLabel.font = MenuTypography.secondary
-    separatorLabel.textColor = .tertiaryLabelColor
-    separatorLabel.translatesAutoresizingMaskIntoConstraints = false
+    let separators = [separatorLabel, memorySeparatorLabel]
+    for separator in separators {
+      separator.font = MenuTypography.secondary
+      separator.textColor = .tertiaryLabelColor
+      separator.translatesAutoresizingMaskIntoConstraints = false
+    }
 
     infoRow.orientation = .horizontal
     infoRow.spacing = 4
     infoRow.alignment = .centerY
     infoRow.translatesAutoresizingMaskIntoConstraints = false
     infoRow.addArrangedSubview(sizeLabel)
+    infoRow.addArrangedSubview(memorySeparatorLabel)
+    infoRow.addArrangedSubview(memoryLabel)
     infoRow.addArrangedSubview(separatorLabel)
     infoRow.addArrangedSubview(ctxLabel)
 
@@ -169,6 +185,7 @@ final class VariantMenuItemView: MenuRowView {
 
     let sizeString = model.totalSize
     ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(model.contextLength))"
+    let memoryEstimate = makeMemoryEstimateString(for: model)
 
     if !compatible {
       let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
@@ -194,6 +211,19 @@ final class VariantMenuItemView: MenuRowView {
       sizeString: sizeString, color: infoColor)
     separatorLabel.textColor = infoColor
     ctxLabel.textColor = infoColor
+    memorySeparatorLabel.textColor = infoColor
+    memoryLabel.textColor = infoColor
+
+    if let memoryEstimate {
+      memoryLabel.attributedStringValue = makeMemoryAttributedString(
+        memoryString: memoryEstimate, color: infoColor)
+      memoryLabel.isHidden = false
+      memorySeparatorLabel.isHidden = false
+    } else {
+      memoryLabel.stringValue = ""
+      memoryLabel.isHidden = true
+      memorySeparatorLabel.isHidden = true
+    }
 
     progressLabel.stringValue = ""
     switch status {
@@ -251,6 +281,48 @@ final class VariantMenuItemView: MenuRowView {
     let result = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment))
     result.append(NSAttributedString(string: " \(sizeString)", attributes: textAttributes))
+    result.addAttribute(
+      .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
+    return result
+  }
+
+  private func makeMemoryEstimateString(for model: ModelCatalogEntry) -> String? {
+    guard model.ctxFootprint > 0, model.contextLength > 0 else { return nil }
+
+    let baseBytes = Double(model.fileSize)
+    let ctxScale = Double(model.contextLength) / 1_000.0
+    let ctxBytes = Double(model.ctxFootprint) * ctxScale
+    let totalBytes = baseBytes + ctxBytes
+    guard totalBytes.isFinite, totalBytes > 0 else { return nil }
+
+    let totalGB = totalBytes / 1_000_000_000.0
+    let formatted: String
+    if totalGB >= 10 {
+      formatted = String(format: "%.0f GB", totalGB)
+    } else {
+      formatted = String(format: "%.1f GB", totalGB)
+    }
+    return formatted
+  }
+
+  private func makeMemoryAttributedString(memoryString: String, color: NSColor)
+    -> NSAttributedString
+  {
+    let textAttributes: [NSAttributedString.Key: Any] = [
+      .font: MenuTypography.secondary,
+      .foregroundColor: color,
+    ]
+    guard let icon = Self.memorySymbol else {
+      return NSAttributedString(string: memoryString, attributes: textAttributes)
+    }
+
+    let attachment = NSTextAttachment()
+    attachment.image = icon
+    attachment.bounds = CGRect(x: 0, y: -1, width: icon.size.width, height: icon.size.height)
+
+    let result = NSMutableAttributedString(
+      attributedString: NSAttributedString(attachment: attachment))
+    result.append(NSAttributedString(string: " \(memoryString)", attributes: textAttributes))
     result.addAttribute(
       .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
     return result
