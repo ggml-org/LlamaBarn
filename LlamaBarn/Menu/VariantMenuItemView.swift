@@ -3,6 +3,15 @@ import Foundation
 
 /// Menu row for a downloadable model variant inside a family submenu.
 final class VariantMenuItemView: MenuRowView {
+  private static let sizeSymbol: NSImage? = {
+    guard
+      let image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)?
+        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+    else { return nil }
+    image.isTemplate = true
+    return image
+  }()
+
   private let model: ModelCatalogEntry
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
@@ -11,8 +20,8 @@ final class VariantMenuItemView: MenuRowView {
   private let labelField = NSTextField(labelWithString: "")
   private let infoRow = NSStackView()
   private let sizeLabel = NSTextField(labelWithString: "")
+  private let separatorLabel = NSTextField(labelWithString: "•")
   private let ctxLabel = NSTextField(labelWithString: "")
-  private let dateLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
   private let installedChip = ChipView(text: "Installed")
   // Background handled by MenuRowView
@@ -60,7 +69,7 @@ final class VariantMenuItemView: MenuRowView {
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
-    let labels = [sizeLabel, ctxLabel, dateLabel]
+    let labels = [sizeLabel, ctxLabel]
     for label in labels {
       label.font = MenuTypography.secondary
       label.textColor = .secondaryLabelColor
@@ -68,14 +77,16 @@ final class VariantMenuItemView: MenuRowView {
       label.translatesAutoresizingMaskIntoConstraints = false
     }
 
+    separatorLabel.font = MenuTypography.secondary
+    separatorLabel.textColor = .tertiaryLabelColor
+    separatorLabel.translatesAutoresizingMaskIntoConstraints = false
+
     infoRow.orientation = .horizontal
     infoRow.spacing = 4
     infoRow.alignment = .centerY
     infoRow.translatesAutoresizingMaskIntoConstraints = false
-    infoRow.addArrangedSubview(dateLabel)
-    infoRow.addArrangedSubview(makeSeparator())
     infoRow.addArrangedSubview(sizeLabel)
-    infoRow.addArrangedSubview(makeSeparator())
+    infoRow.addArrangedSubview(separatorLabel)
     infoRow.addArrangedSubview(ctxLabel)
 
     progressLabel.font = MenuTypography.secondary
@@ -156,9 +167,8 @@ final class VariantMenuItemView: MenuRowView {
     if model.quantization.uppercased() == "Q4_K_M" { title += " (quantized)" }
     labelField.stringValue = title
 
-    sizeLabel.stringValue = model.totalSize
+    let sizeString = model.totalSize
     ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(model.contextLength))"
-    dateLabel.stringValue = DateFormatters.monthAndYearString(model.releaseDate)
 
     if !compatible {
       let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
@@ -180,9 +190,10 @@ final class VariantMenuItemView: MenuRowView {
       labelField.textColor = .labelColor
       infoColor = .secondaryLabelColor
     }
-    for case let label as NSTextField in infoRow.arrangedSubviews {
-      label.textColor = infoColor
-    }
+    sizeLabel.attributedStringValue = makeSizeAttributedString(
+      sizeString: sizeString, color: infoColor)
+    separatorLabel.textColor = infoColor
+    ctxLabel.textColor = infoColor
 
     progressLabel.stringValue = ""
     switch status {
@@ -223,11 +234,26 @@ final class VariantMenuItemView: MenuRowView {
     needsDisplay = true
   }
 
-  private func makeSeparator() -> NSView {
-    let sep = NSTextField(labelWithString: "•")
-    sep.font = MenuTypography.secondary
-    sep.textColor = .tertiaryLabelColor
-    return sep
+  private func makeSizeAttributedString(sizeString: String, color: NSColor) -> NSAttributedString {
+    let textAttributes: [NSAttributedString.Key: Any] = [
+      .font: MenuTypography.secondary,
+      .foregroundColor: color,
+    ]
+    guard let icon = Self.sizeSymbol else {
+      return NSAttributedString(string: sizeString, attributes: textAttributes)
+    }
+
+    let attachment = NSTextAttachment()
+    attachment.image = icon
+    // Slight baseline tweak keeps the glyph visually centered beside the text.
+    attachment.bounds = CGRect(x: 0, y: -1, width: icon.size.width, height: icon.size.height)
+
+    let result = NSMutableAttributedString(
+      attributedString: NSAttributedString(attachment: attachment))
+    result.append(NSAttributedString(string: " \(sizeString)", attributes: textAttributes))
+    result.addAttribute(
+      .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
+    return result
   }
 }
 
