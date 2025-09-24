@@ -4,7 +4,7 @@ import Foundation
 /// Menu row representing a single installed model.
 /// Visual states:
 /// - Idle: circular icon (inactive) + label
-/// - Loading: circular icon (active) + spinner
+/// - Loading: circular icon (active)
 /// - Running: circular icon (active)
 final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate {
   private let model: ModelCatalogEntry
@@ -15,10 +15,6 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   // Subviews
   private let circleIcon = CircularIconView()
   private let labelField = NSTextField(labelWithString: "")
-  private let stateContainer = NSView()
-  // Legacy right-side spinner no longer used for server loading; keep for layout compatibility.
-  private let spinner = NSProgressIndicator()
-  // Legacy indicator removed; use spinner inside circular icon instead.
   private let progressLabel = NSTextField(labelWithString: "")
   // Second-line label: used for progress during downloads and for
   // consistent two-line layout (size/badges) when idle/running.
@@ -34,6 +30,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   private let revealImageView = NSImageView()
   private let maxContextButton = NSButton()
   private let maxContextImageView = NSImageView()
+  private let cancelImageView = NSImageView()
   private var actionsExpanded = false
   // No per-ellipsis hover state; keep things simple
 
@@ -67,17 +64,20 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
-    spinner.style = .spinning
-    spinner.controlSize = .small
-    spinner.translatesAutoresizingMaskIntoConstraints = false
-    spinner.isDisplayedWhenStopped = false
-
-    // indicatorImageView removed
-
     progressLabel.font = MenuTypography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
+
+    if let img = NSImage(systemSymbolName: "xmark", accessibilityDescription: "Cancel download") {
+      img.isTemplate = true
+      cancelImageView.image = img
+    }
+    cancelImageView.translatesAutoresizingMaskIntoConstraints = false
+    cancelImageView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
+    cancelImageView.imageScaling = .scaleProportionallyDown
+    cancelImageView.contentTintColor = .systemRed
+    cancelImageView.isHidden = true
 
     bytesLabel.font = MenuTypography.secondary
     bytesLabel.textColor = .secondaryLabelColor
@@ -251,8 +251,11 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     leading.spacing = 6
 
     // Right: status/progress/delete/action in a row
+    cancelImageView.setContentHuggingPriority(.required, for: .horizontal)
+    cancelImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
+
     let rightStack = NSStackView(views: [
-      stateContainer, progressLabel, ellipsisContainer, stopButton, deleteButton, revealButton,
+      progressLabel, cancelImageView, ellipsisContainer, stopButton, deleteButton, revealButton,
       maxContextButton,
     ])
     rightStack.translatesAutoresizingMaskIntoConstraints = false
@@ -276,8 +279,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     NSLayoutConstraint.activate([
       circleIcon.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
       circleIcon.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      stateContainer.widthAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
-      stateContainer.heightAnchor.constraint(equalToConstant: MenuMetrics.iconSize),
+      cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
+      cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
 
       // Make the ellipsis hit target comfortably large and let the button fill it
       ellipsisContainer.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
@@ -386,9 +389,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     let isLoadingServer = isActive && server.isLoading
     let isRunning = isActive && server.isRunning
 
-    // Clear state container
-    stateContainer.subviews.forEach { $0.removeFromSuperview() }
-    spinner.stopAnimation(nil)
+    // Reset trailing visuals before applying current status
+    cancelImageView.isHidden = true
 
     // Spinner is now displayed inside the circular icon instead of the right side.
     circleIcon.setLoading(isLoadingServer)
@@ -420,6 +422,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     // Download progress / action area
     switch status {
     case .downloading(let progress):
+      cancelImageView.isHidden = false
       let percent: Int
       if progress.totalUnitCount > 0 {
         percent = Int(Double(progress.completedUnitCount) / Double(progress.totalUnitCount) * 100)
@@ -531,6 +534,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
 
   // Neutral adaptive tint for action symbols; avoid strong destructive red by default.
   private func applyActionTints() {
+    if !cancelImageView.isHidden { cancelImageView.contentTintColor = .systemRed }
     // Determine which action buttons are visible, then tint their image views
     let visibleImageViews: [NSImageView] = [
       // stopButton has its own inner image view; tint via its subviews
