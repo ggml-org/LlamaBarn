@@ -58,7 +58,6 @@ final class VariantMenuItemView: MenuRowView {
   private let warningSeparatorLabel = NSTextField(labelWithString: "•")
   private let warningImageView = NSImageView()
   private let progressLabel = NSTextField(labelWithString: "")
-  private let installedChip = ChipView(text: "Installed")
   // Background handled by MenuRowView
 
   // Hover handling provided by MenuRowView
@@ -105,9 +104,6 @@ final class VariantMenuItemView: MenuRowView {
     labelField.translatesAutoresizingMaskIntoConstraints = false
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-    installedChip.setContentHuggingPriority(.required, for: .horizontal)
-    installedChip.setContentCompressionResistancePriority(.required, for: .horizontal)
-
     let labels = [sizeLabel, ctxLabel, memoryLabel]
     for label in labels {
       label.font = MenuTypography.secondary
@@ -146,14 +142,8 @@ final class VariantMenuItemView: MenuRowView {
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    let titleRow = NSStackView(views: [labelField, installedChip])
-    titleRow.translatesAutoresizingMaskIntoConstraints = false
-    titleRow.orientation = .horizontal
-    titleRow.alignment = .centerY
-    titleRow.spacing = 6
-
     // Two-line text column (title + size)
-    let textColumn = NSStackView(views: [titleRow, infoRow])
+    let textColumn = NSStackView(views: [labelField, infoRow])
     textColumn.translatesAutoresizingMaskIntoConstraints = false
     textColumn.orientation = .vertical
     textColumn.alignment = .leading
@@ -312,7 +302,6 @@ final class VariantMenuItemView: MenuRowView {
         systemSymbolName: "checkmark.circle", accessibilityDescription: nil)
       statusIndicator.contentTintColor = .llamaGreen
       toolTip = "Already installed"
-      installedChip.isHidden = false
     case .downloading(let progress):
       let pct: Int
       if progress.totalUnitCount > 0 {
@@ -325,7 +314,6 @@ final class VariantMenuItemView: MenuRowView {
         systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
       statusIndicator.contentTintColor = .secondaryLabelColor
       progressLabel.stringValue = "\(pct)%"
-      installedChip.isHidden = true
     case .available:
       if compatible {
         statusIndicator.image = NSImage(
@@ -336,7 +324,6 @@ final class VariantMenuItemView: MenuRowView {
         // Monochrome disabled/incompatible indicator.
         statusIndicator.contentTintColor = .tertiaryLabelColor
       }
-      installedChip.isHidden = true
     }
     // If the item is no longer actionable, clear any lingering hover highlight.
     if !hoverHighlightEnabled { setHoverHighlight(false) }
@@ -413,7 +400,7 @@ final class VariantMenuItemView: MenuRowView {
       .foregroundColor: color,
     ]
     guard let icon = Self.contextSymbol else {
-      return NSAttributedString(string: "Ctx \(contextString)", attributes: textAttributes)
+      return NSAttributedString(string: contextString, attributes: textAttributes)
     }
 
     let attachment = NSTextAttachment()
@@ -428,33 +415,4 @@ final class VariantMenuItemView: MenuRowView {
       .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
     return result
   }
-}
-
-// Lightweight rounded chip used in variant rows for short status labels.
-private final class ChipView: NSView {
-  private let label = NSTextField(labelWithString: "")
-  private let paddingX: CGFloat = 6
-  private let paddingY: CGFloat = 2
-
-  init(text: String) {
-    super.init(frame: .zero)
-    translatesAutoresizingMaskIntoConstraints = false
-    wantsLayer = true
-    label.translatesAutoresizingMaskIntoConstraints = false
-    label.font = MenuTypography.secondary
-    label.textColor = .secondaryLabelColor
-    label.stringValue = text
-    addSubview(label)
-    NSLayoutConstraint.activate([
-      label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: paddingX),
-      label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -paddingX),
-      label.topAnchor.constraint(equalTo: topAnchor, constant: paddingY),
-      label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -paddingY),
-    ])
-    layer?.cornerRadius = 6
-    layer?.backgroundColor = NSColor.cgColor(.lbBadgeBackground, in: self)
-    isHidden = true
-  }
-
-  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
