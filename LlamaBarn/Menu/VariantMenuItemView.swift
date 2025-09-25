@@ -3,6 +3,9 @@ import Foundation
 
 /// Menu row for a downloadable model variant inside a family submenu.
 final class VariantMenuItemView: MenuRowView {
+  // Central tweak for inline SF Symbol vertical alignment beside secondary text.
+  // Negative lowers the glyph relative to the text baseline.
+  private static let iconBaselineYOffset: CGFloat = -2
   private static let sizeSymbol: NSImage? = {
     guard
       let image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)?
@@ -352,7 +355,8 @@ final class VariantMenuItemView: MenuRowView {
     let attachment = NSTextAttachment()
     attachment.image = icon
     // Slight baseline tweak keeps the glyph visually centered beside the text.
-    attachment.bounds = CGRect(x: 0, y: -1, width: icon.size.width, height: icon.size.height)
+    attachment.bounds = CGRect(
+      x: 0, y: Self.iconBaselineYOffset, width: icon.size.width, height: icon.size.height)
 
     let result = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment))
@@ -390,7 +394,8 @@ final class VariantMenuItemView: MenuRowView {
 
     let attachment = NSTextAttachment()
     attachment.image = icon
-    attachment.bounds = CGRect(x: 0, y: -1, width: icon.size.width, height: icon.size.height)
+    attachment.bounds = CGRect(
+      x: 0, y: Self.iconBaselineYOffset, width: icon.size.width, height: icon.size.height)
 
     let result = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment))
@@ -413,7 +418,8 @@ final class VariantMenuItemView: MenuRowView {
 
     let attachment = NSTextAttachment()
     attachment.image = icon
-    attachment.bounds = CGRect(x: 0, y: -1, width: icon.size.width, height: icon.size.height)
+    attachment.bounds = CGRect(
+      x: 0, y: Self.iconBaselineYOffset, width: icon.size.width, height: icon.size.height)
 
     let result = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment))
