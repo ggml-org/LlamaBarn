@@ -162,7 +162,7 @@ class LlamaServer {
     // Add batch size optimization for devices with 32+ GB RAM
     let systemMemoryGB = Double(SystemMemory.getMemoryMB()) / 1024.0
     if systemMemoryGB >= 32.0 {
-      arguments.append(contentsOf: ["-ub", "2048", "-b", "2048"])
+      arguments.append(contentsOf: ["-ub", "2048"])
     }
 
     // Merge in caller-provided args (may include ctx-size from catalog), but we'll prepend
