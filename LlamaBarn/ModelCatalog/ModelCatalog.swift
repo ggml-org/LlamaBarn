@@ -30,6 +30,7 @@ enum ModelCatalog {
   struct ModelBuild {
     let id: String?  // explicit ID for the leaf (preferred)
     let quantization: String
+    let isFullPrecision: Bool
     let fileSize: Int64
     /// Estimated KV-cache bytes needed for a 1k-token context.
     let ctxFootprint: Int
@@ -110,6 +111,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "deepseek-r1-0528-qwen3-8b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 8_709_519_872,
               ctxFootprint: 150_994_944,
               downloadUrl: URL(
@@ -122,6 +124,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "deepseek-r1-0528-qwen3-8b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 5_027_785_216,
               ctxFootprint: 150_994_944,
               downloadUrl: URL(
@@ -153,6 +156,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gpt-oss-20b-mxfp4",
               quantization: "mxfp4",
+              isFullPrecision: true,
               fileSize: 12_109_566_560,
               ctxFootprint: 25_165_824,
               downloadUrl: URL(
@@ -173,6 +177,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gpt-oss-120b-mxfp4",
               quantization: "mxfp4",
+              isFullPrecision: true,
               fileSize: 63_387_346_464,
               ctxFootprint: 37_748_736,
               downloadUrl: URL(
@@ -212,6 +217,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3-qat-27b",
               quantization: "Q4_0",
+              isFullPrecision: true,
               fileSize: 15_908_791_488,
               ctxFootprint: 83_886_080,
               downloadUrl: URL(
@@ -232,6 +238,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3-qat-12b",
               quantization: "Q4_0",
+              isFullPrecision: true,
               fileSize: 7_131_017_792,
               ctxFootprint: 67_108_864,
               downloadUrl: URL(
@@ -252,6 +259,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3-qat-4b",
               quantization: "Q4_0",
+              isFullPrecision: true,
               fileSize: 2_526_080_992,
               ctxFootprint: 20_971_520,
               downloadUrl: URL(
@@ -272,6 +280,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3-qat-1b",
               quantization: "Q4_0",
+              isFullPrecision: true,
               fileSize: 720_425_600,
               ctxFootprint: 4_194_304,
               downloadUrl: URL(
@@ -292,6 +301,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3-qat-270m",
               quantization: "Q4_0",
+              isFullPrecision: true,
               fileSize: 241_410_624,
               ctxFootprint: 3_145_728,
               downloadUrl: URL(
@@ -323,6 +333,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3n-e4b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 7_353_292_256,
               ctxFootprint: 14_680_064,
               downloadUrl: URL(
@@ -335,6 +346,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3n-e4b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 4_539_054_208,
               ctxFootprint: 14_680_064,
               downloadUrl: URL(
@@ -355,6 +367,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3n-e2b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 4_788_112_064,
               ctxFootprint: 12_582_912,
               downloadUrl: URL(
@@ -367,6 +380,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "gemma-3n-e2b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 3_026_881_888,
               ctxFootprint: 12_582_912,
               downloadUrl: URL(
@@ -397,6 +411,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-coder-30b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 32_483_935_392,
               ctxFootprint: 100_663_296,
               downloadUrl: URL(
@@ -409,6 +424,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-coder-30b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 18_556_689_568,
               ctxFootprint: 100_663_296,
               downloadUrl: URL(
@@ -439,6 +455,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-235b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 249_940_106_336,
               ctxFootprint: 197_132_288,
               downloadUrl: URL(
@@ -472,6 +489,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-235b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 142_154_074_880,
               ctxFootprint: 197_132_288,
               downloadUrl: URL(
@@ -501,6 +519,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-30b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 32_483_932_576,
               ctxFootprint: 100_663_296,
               downloadUrl: URL(
@@ -513,6 +532,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-30b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 18_556_686_752,
               ctxFootprint: 100_663_296,
               downloadUrl: URL(
@@ -533,6 +553,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-4b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 4_280_405_600,
               ctxFootprint: 150_994_944,
               downloadUrl: URL(
@@ -545,6 +566,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-4b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 2_497_281_120,
               ctxFootprint: 150_994_944,
               downloadUrl: URL(
@@ -575,6 +597,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-thinking-235b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 249_940_106_368,
               ctxFootprint: 197_132_288,
               downloadUrl: URL(
@@ -608,6 +631,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-thinking-235b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 142_154_074_880,
               ctxFootprint: 197_132_288,
               downloadUrl: URL(
@@ -637,6 +661,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-thinking-30b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 32_483_932_576,
               ctxFootprint: 100_663_296,
               downloadUrl: URL(
@@ -649,6 +674,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-thinking-30b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 18_556_686_752,
               ctxFootprint: 100_663_296,
               downloadUrl: URL(
@@ -669,6 +695,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-thinking-4b-q8",
               quantization: "Q8_0",
+              isFullPrecision: true,
               fileSize: 4_280_405_632,
               ctxFootprint: 150_994_944,
               downloadUrl: URL(
@@ -681,6 +708,7 @@ enum ModelCatalog {
             ModelBuild(
               id: "qwen3-2507-thinking-4b",
               quantization: "Q4_K_M",
+              isFullPrecision: false,
               fileSize: 2_497_281_152,
               ctxFootprint: 150_994_944,
               downloadUrl: URL(
@@ -739,9 +767,7 @@ enum ModelCatalog {
     return families.compactMap { family in
       var removedQuantizedBuild = false
       let filteredVariants: [ModelVariant] = family.variants.compactMap { variant in
-        let builds = variant.builds.filter { build in
-          !isQuantized(quantization: build.quantization)
-        }
+        let builds = variant.builds.filter { build in build.isFullPrecision }
 
         if builds.count == variant.builds.count {
           return variant
@@ -770,24 +796,6 @@ enum ModelCatalog {
         )
         : family
     }
-  }
-
-  /// Very small helper so the UI can hide true low-bit variants.
-  /// Some families (e.g. Gemma 3 QAT, GPT-OSS) only ship in formats like
-  /// `Q4_0` or `MXFP4`; treat those as baseline precision so they survive
-  /// the filter.
-  static func isQuantized(quantization: String) -> Bool {
-    let normalized = quantization.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-    guard !normalized.isEmpty else { return false }
-
-    if normalized.hasPrefix("Q8") { return false }
-    if normalized == "Q4_0" { return false }
-    if normalized == "MXFP4" { return false }
-    if normalized.hasPrefix("Q") { return true }
-    if normalized.hasPrefix("I") { return true }
-    if normalized.contains("MXFP") { return true }
-    if normalized.contains("NF") { return true }
-    return false
   }
 
   static func allEntries() -> [ModelCatalogEntry] {
