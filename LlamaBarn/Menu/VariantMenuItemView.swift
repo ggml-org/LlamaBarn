@@ -12,6 +12,15 @@ final class VariantMenuItemView: MenuRowView {
     return image
   }()
 
+  private static let contextSymbol: NSImage? = {
+    guard
+      let image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: nil)?
+        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+    else { return nil }
+    image.isTemplate = true
+    return image
+  }()
+
   private static let memorySymbol: NSImage? = {
     guard
       let image = NSImage(systemSymbolName: "memorychip", accessibilityDescription: nil)?
@@ -214,11 +223,10 @@ final class VariantMenuItemView: MenuRowView {
     labelField.stringValue = title
 
     let sizeString = model.totalSize
-    if model.contextLength > 0 {
-      ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(model.contextLength))"
-    } else {
-      ctxLabel.stringValue = "Ctx —"
-    }
+    let contextString =
+      model.contextLength > 0
+      ? TokenFormatters.shortTokens(model.contextLength)
+      : "—"
     let memoryEstimate = makeMemoryEstimateString(
       for: model, contextLength: model.contextLength)
 
@@ -264,6 +272,8 @@ final class VariantMenuItemView: MenuRowView {
     memoryLabel.textColor = infoColor
     warningSeparatorLabel.textColor = infoColor
     warningImageView.contentTintColor = infoColor
+    ctxLabel.attributedStringValue = makeContextAttributedString(
+      contextString: contextString, color: infoColor)
 
     if let memoryEstimate {
       memoryLabel.attributedStringValue = makeMemoryAttributedString(
@@ -385,6 +395,29 @@ final class VariantMenuItemView: MenuRowView {
     let result = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment))
     result.append(NSAttributedString(string: " \(memoryString)", attributes: textAttributes))
+    result.addAttribute(
+      .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
+    return result
+  }
+
+  private func makeContextAttributedString(contextString: String, color: NSColor)
+    -> NSAttributedString
+  {
+    let textAttributes: [NSAttributedString.Key: Any] = [
+      .font: MenuTypography.secondary,
+      .foregroundColor: color,
+    ]
+    guard let icon = Self.contextSymbol else {
+      return NSAttributedString(string: "Ctx \(contextString)", attributes: textAttributes)
+    }
+
+    let attachment = NSTextAttachment()
+    attachment.image = icon
+    attachment.bounds = CGRect(x: 0, y: -1, width: icon.size.width, height: icon.size.height)
+
+    let result = NSMutableAttributedString(
+      attributedString: NSAttributedString(attachment: attachment))
+    result.append(NSAttributedString(string: " \(contextString)", attributes: textAttributes))
     result.addAttribute(
       .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
     return result
