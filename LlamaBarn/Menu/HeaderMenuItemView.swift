@@ -41,7 +41,7 @@ final class HeaderMenuItemView: NSView {
     backgroundView.translatesAutoresizingMaskIntoConstraints = false
     backgroundView.wantsLayer = true
 
-    titleLabel.font = MenuTypography.primarySemibold
+    titleLabel.font = MenuTypography.primary
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.lineBreakMode = .byTruncatingTail
 
@@ -119,7 +119,7 @@ final class HeaderMenuItemView: NSView {
     titleLabel.attributedStringValue = NSAttributedString(
       string: appBaseTitle,
       attributes: [
-        .font: MenuTypography.primarySemibold,
+        .font: MenuTypography.primary,
         .foregroundColor: NSColor.labelColor,
       ]
     )

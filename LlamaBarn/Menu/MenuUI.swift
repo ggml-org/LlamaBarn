@@ -17,7 +17,6 @@ enum MenuMetrics {
 /// Shared type ramp for menu rows.
 enum MenuTypography {
   static let primary = NSFont.systemFont(ofSize: 13)
-  static let primarySemibold = NSFont.systemFont(ofSize: 13, weight: .semibold)
   // Secondary/line-2 text used across rows (variants, installed, family) for consistency
   static let secondary = NSFont.systemFont(ofSize: 11, weight: .regular)
 }

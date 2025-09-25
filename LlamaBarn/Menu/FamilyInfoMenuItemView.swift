@@ -35,7 +35,7 @@ final class FamilyInfoMenuItemView: NSView {
     iconView.isActive = false
 
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
-    titleLabel.font = MenuTypography.primarySemibold
+    titleLabel.font = MenuTypography.primary
     titleLabel.stringValue = familyName
     titleLabel.lineBreakMode = .byTruncatingTail
 
