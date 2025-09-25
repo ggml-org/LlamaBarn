@@ -18,6 +18,7 @@ struct ModelCatalogEntry: Identifiable, Codable {
   let serverArgs: [String]  // Additional command line arguments for llama-server
   let icon: String  // Asset name for the model's brand logo
   let quantization: String  // Quantization method (e.g., "Q4_K_M", "Q8_0")
+  let isFullPrecision: Bool
 
   init(
     id: String,
@@ -31,7 +32,8 @@ struct ModelCatalogEntry: Identifiable, Codable {
     additionalParts: [URL]? = nil,
     serverArgs: [String],
     icon: String,
-    quantization: String
+    quantization: String,
+    isFullPrecision: Bool
   ) {
     self.id = id
     self.family = family
@@ -45,6 +47,7 @@ struct ModelCatalogEntry: Identifiable, Codable {
     self.serverArgs = serverArgs
     self.icon = icon
     self.quantization = quantization
+    self.isFullPrecision = isFullPrecision
   }
 
   /// Display name combining family and variant

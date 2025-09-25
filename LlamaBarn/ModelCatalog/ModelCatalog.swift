@@ -53,7 +53,8 @@ enum ModelCatalog {
         additionalParts: additionalParts,
         serverArgs: effectiveArgs,
         icon: family.iconName,
-        quantization: quantization
+        quantization: quantization,
+        isFullPrecision: isFullPrecision
       )
     }
   }
