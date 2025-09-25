@@ -214,12 +214,13 @@ final class VariantMenuItemView: MenuRowView {
     labelField.stringValue = title
 
     let sizeString = model.totalSize
-    if let recommended = ModelCatalog.recommendedContextLength(for: model) {
-      ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(recommended))"
+    if model.contextLength > 0 {
+      ctxLabel.stringValue = "Ctx \(TokenFormatters.shortTokens(model.contextLength))"
     } else {
       ctxLabel.stringValue = "Ctx —"
     }
-    let memoryEstimate = makeMemoryEstimateString(for: model)
+    let memoryEstimate = makeMemoryEstimateString(
+      for: model, contextLength: model.contextLength)
 
     infoRow.toolTip = nil
     if !compatible {
@@ -351,11 +352,12 @@ final class VariantMenuItemView: MenuRowView {
     return result
   }
 
-  private func makeMemoryEstimateString(for model: ModelCatalogEntry) -> String? {
-    guard let context = ModelCatalog.recommendedContextLength(for: model) else { return nil }
+  private func makeMemoryEstimateString(for model: ModelCatalogEntry, contextLength: Int) -> String?
+  {
+    guard contextLength > 0 else { return nil }
 
     let usageMB = ModelCatalog.runtimeMemoryUsageMB(
-      for: model, contextLengthTokens: Double(context))
+      for: model, contextLengthTokens: Double(contextLength))
     guard usageMB > 0 else { return nil }
 
     let formatter = ByteCountFormatter()
