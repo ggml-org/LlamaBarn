@@ -38,15 +38,15 @@ enum ModelCatalog {
     let additionalParts: [URL]?
     let serverArgs: [String]
 
-    func asEntry(family: ModelFamily, variant: ModelVariant) -> ModelCatalogEntry {
-      let effectiveArgs = (family.serverArgs ?? []) + (variant.serverArgs ?? []) + serverArgs
+    func asEntry(family: ModelFamily, model: Model) -> ModelCatalogEntry {
+      let effectiveArgs = (family.serverArgs ?? []) + (model.serverArgs ?? []) + serverArgs
       return ModelCatalogEntry(
         id: id
-          ?? ModelCatalog.makeId(family: family.name, variantLabel: variant.label, build: self),
+          ?? ModelCatalog.makeId(family: family.name, modelLabel: model.label, build: self),
         family: family.name,
-        variant: variant.label,
-        releaseDate: variant.releaseDate,
-        contextLength: variant.contextLength,
+        variant: model.label,
+        releaseDate: model.releaseDate,
+        contextLength: model.contextLength,
         fileSize: fileSize,
         ctxFootprint: ctxFootprint,
         downloadUrl: downloadUrl,
@@ -59,33 +59,34 @@ enum ModelCatalog {
     }
   }
 
-  struct ModelVariant {
+  struct Model {
     let label: String  // e.g. "4B", "30B"
     let releaseDate: Date
     let contextLength: Int
     let serverArgs: [String]?  // optional defaults for all builds
-    let builds: [ModelBuild]
+    let build: ModelBuild
+    let quantizedBuilds: [ModelBuild]
   }
 
   struct ModelFamily {
     let name: String  // e.g. "Qwen3 2507"
     let series: String  // e.g. "qwen"
     let blurb: String  // short one- or two-sentence description
-    let serverArgs: [String]?  // optional defaults for all variants/builds
-    let variants: [ModelVariant]
+    let serverArgs: [String]?  // optional defaults for all models/builds
+    let models: [Model]
 
     init(
       name: String,
       series: String,
       blurb: String,
       serverArgs: [String]? = nil,
-      variants: [ModelVariant]
+      models: [Model]
     ) {
       self.name = name
       self.series = series
       self.blurb = blurb
       self.serverArgs = serverArgs
-      self.variants = variants
+      self.models = models
     }
 
     var iconName: String {
@@ -102,26 +103,26 @@ enum ModelCatalog {
       blurb:
         "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
       serverArgs: nil,
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "8B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 5, day: 29))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "deepseek-r1-0528-qwen3-8b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 8_709_519_872,
-              ctxFootprint: 150_994_944,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "deepseek-r1-0528-qwen3-8b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 8_709_519_872,
+            ctxFootprint: 150_994_944,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "deepseek-r1-0528-qwen3-8b",
               quantization: "Q4_K_M",
@@ -134,7 +135,7 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         )
       ]
@@ -147,57 +148,55 @@ enum ModelCatalog {
         "An open, GPT-style instruction-tuned family aimed at general-purpose assistance on local hardware.",
       // Sliding-window family: use max context by default
       serverArgs: ["-c", "0"],
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "20B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gpt-oss-20b-mxfp4",
-              quantization: "mxfp4",
-              isFullPrecision: true,
-              fileSize: 12_109_566_560,
-              ctxFootprint: 25_165_824,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-mxfp4.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
+          build: ModelBuild(
+            id: "gpt-oss-20b-mxfp4",
+            quantization: "mxfp4",
+            isFullPrecision: true,
+            fileSize: 12_109_566_560,
+            ctxFootprint: 25_165_824,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-mxfp4.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
-        ModelVariant(
+        Model(
           label: "120B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gpt-oss-120b-mxfp4",
-              quantization: "mxfp4",
-              isFullPrecision: true,
-              fileSize: 63_387_346_464,
-              ctxFootprint: 37_748_736,
-              downloadUrl: URL(
+          build: ModelBuild(
+            id: "gpt-oss-120b-mxfp4",
+            quantization: "mxfp4",
+            isFullPrecision: true,
+            fileSize: 63_387_346_464,
+            ctxFootprint: 37_748_736,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00001-of-00003.gguf"
+            )!,
+            additionalParts: [
+              URL(
                 string:
-                  "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00001-of-00003.gguf"
+                  "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00002-of-00003.gguf"
               )!,
-              additionalParts: [
-                URL(
-                  string:
-                    "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00002-of-00003.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00003-of-00003.gguf"
-                )!,
-              ],
-              serverArgs: []
-            )
-          ]
+              URL(
+                string:
+                  "https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-mxfp4-00003-of-00003.gguf"
+              )!,
+            ],
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
       ]
     ),
@@ -208,111 +207,106 @@ enum ModelCatalog {
       blurb:
         "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
       serverArgs: nil,
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "27B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 24))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3-qat-27b",
-              quantization: "Q4_0",
-              isFullPrecision: true,
-              fileSize: 15_908_791_488,
-              ctxFootprint: 83_886_080,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
+          build: ModelBuild(
+            id: "gemma-3-qat-27b",
+            quantization: "Q4_0",
+            isFullPrecision: true,
+            fileSize: 15_908_791_488,
+            ctxFootprint: 83_886_080,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3-27b-it-qat-GGUF/resolve/main/gemma-3-27b-it-qat-Q4_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
-        ModelVariant(
+        Model(
           label: "12B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 21))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3-qat-12b",
-              quantization: "Q4_0",
-              isFullPrecision: true,
-              fileSize: 7_131_017_792,
-              ctxFootprint: 67_108_864,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
+          build: ModelBuild(
+            id: "gemma-3-qat-12b",
+            quantization: "Q4_0",
+            isFullPrecision: true,
+            fileSize: 7_131_017_792,
+            ctxFootprint: 67_108_864,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3-12b-it-qat-GGUF/resolve/main/gemma-3-12b-it-qat-Q4_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
-        ModelVariant(
+        Model(
           label: "4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 22))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3-qat-4b",
-              quantization: "Q4_0",
-              isFullPrecision: true,
-              fileSize: 2_526_080_992,
-              ctxFootprint: 20_971_520,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
+          build: ModelBuild(
+            id: "gemma-3-qat-4b",
+            quantization: "Q4_0",
+            isFullPrecision: true,
+            fileSize: 2_526_080_992,
+            ctxFootprint: 20_971_520,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3-4b-it-qat-GGUF/resolve/main/gemma-3-4b-it-qat-Q4_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
-        ModelVariant(
+        Model(
           label: "1B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 27))!,
           contextLength: 131_072,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3-qat-1b",
-              quantization: "Q4_0",
-              isFullPrecision: true,
-              fileSize: 720_425_600,
-              ctxFootprint: 4_194_304,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3-1b-it-qat-GGUF/resolve/main/gemma-3-1b-it-qat-Q4_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
+          build: ModelBuild(
+            id: "gemma-3-qat-1b",
+            quantization: "Q4_0",
+            isFullPrecision: true,
+            fileSize: 720_425_600,
+            ctxFootprint: 4_194_304,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3-1b-it-qat-GGUF/resolve/main/gemma-3-1b-it-qat-Q4_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
-        ModelVariant(
+        Model(
           label: "270M",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 14))!,
           contextLength: 32_768,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3-qat-270m",
-              quantization: "Q4_0",
-              isFullPrecision: true,
-              fileSize: 241_410_624,
-              ctxFootprint: 3_145_728,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3-270m-it-qat-GGUF/resolve/main/gemma-3-270m-it-qat-Q4_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
+          build: ModelBuild(
+            id: "gemma-3-qat-270m",
+            quantization: "Q4_0",
+            isFullPrecision: true,
+            fileSize: 241_410_624,
+            ctxFootprint: 3_145_728,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3-270m-it-qat-GGUF/resolve/main/gemma-3-270m-it-qat-Q4_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: []
         ),
       ]
     ),
@@ -324,26 +318,26 @@ enum ModelCatalog {
         "Google's efficient Gemma 3n line tuned for on‑device performance with solid instruction following at small scales.",
       // Sliding-window family: force max context and keep Gemma-specific overrides
       serverArgs: ["-c", "0", "-ot", "per_layer_token_embd.weight=CPU", "--no-mmap"],
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "E4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 15))!,
           contextLength: 32_768,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3n-e4b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 7_353_292_256,
-              ctxFootprint: 14_680_064,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "gemma-3n-e4b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 7_353_292_256,
+            ctxFootprint: 14_680_064,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3n-E4B-it-GGUF/resolve/main/gemma-3n-E4B-it-Q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "gemma-3n-e4b",
               quantization: "Q4_K_M",
@@ -356,28 +350,28 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
-        ModelVariant(
+        Model(
           label: "E2B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 1))!,
           contextLength: 32_768,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "gemma-3n-e2b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 4_788_112_064,
-              ctxFootprint: 12_582_912,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "gemma-3n-e2b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 4_788_112_064,
+            ctxFootprint: 12_582_912,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "gemma-3n-e2b",
               quantization: "Q4_K_M",
@@ -390,7 +384,7 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
       ]
@@ -402,26 +396,26 @@ enum ModelCatalog {
       blurb:
         "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
       serverArgs: nil,
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "30B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 31))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-coder-30b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 32_483_935_392,
-              ctxFootprint: 100_663_296,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "qwen3-coder-30b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 32_483_935_392,
+            ctxFootprint: 100_663_296,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-coder-30b",
               quantization: "Q4_K_M",
@@ -434,7 +428,7 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         )
       ]
@@ -446,47 +440,47 @@ enum ModelCatalog {
       blurb:
         "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
       serverArgs: nil,
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "235B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-2507-235b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 249_940_106_336,
-              ctxFootprint: 197_132_288,
-              downloadUrl: URL(
+          build: ModelBuild(
+            id: "qwen3-2507-235b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 249_940_106_336,
+            ctxFootprint: 197_132_288,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00001-of-00006.gguf"
+            )!,
+            additionalParts: [
+              URL(
                 string:
-                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00001-of-00006.gguf"
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00002-of-00006.gguf"
               )!,
-              additionalParts: [
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00002-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00003-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00004-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00005-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00006-of-00006.gguf"
-                )!,
-              ],
-              serverArgs: []
-            ),
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00003-of-00006.gguf"
+              )!,
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00004-of-00006.gguf"
+              )!,
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00005-of-00006.gguf"
+              )!,
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Instruct-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Instruct-2507-Q8_0-00006-of-00006.gguf"
+              )!,
+            ],
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-2507-235b",
               quantization: "Q4_K_M",
@@ -508,28 +502,28 @@ enum ModelCatalog {
                 )!,
               ],
               serverArgs: []
-            ),
+            )
           ]
         ),
-        ModelVariant(
+        Model(
           label: "30B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-2507-30b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 32_483_932_576,
-              ctxFootprint: 100_663_296,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/Qwen3-30B-A3B-Instruct-2507-Q8_0-GGUF/resolve/main/qwen3-30b-a3b-instruct-2507-q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "qwen3-2507-30b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 32_483_932_576,
+            ctxFootprint: 100_663_296,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/Qwen3-30B-A3B-Instruct-2507-Q8_0-GGUF/resolve/main/qwen3-30b-a3b-instruct-2507-q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-2507-30b",
               quantization: "Q4_K_M",
@@ -542,28 +536,28 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
-        ModelVariant(
+        Model(
           label: "4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-2507-4b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 4_280_405_600,
-              ctxFootprint: 150_994_944,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/Qwen3-4B-Instruct-2507-Q8_0-GGUF/resolve/main/qwen3-4b-instruct-2507-q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "qwen3-2507-4b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 4_280_405_600,
+            ctxFootprint: 150_994_944,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/Qwen3-4B-Instruct-2507-Q8_0-GGUF/resolve/main/qwen3-4b-instruct-2507-q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-2507-4b",
               quantization: "Q4_K_M",
@@ -576,7 +570,7 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
       ]
@@ -588,47 +582,47 @@ enum ModelCatalog {
       blurb:
         "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
       serverArgs: nil,
-      variants: [
-        ModelVariant(
+      models: [
+        Model(
           label: "235B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-2507-thinking-235b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 249_940_106_368,
-              ctxFootprint: 197_132_288,
-              downloadUrl: URL(
+          build: ModelBuild(
+            id: "qwen3-2507-thinking-235b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 249_940_106_368,
+            ctxFootprint: 197_132_288,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00001-of-00006.gguf"
+            )!,
+            additionalParts: [
+              URL(
                 string:
-                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00001-of-00006.gguf"
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00002-of-00006.gguf"
               )!,
-              additionalParts: [
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00002-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00003-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00004-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00005-of-00006.gguf"
-                )!,
-                URL(
-                  string:
-                    "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00006-of-00006.gguf"
-                )!,
-              ],
-              serverArgs: []
-            ),
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00003-of-00006.gguf"
+              )!,
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00004-of-00006.gguf"
+              )!,
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00005-of-00006.gguf"
+              )!,
+              URL(
+                string:
+                  "https://huggingface.co/unsloth/Qwen3-235B-A22B-Thinking-2507-GGUF/resolve/main/Q8_0/Qwen3-235B-A22B-Thinking-2507-Q8_0-00006-of-00006.gguf"
+              )!,
+            ],
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-2507-thinking-235b",
               quantization: "Q4_K_M",
@@ -650,28 +644,28 @@ enum ModelCatalog {
                 )!,
               ],
               serverArgs: []
-            ),
+            )
           ]
         ),
-        ModelVariant(
+        Model(
           label: "30B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-2507-thinking-30b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 32_483_932_576,
-              ctxFootprint: 100_663_296,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/Qwen3-30B-A3B-Thinking-2507-Q8_0-GGUF/resolve/main/qwen3-30b-a3b-thinking-2507-q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "qwen3-2507-thinking-30b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 32_483_932_576,
+            ctxFootprint: 100_663_296,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/Qwen3-30B-A3B-Thinking-2507-Q8_0-GGUF/resolve/main/qwen3-30b-a3b-thinking-2507-q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-2507-thinking-30b",
               quantization: "Q4_K_M",
@@ -684,28 +678,28 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
-        ModelVariant(
+        Model(
           label: "4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
           contextLength: 262_144,
           serverArgs: nil,
-          builds: [
-            ModelBuild(
-              id: "qwen3-2507-thinking-4b-q8",
-              quantization: "Q8_0",
-              isFullPrecision: true,
-              fileSize: 4_280_405_632,
-              ctxFootprint: 150_994_944,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/ggml-org/Qwen3-4B-Thinking-2507-Q8_0-GGUF/resolve/main/qwen3-4b-thinking-2507-q8_0.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            ),
+          build: ModelBuild(
+            id: "qwen3-2507-thinking-4b-q8",
+            quantization: "Q8_0",
+            isFullPrecision: true,
+            fileSize: 4_280_405_632,
+            ctxFootprint: 150_994_944,
+            downloadUrl: URL(
+              string:
+                "https://huggingface.co/ggml-org/Qwen3-4B-Thinking-2507-Q8_0-GGUF/resolve/main/qwen3-4b-thinking-2507-q8_0.gguf"
+            )!,
+            additionalParts: nil,
+            serverArgs: []
+          ),
+          quantizedBuilds: [
             ModelBuild(
               id: "qwen3-2507-thinking-4b",
               quantization: "Q4_K_M",
@@ -718,7 +712,7 @@ enum ModelCatalog {
               )!,
               additionalParts: nil,
               serverArgs: []
-            ),
+            )
           ]
         ),
       ]
@@ -739,13 +733,13 @@ enum ModelCatalog {
   /// - Q8_0 builds use suffix "-q8"
   /// - mxfp4 builds use suffix "-mxfp4"
   /// - other builds omit suffix
-  private static func makeId(family: String, variantLabel: String, build: ModelBuild) -> String {
+  private static func makeId(family: String, modelLabel: String, build: ModelBuild) -> String {
     let familySlug = slug(family)
-    let variantSlug = slug(variantLabel)
-    var base = "\(familySlug)-\(variantSlug)"
+    let modelSlug = slug(modelLabel)
+    var base = "\(familySlug)-\(modelSlug)"
     // DeepSeek R1 legacy IDs included "-qwen3" segment
     if familySlug == "deepseek-r1-0528" {
-      base = "\(familySlug)-qwen3-\(variantSlug)"
+      base = "\(familySlug)-qwen3-\(modelSlug)"
     }
     let quant = build.quantization.uppercased()
     if quant == "Q8_0" {
@@ -765,53 +759,52 @@ enum ModelCatalog {
   private static func filteredFamilies(showQuantizedVariants: Bool) -> [ModelFamily] {
     guard !showQuantizedVariants else { return families }
 
-    return families.compactMap { family in
-      var removedQuantizedBuild = false
-      let filteredVariants: [ModelVariant] = family.variants.compactMap { variant in
-        let builds = variant.builds.filter { build in build.isFullPrecision }
-
-        if builds.count == variant.builds.count {
-          return variant
+    return families.map { family in
+      var hasQuantizedBuilds = false
+      let filteredModels: [Model] = family.models.map { model in
+        if !model.quantizedBuilds.isEmpty {
+          hasQuantizedBuilds = true
+          return Model(
+            label: model.label,
+            releaseDate: model.releaseDate,
+            contextLength: model.contextLength,
+            serverArgs: model.serverArgs,
+            build: model.build,
+            quantizedBuilds: []
+          )
         }
-
-        removedQuantizedBuild = true
-        guard !builds.isEmpty else { return nil }
-
-        return ModelVariant(
-          label: variant.label,
-          releaseDate: variant.releaseDate,
-          contextLength: variant.contextLength,
-          serverArgs: variant.serverArgs,
-          builds: builds
-        )
+        return model
       }
 
-      guard !filteredVariants.isEmpty else { return nil }
-      return removedQuantizedBuild
-        ? ModelFamily(
+      if hasQuantizedBuilds {
+        return ModelFamily(
           name: family.name,
           series: family.series,
           blurb: family.blurb,
           serverArgs: family.serverArgs,
-          variants: filteredVariants
+          models: filteredModels
         )
-        : family
+      } else {
+        return family
+      }
     }
   }
 
   static func allEntries() -> [ModelCatalogEntry] {
     families.flatMap { family in
-      family.variants.flatMap { variant in
-        variant.builds.map { build in build.asEntry(family: family, variant: variant) }
+      family.models.flatMap { model -> [ModelCatalogEntry] in
+        let allBuilds = [model.build] + model.quantizedBuilds
+        return allBuilds.map { build in build.asEntry(family: family, model: model) }
       }
     }
   }
 
   static func entry(forId id: String) -> ModelCatalogEntry? {
     for family in families {
-      for variant in family.variants {
-        for build in variant.builds {
-          let entry = build.asEntry(family: family, variant: variant)
+      for model in family.models {
+        let allBuilds = [model.build] + model.quantizedBuilds
+        for build in allBuilds {
+          let entry = build.asEntry(family: family, model: model)
           if entry.id == id { return entry }
         }
       }

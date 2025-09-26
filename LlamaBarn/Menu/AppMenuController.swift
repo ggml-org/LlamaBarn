@@ -111,8 +111,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     menu.addItem(makeSectionHeaderItem("Available"))
 
     for family in families.sorted(by: { $0.name < $1.name }) {
-      let models = family.variants.flatMap { variant in
-        variant.builds.map { $0.asEntry(family: family, variant: variant) }
+      let models = family.models.flatMap { model -> [ModelCatalogEntry] in
+        let allBuilds = [model.build] + model.quantizedBuilds
+        return allBuilds.map { build in build.asEntry(family: family, model: model) }
       }
       let famView = FamilyHeaderMenuItemView(
         family: family.name, models: models, modelManager: modelManager)
