@@ -8,15 +8,8 @@ struct LlamaBarnApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
   var body: some Scene {
-    Settings { SettingsView() }
-      .commands {
-        CommandGroup(replacing: .appSettings) {
-          Button("Settings…") {
-            SettingsWindowController.shared.show()
-          }
-          .keyboardShortcut(",", modifiers: [.command])
-        }
-      }
+    // Empty scene, as we are a menu bar app
+    Settings {}
   }
 }
 
@@ -96,9 +89,7 @@ extension AppDelegate: SPUStandardUserDriverDelegate {
   // We use this to return the app to menu bar mode.
   func standardUserDriverWillFinishUpdateSession() {
     // Return to menu bar mode
-    if !SettingsWindowController.shared.isVisible {
-      NSApp.setActivationPolicy(.accessory)
-    }
+    NSApp.setActivationPolicy(.accessory)
   }
 }
 

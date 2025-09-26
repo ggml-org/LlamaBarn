@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 
 /// Controls the status bar item and its AppKit menu.
 /// First iteration: only an "Installed" section listing downloaded models.
@@ -11,6 +12,9 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private let server: LlamaServer
   private let llamaCppVersion: String
   private var titleView: HeaderMenuItemView?
+  private var settingsView: NSHostingView<SettingsMenuItemView>?
+  private var isSettingsVisible = false
+  private var menuWidth: CGFloat = 260
   // No stored reference needed for the memory footer.
   private var observers: [NSObjectProtocol] = []
   // Single source of truth for the Installed section's empty placeholder title
@@ -54,6 +58,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
 
   func menuDidClose(_ menu: NSMenu) {
     removeObservers()
+    isSettingsVisible = false
   }
 
   // MARK: - Menu Construction
@@ -61,13 +66,22 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private func rebuildMenu(_ menu: NSMenu) {
     menu.removeAllItems()
     addHeader(to: menu)
+    if isSettingsVisible {
+      addSettings(to: menu)
+      menu.addItem(.separator())
+    }
     addInstalled(to: menu)
     addCatalog(to: menu)
     addVersionFooter(to: menu)
+
+    if menu.size.width > 0 {
+      self.menuWidth = menu.size.width
+    }
   }
 
   private func addHeader(to menu: NSMenu) {
-    let tView = HeaderMenuItemView(server: server, llamaCppVersion: llamaCppVersion)
+    let tView = HeaderMenuItemView(
+      server: server, llamaCppVersion: llamaCppVersion, isSettingsVisible: isSettingsVisible)
     titleView = tView
     menu.addItem(NSMenuItem.viewItem(with: tView, minHeight: 40))
     menu.addItem(.separator())
@@ -147,14 +161,63 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
   }
 
+  private func addSettings(to menu: NSMenu) {
+    let rootView = SettingsMenuItemView()
+    let view = NSHostingView(rootView: rootView)
+    self.settingsView = view
+    let height = view.fittingSize.height
+    view.frame = NSRect(x: 0, y: 0, width: self.menuWidth, height: height)
+    let item = NSMenuItem.viewItem(with: view)
+    item.isEnabled = true
+    menu.addItem(item)
+  }
+
   // Server status is shown in the header now; dedicated server row removed.
 
   private func addVersionFooter(to menu: NSMenu) {
     menu.addItem(.separator())
-    let item = NSMenuItem()
-    item.isEnabled = false
-    item.title =
-      "\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
+    let container = NSView()
+    container.translatesAutoresizingMaskIntoConstraints = false
+
+    let versionLabel = NSTextField(
+      labelWithString:
+        "\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
+    )
+    versionLabel.font = MenuTypography.primary
+    versionLabel.textColor = .secondaryLabelColor
+    versionLabel.lineBreakMode = .byTruncatingMiddle
+    versionLabel.translatesAutoresizingMaskIntoConstraints = false
+
+    let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitApp))
+    quitButton.font = MenuTypography.secondary
+    quitButton.bezelStyle = .texturedRounded
+    quitButton.translatesAutoresizingMaskIntoConstraints = false
+
+    container.addSubview(versionLabel)
+    container.addSubview(quitButton)
+
+    let horizontalPadding = MenuMetrics.outerHorizontalPadding + MenuMetrics.innerHorizontalPadding
+
+    if menuWidth > 0 {
+      container.widthAnchor.constraint(equalToConstant: menuWidth).isActive = true
+    }
+
+    NSLayoutConstraint.activate([
+      container.heightAnchor.constraint(greaterThanOrEqualToConstant: 28),
+      versionLabel.leadingAnchor.constraint(
+        equalTo: container.leadingAnchor, constant: horizontalPadding),
+      versionLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+      quitButton.trailingAnchor.constraint(
+        equalTo: container.trailingAnchor, constant: -horizontalPadding),
+      quitButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+      versionLabel.trailingAnchor.constraint(
+        lessThanOrEqualTo: quitButton.leadingAnchor, constant: -8),
+    ])
+
+    let item = NSMenuItem.viewItem(with: container, minHeight: 30)
+    item.isEnabled = true
     menu.addItem(item)
   }
 
@@ -234,6 +297,14 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
   }
 
+  @objc private func checkForUpdates() {
+    NotificationCenter.default.post(name: .LBCheckForUpdates, object: nil)
+  }
+
+  @objc private func quitApp() {
+    NSApplication.shared.terminate(nil)
+  }
+
   /// Returns the open interval range [start, end) of items that belong to the Installed section.
   /// The range starts just after the Installed header and ends at the next separator or end of menu.
   private func installedSectionRange(in menu: NSMenu) -> Range<Int>? {
@@ -281,10 +352,19 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         self?.performRefresh()
       })
     observers.append(
+      center.addObserver(forName: .LBToggleSettingsVisibility, object: nil, queue: .main) {
+        [weak self] _ in
+        self?.isSettingsVisible.toggle()
+        if let menu = self?.statusItem.menu {
+          self?.rebuildMenu(menu)
+        }
+      })
+    observers.append(
       center.addObserver(forName: .LBUserSettingsDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        guard let self, let menu = self.statusItem.menu else { return }
-        self.rebuildMenu(menu)
+        if let menu = self?.statusItem.menu {
+          self?.rebuildMenu(menu)
+        }
       })
     // Immediate refresh on open
     performRefresh()

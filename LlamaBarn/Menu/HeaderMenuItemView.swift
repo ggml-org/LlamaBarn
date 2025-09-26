@@ -10,14 +10,14 @@ final class HeaderMenuItemView: NSView {
   private lazy var subtitleClickRecognizer = NSClickGestureRecognizer(
     target: self, action: #selector(openServerURL))
   private let backgroundView = NSView()
-  private let quitButton = NSButton()
   private let settingsButton = NSButton()
   private let appBaseTitle = "LlamaBarn"
   private let versionString: String
   private let buildString: String
   private let llamaCppVersion: String
+  private let isSettingsVisible: Bool
 
-  init(server: LlamaServer, llamaCppVersion: String) {
+  init(server: LlamaServer, llamaCppVersion: String, isSettingsVisible: Bool) {
     self.server = server
     // App version/build
     let ver =
@@ -26,6 +26,7 @@ final class HeaderMenuItemView: NSView {
     self.versionString = ver
     self.buildString = build
     self.llamaCppVersion = llamaCppVersion
+    self.isSettingsVisible = isSettingsVisible
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
     setup()
@@ -65,19 +66,11 @@ final class HeaderMenuItemView: NSView {
     settingsButton.title = "Settings"
     settingsButton.font = MenuTypography.secondary
     settingsButton.translatesAutoresizingMaskIntoConstraints = false
-    settingsButton.setButtonType(.momentaryPushIn)
+    settingsButton.setButtonType(.toggle)
     settingsButton.target = self
-    settingsButton.action = #selector(openSettings)
+    settingsButton.action = #selector(toggleSettings)
     settingsButton.keyEquivalent = ","
-
-    quitButton.bezelStyle = .texturedRounded
-    quitButton.title = "Quit"
-    quitButton.font = MenuTypography.secondary
-    quitButton.translatesAutoresizingMaskIntoConstraints = false
-    quitButton.setButtonType(.momentaryPushIn)
-    quitButton.target = self
-    quitButton.action = #selector(quitApp)
-    quitButton.keyEquivalent = "q"
+    settingsButton.state = isSettingsVisible ? .on : .off
 
     // Horizontal container: [stack][spacer][settings][quit]
     let h = NSStackView()
@@ -88,7 +81,6 @@ final class HeaderMenuItemView: NSView {
     h.addArrangedSubview(stack)
     h.addArrangedSubview(NSView())  // flexible spacer
     h.addArrangedSubview(settingsButton)
-    h.addArrangedSubview(quitButton)
     (h.arrangedSubviews[1] as? NSView)?.setContentHuggingPriority(.defaultLow, for: .horizontal)
     (h.arrangedSubviews[1] as? NSView)?.setContentCompressionResistancePriority(
       .defaultLow, for: .horizontal)
@@ -110,7 +102,6 @@ final class HeaderMenuItemView: NSView {
       h.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
       h.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
       settingsButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 22),
-      quitButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 22),
     ])
   }
 
@@ -170,12 +161,8 @@ final class HeaderMenuItemView: NSView {
     }
   }
 
-  @objc private func quitApp() {
-    NSApplication.shared.terminate(nil)
-  }
-
-  @objc private func openSettings() {
-    SettingsWindowController.shared.show()
+  @objc private func toggleSettings() {
+    NotificationCenter.default.post(name: .LBToggleSettingsVisibility, object: nil)
   }
 
 }
