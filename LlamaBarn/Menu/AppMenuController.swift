@@ -406,7 +406,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
 
     // While any model is downloading, ensure the Installed placeholder is hidden.
-    if let menu = statusItem.menu, !modelManager.activeDownloads.isEmpty,
+    if let menu = statusItem.menu, modelManager.hasActiveDownloads,
       let range = installedSectionRange(in: menu),
       let absoluteIdx = menu.items[range].firstIndex(where: { Self.isInstalledPlaceholder($0) })
     {

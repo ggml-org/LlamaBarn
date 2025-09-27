@@ -191,9 +191,19 @@ final class VariantMenuItemView: MenuRowView {
     let status = modelManager.getModelStatus(model)
     switch status {
     case .available:
-      if ModelCatalog.isModelCompatible(model) {
-        modelManager.downloadModel(model)
+      // The `hoverHighlightEnabled` check already covers compatibility, but we could also check here.
+      do {
+        try modelManager.downloadModel(model)
         membershipChanged()
+      } catch {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = error.localizedDescription
+        if let error = error as? LocalizedError, let recoverySuggestion = error.recoverySuggestion {
+          alert.informativeText = recoverySuggestion
+        }
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
       }
     case .downloading:
       modelManager.cancelModelDownload(model)
