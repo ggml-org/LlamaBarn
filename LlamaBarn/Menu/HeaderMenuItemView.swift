@@ -34,11 +34,11 @@ final class HeaderMenuItemView: NSView {
     backgroundView.translatesAutoresizingMaskIntoConstraints = false
     backgroundView.wantsLayer = true
 
-    titleLabel.font = MenuTypography.primary
+    titleLabel.font = Typography.primary
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.lineBreakMode = .byTruncatingTail
 
-    subtitleLabel.font = MenuTypography.secondary
+    subtitleLabel.font = Typography.secondary
     subtitleLabel.textColor = .secondaryLabelColor
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.lineBreakMode = .byTruncatingTail
@@ -56,7 +56,7 @@ final class HeaderMenuItemView: NSView {
     // Trailing Settings and Quit controls (header buttons)
     settingsButton.bezelStyle = .texturedRounded
     settingsButton.title = "Settings"
-    settingsButton.font = MenuTypography.secondary
+    settingsButton.font = Typography.secondary
     settingsButton.translatesAutoresizingMaskIntoConstraints = false
     settingsButton.setButtonType(.toggle)
     settingsButton.target = self
@@ -102,7 +102,7 @@ final class HeaderMenuItemView: NSView {
     titleLabel.attributedStringValue = NSAttributedString(
       string: appBaseTitle,
       attributes: [
-        .font: MenuTypography.primary,
+        .font: Typography.primary,
         .foregroundColor: NSColor.labelColor,
       ]
     )
@@ -116,7 +116,7 @@ final class HeaderMenuItemView: NSView {
       let attributed = NSMutableAttributedString(
         string: full,
         attributes: [
-          .font: MenuTypography.secondary,
+          .font: Typography.secondary,
           .foregroundColor: NSColor.labelColor,
         ])
       // Make just the host:port look like a link.
@@ -135,7 +135,7 @@ final class HeaderMenuItemView: NSView {
       subtitleLabel.attributedStringValue = NSAttributedString(
         string: "Server not running",
         attributes: [
-          .font: MenuTypography.secondary,
+          .font: Typography.secondary,
           .foregroundColor: NSColor.secondaryLabelColor,
         ]
       )

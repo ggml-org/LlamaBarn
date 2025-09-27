@@ -23,7 +23,7 @@ final class SectionHeaderMenuItemView: NSView {
 
     container.translatesAutoresizingMaskIntoConstraints = false
     label.translatesAutoresizingMaskIntoConstraints = false
-    label.font = MenuTypography.secondary
+    label.font = Typography.secondary
     label.textColor = .secondaryLabelColor
     label.stringValue = title
     label.lineBreakMode = .byTruncatingTail

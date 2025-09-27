@@ -99,14 +99,14 @@ final class VariantMenuItemView: MenuRowView {
     statusIndicator.translatesAutoresizingMaskIntoConstraints = false
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
-    labelField.font = MenuTypography.primary
+    labelField.font = Typography.primary
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
     let labels = [sizeLabel, ctxLabel, memoryLabel]
     for label in labels {
-      label.font = MenuTypography.secondary
+      label.font = Typography.secondary
       label.textColor = .secondaryLabelColor
       label.lineBreakMode = .byTruncatingTail
       label.translatesAutoresizingMaskIntoConstraints = false
@@ -114,7 +114,7 @@ final class VariantMenuItemView: MenuRowView {
 
     let separators = [separatorLabel, memorySeparatorLabel, warningSeparatorLabel]
     for separator in separators {
-      separator.font = MenuTypography.secondary
+      separator.font = Typography.secondary
       separator.textColor = .tertiaryLabelColor
       separator.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -137,7 +137,7 @@ final class VariantMenuItemView: MenuRowView {
     infoRow.addArrangedSubview(warningSeparatorLabel)
     infoRow.addArrangedSubview(warningImageView)
 
-    progressLabel.font = MenuTypography.secondary
+    progressLabel.font = Typography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -333,7 +333,7 @@ final class VariantMenuItemView: MenuRowView {
 
   private func makeSizeAttributedString(sizeString: String, color: NSColor) -> NSAttributedString {
     let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: MenuTypography.secondary,
+      .font: Typography.secondary,
       .foregroundColor: color,
     ]
     guard let icon = Self.sizeSymbol else {
@@ -373,7 +373,7 @@ final class VariantMenuItemView: MenuRowView {
     -> NSAttributedString
   {
     let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: MenuTypography.secondary,
+      .font: Typography.secondary,
       .foregroundColor: color,
     ]
     guard let icon = Self.memorySymbol else {
@@ -397,7 +397,7 @@ final class VariantMenuItemView: MenuRowView {
     -> NSAttributedString
   {
     let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: MenuTypography.secondary,
+      .font: Typography.secondary,
       .foregroundColor: color,
     ]
     guard let icon = Self.contextSymbol else {

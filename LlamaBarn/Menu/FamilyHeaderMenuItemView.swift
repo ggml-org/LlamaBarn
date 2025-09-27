@@ -39,7 +39,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
     familyLabel.stringValue = family
     // Match primary row font size used elsewhere (Installed models, server status, catalog entries)
-    familyLabel.font = MenuTypography.primary
+    familyLabel.font = Typography.primary
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
     badgesStack.orientation = .horizontal
@@ -137,7 +137,7 @@ private final class BadgeView: NSView {
     check.translatesAutoresizingMaskIntoConstraints = false
     // Align checkmark and text with standard secondary line size
     check.symbolConfiguration = .init(pointSize: 10, weight: .semibold)
-    label.font = MenuTypography.secondary
+    label.font = Typography.secondary
     label.translatesAutoresizingMaskIntoConstraints = false
     innerStack.orientation = .horizontal
     innerStack.spacing = 2

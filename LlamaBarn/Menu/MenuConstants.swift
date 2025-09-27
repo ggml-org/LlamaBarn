@@ -14,13 +14,6 @@ enum MenuMetrics {
   static let progressWidth: CGFloat = 48
 }
 
-/// Shared type ramp for menu rows.
-enum MenuTypography {
-  static let primary = NSFont.systemFont(ofSize: 13)
-  // Secondary/line-2 text used across rows (variants, installed, family) for consistency
-  static let secondary = NSFont.systemFont(ofSize: 11, weight: .regular)
-}
-
 extension NSView {
   /// Applies or clears the standard hover highlight background on a container view.
   /// Uses dynamic colors resolved for the view’s effective appearance and sets a rounded corner.

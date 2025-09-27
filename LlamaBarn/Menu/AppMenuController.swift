@@ -181,13 +181,13 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       labelWithString:
         "\(AppInfo.shortVersion) · build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
     )
-    versionLabel.font = MenuTypography.primary
+    versionLabel.font = Typography.primary
     versionLabel.textColor = .secondaryLabelColor
     versionLabel.lineBreakMode = .byTruncatingMiddle
     versionLabel.translatesAutoresizingMaskIntoConstraints = false
 
     let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitApp))
-    quitButton.font = MenuTypography.secondary
+    quitButton.font = Typography.secondary
     quitButton.bezelStyle = .texturedRounded
     quitButton.translatesAutoresizingMaskIntoConstraints = false
 

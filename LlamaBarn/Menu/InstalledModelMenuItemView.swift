@@ -103,11 +103,11 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     circleIcon.setImage(NSImage(named: model.icon))
 
     labelField.stringValue = model.displayName
-    labelField.font = MenuTypography.primary
+    labelField.font = Typography.primary
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
-    progressLabel.font = MenuTypography.secondary
+    progressLabel.font = Typography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -122,7 +122,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     cancelImageView.contentTintColor = .systemRed
     cancelImageView.isHidden = true
 
-    bytesLabel.font = MenuTypography.secondary
+    bytesLabel.font = Typography.secondary
     bytesLabel.textColor = .secondaryLabelColor
     bytesLabel.alignment = .left
     bytesLabel.translatesAutoresizingMaskIntoConstraints = false
