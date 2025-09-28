@@ -11,15 +11,65 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
 
   // Track multi-file downloads per model id
   struct ActiveDownload {
+    struct TaskState {
+      let task: URLSessionDownloadTask
+      var bytesWritten: Int64
+      var expectedBytes: Int64
+    }
+
     var progress: Progress
-    var tasks: [Int: URLSessionDownloadTask]  // key: taskIdentifier
-    var bytesWritten: [Int: Int64]  // per-task completed bytes
-    var expectedBytes: [Int: Int64]  // per-task expected bytes (if known)
-    var totalExpectedBytes: Int64  // aggregate expected (dynamic)
+    var tasks: [Int: TaskState]
+    var completedBytes: Int64 = 0
+    var completedExpectedBytes: Int64 = 0
+
+    mutating func addTask(_ task: URLSessionDownloadTask) {
+      tasks[task.taskIdentifier] = TaskState(
+        task: task,
+        bytesWritten: 0,
+        expectedBytes: 0
+      )
+    }
+
+    mutating func updateTask(
+      identifier: Int,
+      bytesWritten: Int64,
+      expectedBytes: Int64?
+    ) {
+      guard var state = tasks[identifier] else { return }
+      state.bytesWritten = bytesWritten
+      if let expectedBytes, expectedBytes > 0 {
+        state.expectedBytes = expectedBytes
+      }
+      tasks[identifier] = state
+    }
+
+    mutating func removeTask(with identifier: Int) -> TaskState? {
+      return tasks.removeValue(forKey: identifier)
+    }
+
+    mutating func cancelAllTasks() {
+      tasks.values.forEach { $0.task.cancel() }
+      tasks.removeAll()
+      completedBytes = 0
+      completedExpectedBytes = 0
+    }
+
+    mutating func refreshProgress() {
+      let activeWritten = tasks.values.reduce(Int64(0)) { $0 + $1.bytesWritten }
+      let activeExpected = tasks.values.reduce(Int64(0)) {
+        let value = $1.expectedBytes
+        return $0 + (value > 0 ? value : 0)
+      }
+      let totalCompleted = completedBytes + activeWritten
+      let totalExpected = max(completedExpectedBytes + activeExpected, totalCompleted)
+      progress.totalUnitCount = totalExpected
+      progress.completedUnitCount = totalCompleted
+    }
+
+    var isEmpty: Bool { tasks.isEmpty }
   }
 
   var activeDownloads: [String: ActiveDownload] = [:]
-  var downloadUpdateTrigger: Int = 0
 
   private var urlSession: URLSession!
   private let logger = Logger(subsystem: "LlamaBarn", category: "ModelDownloader")
@@ -77,13 +127,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     // Create or reuse aggregate state for this model's downloads
     var aggregate =
       activeDownloads[model.id]
-      ?? ActiveDownload(
-        progress: Progress(totalUnitCount: 0),
-        tasks: [:],
-        bytesWritten: [:],
-        expectedBytes: [:],
-        totalExpectedBytes: 0
-      )
+      ?? ActiveDownload(progress: Progress(totalUnitCount: 0), tasks: [:])
 
     // Publish aggregate before starting tasks to avoid race with delegate callbacks
     activeDownloads[model.id] = aggregate
@@ -91,9 +135,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     for fileUrl in filesToDownload {
       let task = urlSession.downloadTask(with: fileUrl)
       task.taskDescription = model.id
-      aggregate.tasks[task.taskIdentifier] = task
-      aggregate.bytesWritten[task.taskIdentifier] = 0
-      aggregate.expectedBytes[task.taskIdentifier] = 0
+      aggregate.addTask(task)
       activeDownloads[model.id] = aggregate
       task.resume()
     }
@@ -102,7 +144,8 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   /// Cancels an ongoing download and removes it from tracking
   func cancelModelDownload(_ model: ModelCatalogEntry) {
     if let download = activeDownloads[model.id] {
-      for (_, task) in download.tasks { task.cancel() }
+      var mutable = download
+      mutable.cancelAllTasks()
       activeDownloads.removeValue(forKey: model.id)
     }
     NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
@@ -131,22 +174,6 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   }
 
   // MARK: - URLSessionDownloadDelegate
-
-  private func recalcProgress(for modelId: String) {
-    guard var aggregate = activeDownloads[modelId] else { return }
-    let totalBytes = aggregate.bytesWritten.values.reduce(0, +)
-    let expected = aggregate.expectedBytes.values.reduce(0, +)
-    if expected > 0 {
-      aggregate.totalExpectedBytes = expected
-    }
-    // Ensure total never falls below completed to avoid Progress inconsistencies.
-    let safeTotal = max(aggregate.totalExpectedBytes, totalBytes)
-    aggregate.progress.totalUnitCount = safeTotal
-    aggregate.progress.completedUnitCount = totalBytes
-    activeDownloads[modelId] = aggregate
-    downloadUpdateTrigger += 1
-    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
-  }
 
   func urlSession(
     _ session: URLSession, downloadTask: URLSessionDownloadTask,
@@ -205,23 +232,31 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
       }
 
       if var aggregate = self.activeDownloads[modelId] {
-        aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
-        aggregate.bytesWritten[downloadTask.taskIdentifier] = fileSize
-        if (aggregate.expectedBytes[downloadTask.taskIdentifier] ?? 0) <= 0 {
-          aggregate.expectedBytes[downloadTask.taskIdentifier] = fileSize
+        if var state = aggregate.removeTask(with: downloadTask.taskIdentifier) {
+          state.bytesWritten = fileSize
+          if state.expectedBytes <= 0 {
+            state.expectedBytes = fileSize
+          }
+          aggregate.completedBytes += state.bytesWritten
+          let expectedContribution =
+            state.expectedBytes > 0
+            ? state.expectedBytes
+            : state.bytesWritten
+          aggregate.completedExpectedBytes += expectedContribution
         }
-        self.activeDownloads[modelId] = aggregate
-        self.recalcProgress(for: modelId)
+        aggregate.refreshProgress()
 
-        if aggregate.tasks.isEmpty {
+        if aggregate.isEmpty {
           self.logger.info("All downloads completed for model: \(model.displayName)")
           self.activeDownloads.removeValue(forKey: modelId)
-          // Notify ModelManager that a model has finished downloading.
           NotificationCenter.default.post(
             name: .LBModelDownloadFinished,
             object: self,
             userInfo: ["model": model]
           )
+        } else {
+          self.activeDownloads[modelId] = aggregate
+          NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
         }
       } else {
         // This case should not be hit if the download is tracked properly,
@@ -232,10 +267,14 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     } catch {
       logger.error("Error moving downloaded file: \(error.localizedDescription)")
       if var aggregate = self.activeDownloads[modelId] {
-        aggregate.tasks.removeValue(forKey: downloadTask.taskIdentifier)
-        self.activeDownloads[modelId] = aggregate
-        self.recalcProgress(for: modelId)
-        if aggregate.tasks.isEmpty { self.activeDownloads.removeValue(forKey: modelId) }
+        _ = aggregate.removeTask(with: downloadTask.taskIdentifier)
+        aggregate.refreshProgress()
+        if aggregate.isEmpty {
+          self.activeDownloads.removeValue(forKey: modelId)
+        } else {
+          self.activeDownloads[modelId] = aggregate
+        }
+        NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
       }
     }
   }
@@ -259,16 +298,10 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     logger.error("Model download failed (\(reason)) for model: \(model.displayName)")
 
     if var aggregate = self.activeDownloads[modelId] {
-      for (id, otherTask) in aggregate.tasks where id != task.taskIdentifier {
-        otherTask.cancel()
-      }
-      aggregate.tasks.removeAll()
-      aggregate.bytesWritten.removeAll()
-      aggregate.expectedBytes.removeAll()
+      aggregate.cancelAllTasks()
       self.activeDownloads.removeValue(forKey: modelId)
     }
 
-    downloadUpdateTrigger += 1
     NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 
@@ -281,20 +314,13 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     else {
       return
     }
-    download.bytesWritten[downloadTask.taskIdentifier] = totalBytesWritten
-    let total = download.bytesWritten.values.reduce(0, +)
-    if totalBytesExpectedToWrite > 0 {
-      download.expectedBytes[downloadTask.taskIdentifier] = totalBytesExpectedToWrite
-    }
-    let expectedTotal = download.expectedBytes.values.reduce(0, +)
-    if expectedTotal > 0 {
-      download.totalExpectedBytes = expectedTotal
-    }
-    let safeTotal = max(download.totalExpectedBytes, total)
-    download.progress.totalUnitCount = safeTotal
-    download.progress.completedUnitCount = total
+    download.updateTask(
+      identifier: downloadTask.taskIdentifier,
+      bytesWritten: totalBytesWritten,
+      expectedBytes: totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : nil
+    )
+    download.refreshProgress()
     self.activeDownloads[modelId] = download
-    self.downloadUpdateTrigger += 1
     NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 
@@ -306,11 +332,13 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     if let error = error {
       logger.error("Model download failed: \(error.localizedDescription)")
       if var aggregate = self.activeDownloads[modelId] {
-        aggregate.tasks.removeValue(forKey: task.taskIdentifier)
-        self.activeDownloads[modelId] = aggregate
-        self.recalcProgress(for: modelId)
-        if aggregate.tasks.isEmpty {
+        _ = aggregate.removeTask(with: task.taskIdentifier)
+        aggregate.refreshProgress()
+        if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
+        } else {
+          self.activeDownloads[modelId] = aggregate
+          NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
         }
       }
     }

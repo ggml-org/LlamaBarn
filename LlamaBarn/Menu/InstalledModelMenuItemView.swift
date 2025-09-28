@@ -1,6 +1,214 @@
 import AppKit
 import Foundation
 
+private final class InstalledModelActionsView: NSView {
+  private enum Action {
+    case ellipsis
+    case delete
+    case reveal
+    case stop
+  }
+
+  var onDelete: (() -> Void)?
+  var onReveal: (() -> Void)?
+  var onStop: (() -> Void)?
+
+  private let ellipsisButton: NSButton
+  private let ellipsisImageView: NSImageView
+  private let deleteButton: NSButton
+  private let deleteImageView: NSImageView
+  private let revealButton: NSButton
+  private let revealImageView: NSImageView
+  private let stopButton: NSButton
+  private let stopImageView: NSImageView
+
+  private var isExpanded = false
+  private var latestStatus: ModelStatus = .available
+  private var latestIsRunning = false
+  private var latestHighlight = false
+
+  override init(frame frameRect: NSRect) {
+    let ellipsis = Self.makeButton(
+      symbolName: "ellipsis",
+      accessibilityLabel: "More actions"
+    )
+    ellipsisButton = ellipsis.button
+    ellipsisImageView = ellipsis.imageView
+
+    let delete = Self.makeButton(
+      symbolName: "trash",
+      accessibilityLabel: "Delete model"
+    )
+    deleteButton = delete.button
+    deleteImageView = delete.imageView
+
+    let reveal = Self.makeButton(
+      symbolName: "folder",
+      accessibilityLabel: "Show in Finder"
+    )
+    revealButton = reveal.button
+    revealImageView = reveal.imageView
+
+    let stop = Self.makeButton(
+      symbolName: "stop",
+      accessibilityLabel: "Stop model",
+      tint: .systemRed
+    )
+    stopButton = stop.button
+    stopImageView = stop.imageView
+
+    super.init(frame: frameRect)
+    translatesAutoresizingMaskIntoConstraints = false
+    wantsLayer = false
+
+    ellipsisButton.target = self
+    ellipsisButton.action = #selector(didTapEllipsis)
+    deleteButton.target = self
+    deleteButton.action = #selector(didTapDelete)
+    revealButton.target = self
+    revealButton.action = #selector(didTapReveal)
+    stopButton.target = self
+    stopButton.action = #selector(didTapStop)
+
+    let stack = NSStackView(views: [ellipsisButton, stopButton, deleteButton, revealButton])
+    stack.translatesAutoresizingMaskIntoConstraints = false
+    stack.orientation = .horizontal
+    stack.alignment = .centerY
+    stack.spacing = 6
+    stack.detachesHiddenViews = true
+
+    addSubview(stack)
+
+    NSLayoutConstraint.activate([
+      ellipsisButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      ellipsisButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      stopButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      stopButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      deleteButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      deleteButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      revealButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      revealButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+
+      stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+      stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+      stack.topAnchor.constraint(equalTo: topAnchor),
+      stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+    ])
+
+    collapseActions()
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  func update(for status: ModelStatus, isRunning: Bool, highlighted: Bool) {
+    latestStatus = status
+    latestIsRunning = isRunning
+    latestHighlight = highlighted
+
+    switch status {
+    case .available, .downloading:
+      collapseActions()
+      ellipsisButton.isHidden = true
+      deleteButton.isHidden = true
+      revealButton.isHidden = true
+      stopButton.isHidden = true
+    case .downloaded:
+      if isRunning {
+        collapseActions()
+        ellipsisButton.isHidden = true
+        deleteButton.isHidden = true
+        revealButton.isHidden = true
+        stopButton.isHidden = false
+      } else if highlighted {
+        ellipsisButton.isHidden = isExpanded
+        deleteButton.isHidden = !isExpanded
+        revealButton.isHidden = !isExpanded
+        stopButton.isHidden = true
+      } else {
+        collapseActions()
+        ellipsisButton.isHidden = true
+        deleteButton.isHidden = true
+        revealButton.isHidden = true
+        stopButton.isHidden = true
+      }
+    }
+
+    updateTints()
+  }
+
+  func collapseActions() {
+    isExpanded = false
+  }
+
+  func isInteractiveArea(at parentPoint: NSPoint, in parentView: NSView) -> Bool {
+    let localPoint = convert(parentPoint, from: parentView)
+    guard bounds.contains(localPoint) else { return false }
+    return hitTest(localPoint) != nil
+  }
+
+  private func handle(action: Action) {
+    switch action {
+    case .ellipsis:
+      isExpanded.toggle()
+      update(for: latestStatus, isRunning: latestIsRunning, highlighted: latestHighlight)
+    case .delete: onDelete?()
+    case .reveal: onReveal?()
+    case .stop: onStop?()
+    }
+  }
+
+  private func updateTints() {
+    let tint = latestHighlight ? NSColor.labelColor : NSColor.secondaryLabelColor
+    ellipsisImageView.contentTintColor = tint
+    deleteImageView.contentTintColor = tint
+    revealImageView.contentTintColor = tint
+    stopImageView.contentTintColor = .systemRed
+  }
+
+  @objc private func didTapEllipsis() { handle(action: .ellipsis) }
+  @objc private func didTapDelete() { handle(action: .delete) }
+  @objc private func didTapReveal() { handle(action: .reveal) }
+  @objc private func didTapStop() { handle(action: .stop) }
+
+  private static func makeButton(
+    symbolName: String,
+    accessibilityLabel: String,
+    tint: NSColor = .secondaryLabelColor
+  ) -> (button: NSButton, imageView: NSImageView) {
+    let button = NSButton()
+    button.translatesAutoresizingMaskIntoConstraints = false
+    button.isBordered = false
+    button.imagePosition = .imageOnly
+    button.setButtonType(.momentaryChange)
+    button.title = ""
+    button.toolTip = accessibilityLabel
+    button.setAccessibilityLabel(accessibilityLabel)
+
+    let imageView = NSImageView()
+    if let img = NSImage(
+      systemSymbolName: symbolName,
+      accessibilityDescription: accessibilityLabel
+    ) {
+      img.isTemplate = true
+      imageView.image = img
+    }
+    imageView.translatesAutoresizingMaskIntoConstraints = false
+    imageView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
+    imageView.imageScaling = .scaleProportionallyDown
+    imageView.contentTintColor = tint
+    button.addSubview(imageView)
+
+    NSLayoutConstraint.activate([
+      imageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+      imageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
+      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
+    ])
+
+    return (button, imageView)
+  }
+}
+
 /// Menu row representing a single installed model.
 /// Visual states:
 /// - Idle: circular icon (inactive) + label
@@ -19,18 +227,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   // Second-line label: used for progress during downloads and for
   // consistent two-line layout (size/badges) when idle/running.
   private let bytesLabel = NSTextField(labelWithString: "")
-  // Trailing action controls
-  private let ellipsisContainer = NSView()
-  private var ellipsisButton: NSButton!
-  private var ellipsisImageView: NSImageView!
-  private var deleteButton: NSButton!
-  private var stopButton: NSButton!
-  private var deleteImageView: NSImageView!
-  private var revealButton: NSButton!
-  private var revealImageView: NSImageView!
   private let cancelImageView = NSImageView()
-  private var actionsExpanded = false
-  // No per-ellipsis hover state; keep things simple
+  private let actionsView = InstalledModelActionsView()
 
   // Hover handling is provided by MenuRowView
   private var rowClickRecognizer: NSClickGestureRecognizer?
@@ -52,51 +250,6 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
   override var intrinsicContentSize: NSSize { NSSize(width: 260, height: 40) }
-
-  private func makeActionButton(
-    symbolName: String,
-    accessibilityLabel: String,
-    toolTip: String,
-    action: Selector,
-    tint: NSColor = .secondaryLabelColor
-  ) -> (NSButton, NSImageView) {
-    let button = NSButton()
-    button.translatesAutoresizingMaskIntoConstraints = false
-    button.isBordered = false
-    button.imagePosition = .imageOnly
-    button.setButtonType(.momentaryChange)
-    button.title = ""
-    button.alternateTitle = ""
-    button.attributedTitle = NSAttributedString(string: "")
-    button.target = self
-    button.action = action
-    button.toolTip = toolTip
-    button.isHidden = true
-    (button.cell as? NSButtonCell)?.highlightsBy = []
-    button.setAccessibilityLabel(accessibilityLabel)
-
-    let imageView = NSImageView()
-    if let img = NSImage(
-      systemSymbolName: symbolName, accessibilityDescription: accessibilityLabel
-    ) {
-      img.isTemplate = true
-      imageView.image = img
-    }
-    imageView.translatesAutoresizingMaskIntoConstraints = false
-    imageView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
-    imageView.imageScaling = .scaleProportionallyDown
-    imageView.contentTintColor = tint
-    button.addSubview(imageView)
-
-    NSLayoutConstraint.activate([
-      imageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-      imageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
-      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
-    ])
-
-    return (button, imageView)
-  }
 
   private func setup() {
     wantsLayer = true
@@ -128,40 +281,9 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     bytesLabel.translatesAutoresizingMaskIntoConstraints = false
     bytesLabel.isHidden = false
 
-    // Ellipsis shows on hover; on click it expands to inline actions
-    ellipsisContainer.translatesAutoresizingMaskIntoConstraints = false
-    ellipsisContainer.wantsLayer = false
-
-    (ellipsisButton, ellipsisImageView) = makeActionButton(
-      symbolName: "ellipsis",
-      accessibilityLabel: "More actions",
-      toolTip: "More actions",
-      action: #selector(toggleActions)
-    )
-    ellipsisContainer.addSubview(ellipsisButton)
-
-    (deleteButton, deleteImageView) = makeActionButton(
-      symbolName: "trash",
-      accessibilityLabel: "Delete model",
-      toolTip: "Delete model",
-      action: #selector(handleDelete)
-    )
-
-    // Stop button (shown when this model is running)
-    (stopButton, _) = makeActionButton(
-      symbolName: "stop",
-      accessibilityLabel: "Stop model",
-      toolTip: "Stop",
-      action: #selector(handleStop),
-      tint: .systemRed
-    )
-
-    (revealButton, revealImageView) = makeActionButton(
-      symbolName: "folder",
-      accessibilityLabel: "Show in Finder",
-      toolTip: "Show in Finder",
-      action: #selector(handleRevealInFinder)
-    )
+    actionsView.onDelete = { [weak self] in self?.performDelete() }
+    actionsView.onReveal = { [weak self] in self?.performReveal() }
+    actionsView.onStop = { [weak self] in self?.performStop() }
 
     // Order: icon | (label over bytes) | spacer | (state, progress, delete, action)
     // Spacer expands so trailing visuals sit flush right.
@@ -193,19 +315,11 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     cancelImageView.setContentHuggingPriority(.required, for: .horizontal)
     cancelImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-    let rightStack = NSStackView(views: [
-      progressLabel, cancelImageView, ellipsisContainer, stopButton, deleteButton, revealButton,
-    ])
+    let rightStack = NSStackView(views: [progressLabel, cancelImageView, actionsView])
     rightStack.translatesAutoresizingMaskIntoConstraints = false
     rightStack.orientation = .horizontal
     rightStack.spacing = 6
     rightStack.alignment = .centerY
-    // Hidden arranged subviews should be fully detached from layout so they
-    // don't reserve space when not visible (e.g., the legacy play/stop slot).
-    rightStack.detachesHiddenViews = true
-    // Remove the gap between the two action buttons when expanded
-    rightStack.setCustomSpacing(0, after: deleteButton)
-    rightStack.setCustomSpacing(0, after: revealButton)
 
     let rootStack = NSStackView(views: [leading, spacer, rightStack])
     rootStack.translatesAutoresizingMaskIntoConstraints = false
@@ -219,22 +333,6 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
       circleIcon.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
       cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
       cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
-
-      // Make the ellipsis hit target comfortably large and let the button fill it
-      ellipsisContainer.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      ellipsisContainer.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      ellipsisButton.leadingAnchor.constraint(equalTo: ellipsisContainer.leadingAnchor),
-      ellipsisButton.trailingAnchor.constraint(equalTo: ellipsisContainer.trailingAnchor),
-      ellipsisButton.topAnchor.constraint(equalTo: ellipsisContainer.topAnchor),
-      ellipsisButton.bottomAnchor.constraint(equalTo: ellipsisContainer.bottomAnchor),
-
-      stopButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      stopButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      deleteButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      deleteButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-
-      revealButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      revealButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
 
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.progressWidth),
       rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -276,33 +374,24 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     refresh()
   }
 
-  private func setEllipsisVisible(_ visible: Bool) {
-    ellipsisContainer.isHidden = !visible
-    ellipsisButton.isHidden = !visible
-  }
-
   // Prevent row-level toggle when clicking inline action buttons.
   func gestureRecognizer(
     _ gestureRecognizer: NSGestureRecognizer, shouldAttemptToRecognizeWith event: NSEvent
   ) -> Bool {
     let location = convert(event.locationInWindow, from: nil)
-    // If click is inside any of the action buttons, let the button handle it.
-    let actionViews: [NSView] = [
-      ellipsisContainer, ellipsisButton, stopButton, revealButton, deleteButton,
-    ]
-    for v in actionViews where !v.isHidden {
-      let frame = v.convert(v.bounds, to: self)
-      if frame.contains(location) { return false }
-    }
+    if actionsView.isInteractiveArea(at: location, in: self) { return false }
     return true
   }
 
   override func hoverHighlightDidChange(_ highlighted: Bool) {
     let status = modelManager.getModelStatus(model)
-    updateActionsVisibility(for: status, highlighted: highlighted)
+    actionsView.update(
+      for: status,
+      isRunning: server.isActive(model: model) && server.isRunning,
+      highlighted: highlighted
+    )
     // Update icon tint when highlight changes.
     applyIconTint()
-    applyActionTints()
   }
 
   func refresh() {
@@ -372,69 +461,38 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
       bytesLabel.stringValue = "\(completedText) / \(totalText)"
       bytesLabel.isHidden = false
       // Removed indicator image in favor of simplified state display
-      updateActionsVisibility(for: .downloading(progress), highlighted: isHoverHighlighted)
+      actionsView.update(
+        for: .downloading(progress),
+        isRunning: isRunning,
+        highlighted: isHoverHighlighted
+      )
     case .downloaded:
       progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
       bytesLabel.isHidden = false
       // No play/stop affordance; active state is conveyed by circular icon.
 
-      updateActionsVisibility(for: .downloaded, highlighted: isHoverHighlighted)
+      actionsView.update(
+        for: .downloaded,
+        isRunning: isRunning,
+        highlighted: isHoverHighlighted
+      )
     case .available:
       progressLabel.stringValue = ""
       bytesLabel.stringValue = defaultSecondary
       bytesLabel.isHidden = false
 
-      updateActionsVisibility(for: .available, highlighted: isHoverHighlighted)
+      actionsView.update(
+        for: .available,
+        isRunning: isRunning,
+        highlighted: isHoverHighlighted
+      )
     }
     // Update leading circular badge state and tinting
     // Icon should become blue only after the model is done loading (running)
     circleIcon.isActive = isRunning
     applyIconTint(isActive: isRunning)
-    applyActionTints()
     needsDisplay = true
-  }
-
-  /// Centralizes which trailing actions are visible based on status + hover state.
-  private func updateActionsVisibility(for status: ModelStatus, highlighted: Bool) {
-    // Show a stop trailing visual instead of ellipsis when this model is running.
-    let isActive = server.isActive(model: model)
-    let isRunning = isActive && server.isRunning
-    switch status {
-    case .downloading:
-      actionsExpanded = false
-      setEllipsisVisible(false)
-      stopButton.isHidden = true
-      revealButton.isHidden = true
-      deleteButton.isHidden = true
-    case .available:
-      actionsExpanded = false
-      setEllipsisVisible(false)
-      stopButton.isHidden = true
-      revealButton.isHidden = true
-      deleteButton.isHidden = true
-    case .downloaded:
-      if isRunning {
-        // When running, no ellipsis; show stop glyph on hover and when not hovered too?
-        // Requirement: when a model is running, it should not show an ellipsis button on hover.
-        // We show a stop symbol as trailing visual. Keep it visible to indicate selectable stop.
-        setEllipsisVisible(false)
-        stopButton.isHidden = false
-        revealButton.isHidden = true
-        deleteButton.isHidden = true
-      } else if highlighted {
-        stopButton.isHidden = true
-        setEllipsisVisible(!actionsExpanded)
-        revealButton.isHidden = !actionsExpanded
-        deleteButton.isHidden = !actionsExpanded
-      } else {
-        stopButton.isHidden = true
-        actionsExpanded = false
-        setEllipsisVisible(false)
-        revealButton.isHidden = true
-        deleteButton.isHidden = true
-      }
-    }
   }
 
   /// Installed model icons use the primary label tint unless the server is running,
@@ -454,71 +512,32 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     }
   }
 
-  // Neutral adaptive tint for action symbols; avoid strong destructive red by default.
-  private func applyActionTints() {
-    if !cancelImageView.isHidden { cancelImageView.contentTintColor = .systemRed }
-    // Determine which action buttons are visible, then tint their image views
-    let visibleImageViews: [NSImageView] = [
-      // stopButton has its own inner image view; tint via its subviews
-      !revealButton.isHidden ? revealImageView : nil,
-      !deleteButton.isHidden ? deleteImageView : nil,
-    ].compactMap { $0 }
-    guard !visibleImageViews.isEmpty else {
-      // Still update ellipsis tint if it's visible
-      if !ellipsisContainer.isHidden {
-        ellipsisImageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
-      }
-      // Also tint stopButton inner image if visible
-      if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first
-      {
-        iv.contentTintColor = isHoverHighlighted ? .systemRed : .systemRed
-      }
-      return
-    }
-    let tint = isHoverHighlighted ? NSColor.labelColor : NSColor.secondaryLabelColor
-    visibleImageViews.forEach { $0.contentTintColor = tint }
-    // Keep ellipsis same tinting rules as other action buttons
-    if !ellipsisContainer.isHidden { ellipsisImageView.contentTintColor = tint }
-    if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first {
-      iv.contentTintColor = .systemRed
-    }
-  }
-
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
-    applyActionTints()
-    // Tints auto-update using dynamic NSColors
-    if !ellipsisContainer.isHidden {
-      ellipsisImageView.contentTintColor = isHoverHighlighted ? .labelColor : .secondaryLabelColor
-    }
-    if !stopButton.isHidden, let iv = stopButton.subviews.compactMap({ $0 as? NSImageView }).first {
-      iv.contentTintColor = .systemRed
-    }
+    cancelImageView.contentTintColor = .systemRed
+    let status = modelManager.getModelStatus(model)
+    actionsView.update(
+      for: status,
+      isRunning: server.isActive(model: model) && server.isRunning,
+      highlighted: isHoverHighlighted
+    )
   }
 
-  // No special tracking for the ellipsis area; the row keeps highlight itself.
-
-  @objc private func toggleActions() {
-    actionsExpanded.toggle()
-    // Re-evaluate hover state to flip the visible controls accordingly
-    hoverHighlightDidChange(isHoverHighlighted)
-  }
-
-  @objc private func handleDelete() {
+  private func performDelete() {
     let status = modelManager.getModelStatus(model)
     guard case .downloaded = status else { return }
     modelManager.deleteDownloadedModel(model)
     membershipChanged()
   }
 
-  @objc private func handleStop() {
+  private func performStop() {
     let isActive = server.isActive(model: model)
     guard isActive else { return }
     server.stop()
     refresh()
   }
 
-  @objc private func handleRevealInFinder() {
+  private func performReveal() {
     let url = URL(fileURLWithPath: model.modelFilePath)
     NSWorkspace.shared.activateFileViewerSelecting([url])
   }

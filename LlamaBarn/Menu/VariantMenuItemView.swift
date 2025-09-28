@@ -78,20 +78,9 @@ final class VariantMenuItemView: MenuRowView {
 
   override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 40) }
 
-  // Only allow hover highlight for actionable rows:
-  // - available & compatible (can start download)
-  // - downloading (can cancel)
-  // Not for incompatible variants or already-downloaded ones.
+  // Only allow hover highlight for actionable rows (available/compatible or downloading).
   override var hoverHighlightEnabled: Bool {
-    let status = modelManager.getModelStatus(model)
-    switch status {
-    case .available:
-      return ModelCatalog.isModelCompatible(model)
-    case .downloading:
-      return true
-    case .downloaded:
-      return false
-    }
+    VariantRowPresenter.isActionable(model: model, status: modelManager.getModelStatus(model))
   }
 
   private func setup() {
@@ -217,72 +206,35 @@ final class VariantMenuItemView: MenuRowView {
 
   func refresh() {
     let status = modelManager.getModelStatus(model)
-    let compatible = ModelCatalog.isModelCompatible(model)
-    let actionable = hoverHighlightEnabled
-    var title = "\(model.displayName)"
-    if !model.isFullPrecision {
-      title += " \(model.quantization)"
-    }
-    labelField.stringValue = title
+    let display = VariantRowPresenter.makeDisplay(for: model, status: status)
 
-    let sizeString = model.totalSize
-    let contextString =
-      model.contextLength > 0
-      ? TokenFormatters.shortTokens(model.contextLength)
-      : "—"
-    let memoryEstimate = makeMemoryEstimateString(
-      for: model, contextLength: model.contextLength)
+    labelField.stringValue = display.title
+    labelField.textColor = display.titleColor
 
-    infoRow.toolTip = nil
-    if !compatible {
-      let reason = ModelCatalog.incompatibilitySummary(model) ?? "not compatible"
-      infoRow.toolTip = reason
-    }
+    sizeLabel.attributedStringValue = IconLabelFormatter.make(
+      icon: Self.sizeSymbol,
+      text: display.sizeText,
+      color: display.infoColor,
+      baselineOffset: Self.iconBaselineYOffset
+    )
 
-    let maxContextCompatible: Bool = {
-      guard model.contextLength > 0 else { return compatible }
-      let maxTokens = Double(model.contextLength)
-      if maxTokens <= ModelCatalog.compatibilityContextLengthTokens { return compatible }
-      return ModelCatalog.isModelCompatible(model, contextLengthTokens: maxTokens)
-    }()
-    let needsMaxContextWarning = compatible && !maxContextCompatible
-    let maxContextReason: String? =
-      needsMaxContextWarning
-      ? ModelCatalog.incompatibilitySummary(
-        model, contextLengthTokens: Double(model.contextLength))
-      : nil
+    ctxLabel.attributedStringValue = IconLabelFormatter.make(
+      icon: Self.contextSymbol,
+      text: display.contextText,
+      color: display.infoColor,
+      baselineOffset: Self.iconBaselineYOffset
+    )
 
-    // Visual affordances:
-    // - Incompatible: tertiary (disabled) coloring
-    // - Downloaded: dim to indicate non-interactive
-    // - Actionable (available or downloading): regular colors
-    let infoColor: NSColor
-    if !compatible {
-      labelField.textColor = .tertiaryLabelColor
-      infoColor = .tertiaryLabelColor
-    } else if !actionable {
-      labelField.textColor = .secondaryLabelColor
-      infoColor = .tertiaryLabelColor
-    } else {
-      labelField.textColor = .labelColor
-      infoColor = .secondaryLabelColor
-    }
-    sizeLabel.attributedStringValue = makeSizeAttributedString(
-      sizeString: sizeString, color: infoColor)
-    separatorLabel.textColor = infoColor
-    ctxLabel.textColor = infoColor
-    memorySeparatorLabel.textColor = infoColor
-    memoryLabel.textColor = infoColor
-    warningSeparatorLabel.textColor = infoColor
-    warningImageView.contentTintColor = infoColor
-    ctxLabel.attributedStringValue = makeContextAttributedString(
-      contextString: contextString, color: infoColor)
-
-    if let memoryEstimate {
-      memoryLabel.attributedStringValue = makeMemoryAttributedString(
-        memoryString: memoryEstimate, color: infoColor)
+    if let memoryText = display.memoryText {
+      memoryLabel.attributedStringValue = IconLabelFormatter.make(
+        icon: Self.memorySymbol,
+        text: memoryText,
+        color: display.infoColor,
+        baselineOffset: Self.iconBaselineYOffset
+      )
       memoryLabel.isHidden = false
       memorySeparatorLabel.isHidden = false
+      separatorLabel.isHidden = false
     } else {
       memoryLabel.stringValue = ""
       memoryLabel.isHidden = true
@@ -290,140 +242,45 @@ final class VariantMenuItemView: MenuRowView {
       separatorLabel.isHidden = true
     }
 
-    if needsMaxContextWarning {
-      warningSeparatorLabel.isHidden = false
-      warningImageView.isHidden = false
-      if let reason = maxContextReason, model.contextLength > 0 {
-        let ctxString = TokenFormatters.shortTokens(model.contextLength)
-        warningImageView.toolTip = "\(reason) for full \(ctxString) context"
-      } else {
-        warningImageView.toolTip = "Cannot run at maximum context"
-      }
-    } else {
-      warningSeparatorLabel.isHidden = true
-      warningImageView.isHidden = true
-      warningImageView.toolTip = nil
-    }
+    infoRow.toolTip = display.infoTooltip
 
-    progressLabel.stringValue = ""
-    switch status {
+    warningSeparatorLabel.isHidden = !display.showsWarning
+    warningImageView.isHidden = !display.showsWarning
+    warningImageView.toolTip = display.warningTooltip
+    warningImageView.contentTintColor = display.infoColor
+    warningSeparatorLabel.textColor = display.infoColor
+
+    separatorLabel.textColor = display.infoColor
+    memorySeparatorLabel.textColor = display.infoColor
+    memoryLabel.textColor = display.infoColor
+    ctxLabel.textColor = display.infoColor
+
+    switch display.status {
     case .downloaded:
-      // Installed variants are not clickable in this submenu; show the green check used in family badges.
       statusIndicator.image = NSImage(
         systemSymbolName: "checkmark.circle", accessibilityDescription: nil)
       statusIndicator.contentTintColor = .llamaGreen
-      toolTip = "Already installed"
-    case .downloading(let progress):
-      let pct: Int
-      if progress.totalUnitCount > 0 {
-        pct = Int(Double(progress.completedUnitCount) / Double(progress.totalUnitCount) * 100)
-      } else {
-        pct = 0
-      }
-      // Monochrome progress indicator.
+    case .downloading:
       statusIndicator.image = NSImage(
         systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
       statusIndicator.contentTintColor = .secondaryLabelColor
-      progressLabel.stringValue = "\(pct)%"
-    case .available:
+    case .available(let compatible):
       if compatible {
         statusIndicator.image = NSImage(
           systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
         statusIndicator.contentTintColor = .secondaryLabelColor
       } else {
-        statusIndicator.image = NSImage(systemSymbolName: "nosign", accessibilityDescription: nil)
-        // Monochrome disabled/incompatible indicator.
+        statusIndicator.image = NSImage(
+          systemSymbolName: "nosign", accessibilityDescription: nil)
         statusIndicator.contentTintColor = .tertiaryLabelColor
       }
     }
+
+    progressLabel.stringValue = display.progressText ?? ""
+    toolTip = display.rowTooltip
+
     // If the item is no longer actionable, clear any lingering hover highlight.
-    if !hoverHighlightEnabled { setHoverHighlight(false) }
+    if !display.isActionable { setHoverHighlight(false) }
     needsDisplay = true
-  }
-
-  private func makeSizeAttributedString(sizeString: String, color: NSColor) -> NSAttributedString {
-    let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: Typography.secondary,
-      .foregroundColor: color,
-    ]
-    guard let icon = Self.sizeSymbol else {
-      return NSAttributedString(string: sizeString, attributes: textAttributes)
-    }
-
-    let attachment = NSTextAttachment()
-    attachment.image = icon
-    // Slight baseline tweak keeps the glyph visually centered beside the text.
-    attachment.bounds = CGRect(
-      x: 0, y: Self.iconBaselineYOffset, width: icon.size.width, height: icon.size.height)
-
-    let result = NSMutableAttributedString(
-      attributedString: NSAttributedString(attachment: attachment))
-    result.append(NSAttributedString(string: " \(sizeString)", attributes: textAttributes))
-    result.addAttribute(
-      .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
-    return result
-  }
-
-  private func makeMemoryEstimateString(for model: ModelCatalogEntry, contextLength: Int) -> String?
-  {
-    guard contextLength > 0 else { return nil }
-
-    let usageMB = ModelCatalog.runtimeMemoryUsageMB(
-      for: model, contextLengthTokens: Double(contextLength))
-    guard usageMB > 0 else { return nil }
-
-    let formatter = ByteCountFormatter()
-    formatter.allowedUnits = [.useGB]
-    formatter.countStyle = .binary
-    let bytes = Int64(usageMB) * 1_048_576
-    return formatter.string(fromByteCount: bytes)
-  }
-
-  private func makeMemoryAttributedString(memoryString: String, color: NSColor)
-    -> NSAttributedString
-  {
-    let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: Typography.secondary,
-      .foregroundColor: color,
-    ]
-    guard let icon = Self.memorySymbol else {
-      return NSAttributedString(string: memoryString, attributes: textAttributes)
-    }
-
-    let attachment = NSTextAttachment()
-    attachment.image = icon
-    attachment.bounds = CGRect(
-      x: 0, y: Self.iconBaselineYOffset, width: icon.size.width, height: icon.size.height)
-
-    let result = NSMutableAttributedString(
-      attributedString: NSAttributedString(attachment: attachment))
-    result.append(NSAttributedString(string: " \(memoryString)", attributes: textAttributes))
-    result.addAttribute(
-      .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
-    return result
-  }
-
-  private func makeContextAttributedString(contextString: String, color: NSColor)
-    -> NSAttributedString
-  {
-    let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: Typography.secondary,
-      .foregroundColor: color,
-    ]
-    guard let icon = Self.contextSymbol else {
-      return NSAttributedString(string: contextString, attributes: textAttributes)
-    }
-
-    let attachment = NSTextAttachment()
-    attachment.image = icon
-    attachment.bounds = CGRect(
-      x: 0, y: Self.iconBaselineYOffset, width: icon.size.width, height: icon.size.height)
-
-    let result = NSMutableAttributedString(
-      attributedString: NSAttributedString(attachment: attachment))
-    result.append(NSAttributedString(string: " \(contextString)", attributes: textAttributes))
-    result.addAttribute(
-      .foregroundColor, value: color, range: NSRange(location: 0, length: result.length))
-    return result
   }
 }
