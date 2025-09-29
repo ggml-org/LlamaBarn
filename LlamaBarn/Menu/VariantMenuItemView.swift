@@ -205,19 +205,24 @@ final class VariantMenuItemView: MenuRowView {
     labelField.stringValue = display.title
     labelField.textColor = display.titleColor
 
-    sizeLabel.attributedStringValue = IconLabelFormatter.make(
-      icon: Self.sizeSymbol,
-      text: display.sizeText,
-      color: display.infoColor,
-      baselineOffset: Self.iconBaselineYOffset
-    )
-
-    ctxLabel.attributedStringValue = IconLabelFormatter.make(
-      icon: Self.contextSymbol,
-      text: display.contextText,
-      color: display.infoColor,
-      baselineOffset: Self.iconBaselineYOffset
-    )
+    if display.compatible {
+      sizeLabel.attributedStringValue = IconLabelFormatter.make(
+        icon: Self.sizeSymbol,
+        text: display.sizeText,
+        color: display.infoColor,
+        baselineOffset: Self.iconBaselineYOffset
+      )
+      ctxLabel.attributedStringValue = IconLabelFormatter.make(
+        icon: Self.contextSymbol,
+        text: display.contextText,
+        color: display.infoColor,
+        baselineOffset: Self.iconBaselineYOffset
+      )
+      sizeLabel.isHidden = false
+    } else {
+      ctxLabel.stringValue = display.contextText
+      sizeLabel.isHidden = true
+    }
 
     if let memoryText = display.memoryText {
       memoryLabel.attributedStringValue = IconLabelFormatter.make(
@@ -233,6 +238,7 @@ final class VariantMenuItemView: MenuRowView {
       memoryLabel.stringValue = ""
       memoryLabel.isHidden = true
       memorySeparatorLabel.isHidden = true
+      separatorLabel.isHidden = true
     }
 
     infoRow.toolTip = display.infoTooltip

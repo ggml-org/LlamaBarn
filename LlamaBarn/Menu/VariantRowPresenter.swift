@@ -21,6 +21,7 @@ enum VariantRowPresenter {
     let progressText: String?
     let rowTooltip: String?
     let isActionable: Bool
+    let compatible: Bool
   }
 
   static func isActionable(model: ModelCatalogEntry, status: ModelStatus) -> Bool {
@@ -61,15 +62,22 @@ enum VariantRowPresenter {
 
     let recommendedContext = ModelCatalog.recommendedContextLength(for: model)
 
-    let contextString: String = {
-      if let recommendedContext {
-        return TokenFormatters.shortTokens(recommendedContext)
-      }
-      guard model.contextLength > 0 else { return "—" }
-      return TokenFormatters.shortTokens(model.contextLength)
-    }()
+    let contextString: String
+    let memoryEstimate: String?
 
-    let memoryEstimate = makeMemoryEstimateString(for: model, contextLength: recommendedContext)
+    if compatible {
+      contextString = {
+        if let recommendedContext {
+          return TokenFormatters.shortTokens(recommendedContext)
+        }
+        guard model.contextLength > 0 else { return "—" }
+        return TokenFormatters.shortTokens(model.contextLength)
+      }()
+      memoryEstimate = makeMemoryEstimateString(for: model, contextLength: recommendedContext)
+    } else {
+      contextString = "Won't run on this device."
+      memoryEstimate = nil
+    }
 
     let infoTooltip: String? =
       compatible
@@ -109,7 +117,8 @@ enum VariantRowPresenter {
       status: statusIcon,
       progressText: progressText,
       rowTooltip: rowTooltip,
-      isActionable: actionable
+      isActionable: actionable,
+      compatible: compatible
     )
   }
 
@@ -167,4 +176,5 @@ enum VariantRowPresenter {
     let percent = progressPercent(progress)
     return "\(percent)%"
   }
+
 }
