@@ -59,12 +59,17 @@ enum VariantRowPresenter {
       return result
     }()
 
+    let recommendedContext = ModelCatalog.recommendedContextLength(for: model)
+
     let contextString: String = {
+      if let recommendedContext {
+        return TokenFormatters.shortTokens(recommendedContext)
+      }
       guard model.contextLength > 0 else { return "—" }
       return TokenFormatters.shortTokens(model.contextLength)
     }()
 
-    let memoryEstimate = makeMemoryEstimateString(for: model, contextLength: model.contextLength)
+    let memoryEstimate = makeMemoryEstimateString(for: model, contextLength: recommendedContext)
 
     let infoTooltip: String? =
       compatible
@@ -135,9 +140,9 @@ enum VariantRowPresenter {
 
   private static func makeMemoryEstimateString(
     for model: ModelCatalogEntry,
-    contextLength: Int
+    contextLength: Int?
   ) -> String? {
-    guard contextLength > 0 else { return nil }
+    guard let contextLength, contextLength > 0 else { return nil }
 
     let usageMB = ModelCatalog.runtimeMemoryUsageMB(
       for: model,
