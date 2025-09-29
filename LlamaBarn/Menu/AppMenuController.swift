@@ -56,17 +56,31 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   // MARK: - NSMenuDelegate
 
   func menuNeedsUpdate(_ menu: NSMenu) {
+    guard menu === statusItem.menu else { return }
     rebuildMenu(menu)
   }
 
   func menuWillOpen(_ menu: NSMenu) {
+    guard menu === statusItem.menu else { return }
     modelManager.refreshDownloadedModels()
     addObservers()
   }
 
   func menuDidClose(_ menu: NSMenu) {
+    menu.items.forEach { (item: NSMenuItem) in
+      (item.view as? MenuRowView)?.setHoverHighlight(false)
+    }
+    guard menu === statusItem.menu else { return }
     removeObservers()
     isSettingsVisible = false
+  }
+
+  func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+    let highlighted = item?.view as? MenuRowView
+    menu.items.forEach { (entry: NSMenuItem) in
+      guard let row = entry.view as? MenuRowView else { return }
+      row.setHoverHighlight(row === highlighted)
+    }
   }
 
   // MARK: - Menu Construction

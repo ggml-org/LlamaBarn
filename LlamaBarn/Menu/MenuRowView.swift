@@ -65,19 +65,29 @@ class MenuRowView: NSView {
   }
 
   override func mouseEntered(with event: NSEvent) {
+    super.mouseEntered(with: event)
+    guard !usesMenuManagedHighlight else { return }
     guard hoverHighlightEnabled else { return }
     setHoverHighlight(true)
   }
 
   override func mouseExited(with event: NSEvent) {
+    super.mouseExited(with: event)
+    guard !usesMenuManagedHighlight else { return }
     setHoverHighlight(false)
   }
 
   /// Programmatically set hover highlight (e.g., to clear highlight when state changes).
   func setHoverHighlight(_ highlighted: Bool) {
-    guard highlighted != isHoverHighlighted else { return }
-    isHoverHighlighted = highlighted
-    backgroundView.lbSetHoverHighlighted(highlighted, cornerRadius: hoverCornerRadius)
-    hoverHighlightDidChange(highlighted)
+    let effectiveHighlight = highlighted && hoverHighlightEnabled
+    guard effectiveHighlight != isHoverHighlighted else { return }
+    isHoverHighlighted = effectiveHighlight
+    backgroundView.lbSetHoverHighlighted(effectiveHighlight, cornerRadius: hoverCornerRadius)
+    hoverHighlightDidChange(effectiveHighlight)
+  }
+
+  private var usesMenuManagedHighlight: Bool {
+    guard let item = enclosingMenuItem else { return false }
+    return item.isEnabled && item.menu != nil
   }
 }

@@ -237,6 +237,7 @@ final class AppMenuCatalogSection {
 
       let submenu = NSMenu(title: family.name)
       submenu.autoenablesItems = false
+      submenu.delegate = menu.delegate
       let infoView = FamilyInfoMenuItemView(
         familyName: family.name,
         iconName: family.iconName,
