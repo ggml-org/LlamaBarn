@@ -207,17 +207,25 @@ final class AppMenuCatalogSection {
   }
 
   func add(to menu: NSMenu) {
-    let families = ModelCatalog.uiFamilies
+    let showQuantized = UserSettings.showQuantizedVariants
+    let families = ModelCatalog.families
+
     guard !families.isEmpty else { return }
 
     menu.addItem(.separator())
     menu.addItem(makeSectionHeaderItem("Available"))
 
     for family in families.sorted(by: { $0.name < $1.name }) {
-      let models = family.models.flatMap { model -> [ModelCatalogEntry] in
-        let allBuilds = [model.build] + model.quantizedBuilds
-        return allBuilds.map { build in build.asEntry(family: family, model: model) }
+      var models = [ModelCatalogEntry]()
+      for model in family.models {
+        let builds = showQuantized ? ([model.build] + model.quantizedBuilds) : [model.build]
+        for build in builds {
+          models.append(build.asEntry(family: family, model: model))
+        }
       }
+
+      if models.isEmpty { continue }
+
       let familyView = FamilyHeaderMenuItemView(
         family: family.name,
         models: models,
