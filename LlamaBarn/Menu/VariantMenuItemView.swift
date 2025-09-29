@@ -6,32 +6,6 @@ final class VariantMenuItemView: MenuRowView {
   // Central tweak for inline SF Symbol vertical alignment beside secondary text.
   // Negative lowers the glyph relative to the text baseline.
   private static let iconBaselineYOffset: CGFloat = -2
-  private static let sizeSymbol: NSImage? = {
-    guard
-      let image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)?
-        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
-    else { return nil }
-    image.isTemplate = true
-    return image
-  }()
-
-  private static let contextSymbol: NSImage? = {
-    guard
-      let image = NSImage(systemSymbolName: "text.word.spacing", accessibilityDescription: nil)?
-        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
-    else { return nil }
-    image.isTemplate = true
-    return image
-  }()
-
-  private static let memorySymbol: NSImage? = {
-    guard
-      let image = NSImage(systemSymbolName: "memorychip", accessibilityDescription: nil)?
-        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
-    else { return nil }
-    image.isTemplate = true
-    return image
-  }()
 
   private static let warningSymbol: NSImage? = {
     guard
@@ -207,13 +181,13 @@ final class VariantMenuItemView: MenuRowView {
 
     if display.compatible {
       sizeLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: Self.sizeSymbol,
+        icon: IconLabelFormatter.sizeSymbol,
         text: display.sizeText,
         color: display.infoColor,
         baselineOffset: Self.iconBaselineYOffset
       )
       ctxLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: Self.contextSymbol,
+        icon: IconLabelFormatter.contextSymbol,
         text: display.contextText,
         color: display.infoColor,
         baselineOffset: Self.iconBaselineYOffset
@@ -226,7 +200,7 @@ final class VariantMenuItemView: MenuRowView {
 
     if let memoryText = display.memoryText {
       memoryLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: Self.memorySymbol,
+        icon: IconLabelFormatter.memorySymbol,
         text: memoryText,
         color: display.infoColor,
         baselineOffset: Self.iconBaselineYOffset

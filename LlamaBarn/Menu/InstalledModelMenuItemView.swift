@@ -220,13 +220,20 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
 
+  private static let iconBaselineYOffset: CGFloat = -2
+
   // Subviews
   private let circleIcon = CircularIconView()
   private let labelField = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
   // Second-line label: used for progress during downloads and for
   // consistent two-line layout (size/badges) when idle/running.
-  private let bytesLabel = NSTextField(labelWithString: "")
+  private let infoRow = NSStackView()
+  private let sizeLabel = NSTextField(labelWithString: "")
+  private let separatorLabel = CenteredDotSeparatorView()
+  private let ctxLabel = NSTextField(labelWithString: "")
+  private let memorySeparatorLabel = CenteredDotSeparatorView()
+  private let memoryLabel = NSTextField(labelWithString: "")
   private let cancelImageView = NSImageView()
   private let actionsView = InstalledModelActionsView()
 
@@ -275,11 +282,23 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     cancelImageView.contentTintColor = .systemRed
     cancelImageView.isHidden = true
 
-    bytesLabel.font = Typography.secondary
-    bytesLabel.textColor = .secondaryLabelColor
-    bytesLabel.alignment = .left
-    bytesLabel.translatesAutoresizingMaskIntoConstraints = false
-    bytesLabel.isHidden = false
+    let labels = [sizeLabel, ctxLabel, memoryLabel]
+    for label in labels {
+      label.font = Typography.secondary
+      label.textColor = .secondaryLabelColor
+      label.lineBreakMode = .byTruncatingTail
+      label.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    infoRow.orientation = .horizontal
+    infoRow.spacing = 4
+    infoRow.alignment = .centerY
+    infoRow.translatesAutoresizingMaskIntoConstraints = false
+    infoRow.addArrangedSubview(sizeLabel)
+    infoRow.addArrangedSubview(memorySeparatorLabel)
+    infoRow.addArrangedSubview(memoryLabel)
+    infoRow.addArrangedSubview(separatorLabel)
+    infoRow.addArrangedSubview(ctxLabel)
 
     actionsView.onDelete = { [weak self] in self?.performDelete() }
     actionsView.onReveal = { [weak self] in self?.performReveal() }
@@ -298,7 +317,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     progressLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
     // Left: icon aligned with first text line, then two-line text column
-    let nameStack = NSStackView(views: [labelField, bytesLabel])
+    let nameStack = NSStackView(views: [labelField, infoRow])
     nameStack.translatesAutoresizingMaskIntoConstraints = false
     nameStack.orientation = .vertical
     nameStack.spacing = 1
@@ -406,33 +425,27 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
 
     // Spinner is now displayed inside the circular icon instead of the right side.
     circleIcon.setLoading(isLoadingServer)
-    // Compose a default secondary line (size + capability badges) used when not downloading
-    let runningContext: String? = {
-      guard isRunning, let ctx = server.activeContextLength else { return nil }
-      let ctxLabel = TokenFormatters.shortTokens(ctx)
-      return "Ctx \(ctxLabel)"
-    }()
-    let defaultSecondary: String = {
-      if let runningContext {
-        // When running, show context and live memory usage on line 2.
-        let memMB = server.memoryUsageMB
-        let secondaryMem: String = {
-          if memMB <= 0 { return "" }
-          if memMB >= 1024 {
-            let gb = memMB / 1024
-            let gbText = gb < 10 ? String(format: "%.1f", gb) : String(format: "%.0f", gb)
-            return " · \(gbText) GB"
-          } else {
-            return String(format: " · %.0f MB", memMB)
-          }
-        }()
-        return "\(model.totalSize) · \(runningContext)\(secondaryMem)"
-      }
+
+    let sizeText = model.totalSize
+    let contextText: String = {
       if let recommendedContext {
-        let ctxLabel = TokenFormatters.shortTokens(recommendedContext)
-        return "\(model.totalSize) · Ctx \(ctxLabel)"
+        return "Ctx \(TokenFormatters.shortTokens(recommendedContext))"
       }
-      return model.totalSize
+      return ""
+    }()
+    let memoryText: String? = {
+      if isRunning {
+        let memMB = server.memoryUsageMB
+        if memMB <= 0 { return nil }
+        if memMB >= 1024 {
+          let gb = memMB / 1024
+          let gbText = gb < 10 ? String(format: "%.1f", gb) : String(format: "%.0f", gb)
+          return "\(gbText) GB"
+        } else {
+          return String(format: "%.0f MB", memMB)
+        }
+      }
+      return nil
     }()
 
     // Download progress / action area
@@ -458,32 +471,66 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
         }
       }()
       let totalText = ByteFormatters.gbTwoDecimals(totalBytes)
-      bytesLabel.stringValue = "\(completedText) / \(totalText)"
-      bytesLabel.isHidden = false
+      sizeLabel.attributedStringValue = IconLabelFormatter.make(
+        icon: IconLabelFormatter.sizeSymbol,
+        text: "\(completedText) / \(totalText)",
+        color: .secondaryLabelColor,
+        baselineOffset: Self.iconBaselineYOffset
+      )
+      ctxLabel.stringValue = ""
+      ctxLabel.isHidden = true
+      memoryLabel.stringValue = ""
+      memoryLabel.isHidden = true
+      memorySeparatorLabel.isHidden = true
+      separatorLabel.isHidden = true
+      infoRow.isHidden = false
       // Removed indicator image in favor of simplified state display
       actionsView.update(
         for: .downloading(progress),
         isRunning: isRunning,
         highlighted: isHoverHighlighted
       )
-    case .downloaded:
+    case .downloaded, .available:
       progressLabel.stringValue = ""
-      bytesLabel.stringValue = defaultSecondary
-      bytesLabel.isHidden = false
-      // No play/stop affordance; active state is conveyed by circular icon.
+      infoRow.isHidden = false
 
-      actionsView.update(
-        for: .downloaded,
-        isRunning: isRunning,
-        highlighted: isHoverHighlighted
+      sizeLabel.attributedStringValue = IconLabelFormatter.make(
+        icon: IconLabelFormatter.sizeSymbol,
+        text: sizeText,
+        color: .secondaryLabelColor,
+        baselineOffset: Self.iconBaselineYOffset
       )
-    case .available:
-      progressLabel.stringValue = ""
-      bytesLabel.stringValue = defaultSecondary
-      bytesLabel.isHidden = false
+      if contextText.isEmpty {
+        ctxLabel.isHidden = true
+        separatorLabel.isHidden = true
+      } else {
+        ctxLabel.attributedStringValue = IconLabelFormatter.make(
+          icon: IconLabelFormatter.contextSymbol,
+          text: contextText,
+          color: .secondaryLabelColor,
+          baselineOffset: Self.iconBaselineYOffset
+        )
+        ctxLabel.isHidden = false
+        separatorLabel.isHidden = false
+      }
+
+      if let memoryText {
+        memoryLabel.attributedStringValue = IconLabelFormatter.make(
+          icon: IconLabelFormatter.memorySymbol,
+          text: memoryText,
+          color: .secondaryLabelColor,
+          baselineOffset: Self.iconBaselineYOffset
+        )
+        memoryLabel.isHidden = false
+        memorySeparatorLabel.isHidden = false
+      } else {
+        memoryLabel.stringValue = ""
+        memoryLabel.isHidden = true
+        memorySeparatorLabel.isHidden = true
+      }
 
       actionsView.update(
-        for: .available,
+        for: status,
         isRunning: isRunning,
         highlighted: isHoverHighlighted
       )

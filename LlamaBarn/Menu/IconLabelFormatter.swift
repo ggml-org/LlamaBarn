@@ -1,6 +1,33 @@
 import AppKit
 
 enum IconLabelFormatter {
+  static let sizeSymbol: NSImage? = {
+    guard
+      let image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)?
+        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+    else { return nil }
+    image.isTemplate = true
+    return image
+  }()
+
+  static let contextSymbol: NSImage? = {
+    guard
+      let image = NSImage(systemSymbolName: "text.word.spacing", accessibilityDescription: nil)?
+        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+    else { return nil }
+    image.isTemplate = true
+    return image
+  }()
+
+  static let memorySymbol: NSImage? = {
+    guard
+      let image = NSImage(systemSymbolName: "memorychip", accessibilityDescription: nil)?
+        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+    else { return nil }
+    image.isTemplate = true
+    return image
+  }()
+
   static func make(
     icon: NSImage?,
     text: String,
