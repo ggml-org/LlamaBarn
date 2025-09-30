@@ -89,56 +89,31 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
 
   /// Downloads all required files for a model
   func downloadModel(_ model: ModelCatalogEntry) throws {
-    let filesToDownload = filesRequired(for: model)
-    guard !filesToDownload.isEmpty else {
-      return
-    }
-
-    guard ModelCatalog.isModelCompatible(model) else {
-      let reason =
-        ModelCatalog.incompatibilitySummary(model)
-        ?? "isn't compatible with this Mac's memory."
-      throw DownloadError.notCompatible(reason: reason)
-    }
-
-    // Before starting, ensure there's enough free disk space on the models volume.
-    // Estimate remaining bytes needed as catalog total minus already-present files.
-    let totalBytes = model.fileSize
-    let existingBytes: Int64 = model.allLocalModelPaths.reduce(0) { sum, path in
-      guard FileManager.default.fileExists(atPath: path),
-        let attrs = try? FileManager.default.attributesOfItem(atPath: path),
-        let size = (attrs[.size] as? NSNumber)?.int64Value
-      else { return sum }
-      return sum + size
-    }
-    let remainingBytes = max(totalBytes - existingBytes, 0)
-    let modelsDir = URL(fileURLWithPath: model.modelFilePath).deletingLastPathComponent()
-    let available = DiskSpace.availableBytes(at: modelsDir)
-
-    if available > 0 && remainingBytes > available {
-      // Not enough space — throw an error.
-      let needStr = DiskSpace.formatGB(remainingBytes)
-      let haveStr = DiskSpace.formatGB(available)
-      throw DownloadError.notEnoughDiskSpace(required: needStr, available: haveStr)
-    }
+    let filesToDownload = try prepareDownload(for: model)
+    guard !filesToDownload.isEmpty else { return }
 
     logger.info("Starting download for model: \(model.displayName)")
 
-    // Create or reuse aggregate state for this model's downloads
-    var aggregate =
-      activeDownloads[model.id]
-      ?? ActiveDownload(progress: Progress(totalUnitCount: 0), tasks: [:])
-
     // Publish aggregate before starting tasks to avoid race with delegate callbacks
-    activeDownloads[model.id] = aggregate
+    let modelId = model.id
+    updateActiveDownload(for: modelId, preserveEmpty: true) { aggregate in
+      if aggregate.progress.totalUnitCount != 0 || aggregate.progress.completedUnitCount != 0 {
+        aggregate.progress = Progress(totalUnitCount: 0)
+      }
+      aggregate.completedBytes = 0
+      aggregate.completedExpectedBytes = 0
+    }
 
     for fileUrl in filesToDownload {
       let task = urlSession.downloadTask(with: fileUrl)
-      task.taskDescription = model.id
-      aggregate.addTask(task)
-      activeDownloads[model.id] = aggregate
+      task.taskDescription = modelId
+      updateActiveDownload(for: modelId, preserveEmpty: true) { aggregate in
+        aggregate.addTask(task)
+      }
       task.resume()
     }
+
+    postDownloadsDidChange()
   }
 
   /// Cancels an ongoing download and removes it from tracking
@@ -231,32 +206,17 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
         return
       }
 
-      if var aggregate = self.activeDownloads[modelId] {
-        if var state = aggregate.removeTask(with: downloadTask.taskIdentifier) {
-          state.bytesWritten = fileSize
-          if state.expectedBytes <= 0 {
-            state.expectedBytes = fileSize
-          }
-          aggregate.completedBytes += state.bytesWritten
-          let expectedContribution =
-            state.expectedBytes > 0
-            ? state.expectedBytes
-            : state.bytesWritten
-          aggregate.completedExpectedBytes += expectedContribution
-        }
-        aggregate.refreshProgress()
-
-        if aggregate.isEmpty {
+      if self.activeDownloads[modelId] != nil {
+        if let aggregate = self.complete(task: downloadTask, for: modelId, fileSize: fileSize) {
+          self.activeDownloads[modelId] = aggregate
+          self.postDownloadsDidChange()
+        } else {
           self.logger.info("All downloads completed for model: \(model.displayName)")
-          self.activeDownloads.removeValue(forKey: modelId)
           NotificationCenter.default.post(
             name: .LBModelDownloadFinished,
             object: self,
             userInfo: ["model": model]
           )
-        } else {
-          self.activeDownloads[modelId] = aggregate
-          NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
         }
       } else {
         // This case should not be hit if the download is tracked properly,
@@ -301,8 +261,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
       aggregate.cancelAllTasks()
       self.activeDownloads.removeValue(forKey: modelId)
     }
-
-    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
+    postDownloadsDidChange()
   }
 
   func urlSession(
@@ -321,7 +280,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     )
     download.refreshProgress()
     self.activeDownloads[modelId] = download
-    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
+    postDownloadsDidChange()
   }
 
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
@@ -338,9 +297,100 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
           self.activeDownloads.removeValue(forKey: modelId)
         } else {
           self.activeDownloads[modelId] = aggregate
-          NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
+          postDownloadsDidChange()
         }
       }
     }
+  }
+
+  // MARK: - Helpers
+
+  private func prepareDownload(for model: ModelCatalogEntry) throws -> [URL] {
+    let filesToDownload = filesRequired(for: model)
+    guard !filesToDownload.isEmpty else { return [] }
+
+    try validateCompatibility(for: model)
+
+    let remainingBytes = remainingBytesRequired(for: model)
+    try validateDiskSpace(for: model, remainingBytes: remainingBytes)
+
+    return filesToDownload
+  }
+
+  private func validateCompatibility(for model: ModelCatalogEntry) throws {
+    guard ModelCatalog.isModelCompatible(model) else {
+      let reason =
+        ModelCatalog.incompatibilitySummary(model)
+        ?? "isn't compatible with this Mac's memory."
+      throw DownloadError.notCompatible(reason: reason)
+    }
+  }
+
+  private func remainingBytesRequired(for model: ModelCatalogEntry) -> Int64 {
+    let existingBytes: Int64 = model.allLocalModelPaths.reduce(0) { sum, path in
+      guard FileManager.default.fileExists(atPath: path),
+        let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+        let size = (attrs[.size] as? NSNumber)?.int64Value
+      else { return sum }
+      return sum + size
+    }
+    return max(model.fileSize - existingBytes, 0)
+  }
+
+  private func validateDiskSpace(for model: ModelCatalogEntry, remainingBytes: Int64) throws {
+    guard remainingBytes > 0 else { return }
+
+    let modelsDir = URL(fileURLWithPath: model.modelFilePath).deletingLastPathComponent()
+    let available = DiskSpace.availableBytes(at: modelsDir)
+
+    if available > 0 && remainingBytes > available {
+      let needStr = DiskSpace.formatGB(remainingBytes)
+      let haveStr = DiskSpace.formatGB(available)
+      throw DownloadError.notEnoughDiskSpace(required: needStr, available: haveStr)
+    }
+  }
+
+  @discardableResult
+  private func updateActiveDownload(
+    for modelId: String,
+    preserveEmpty: Bool = false,
+    mutate: (inout ActiveDownload) -> Void
+  ) -> ActiveDownload? {
+    var aggregate =
+      activeDownloads[modelId]
+      ?? ActiveDownload(progress: Progress(totalUnitCount: 0), tasks: [:])
+    mutate(&aggregate)
+    if aggregate.isEmpty && !preserveEmpty {
+      activeDownloads.removeValue(forKey: modelId)
+      return nil
+    }
+    activeDownloads[modelId] = aggregate
+    return aggregate
+  }
+
+  private func complete(
+    task: URLSessionDownloadTask,
+    for modelId: String,
+    fileSize: Int64
+  ) -> ActiveDownload? {
+    updateActiveDownload(for: modelId) { aggregate in
+      if var state = aggregate.removeTask(with: task.taskIdentifier) {
+        state.bytesWritten = fileSize
+        if state.expectedBytes <= 0 {
+          state.expectedBytes = fileSize
+        }
+        aggregate.completedBytes += state.bytesWritten
+        let expectedContribution =
+          state.expectedBytes > 0
+          ? state.expectedBytes
+          : state.bytesWritten
+        aggregate.completedExpectedBytes += expectedContribution
+      }
+      aggregate.refreshProgress()
+    }
+  }
+
+  private func postDownloadsDidChange() {
+    NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
 }
