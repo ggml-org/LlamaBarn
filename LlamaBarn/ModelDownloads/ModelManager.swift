@@ -83,6 +83,7 @@ class ModelManager: NSObject {
     downloader.cancelModelDownload(model)
     modelsBeingDeleted.insert(model.id)
     downloadedModels.removeAll { $0.id == model.id }
+    downloadedModelIds.remove(model.id)
     NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
 
     Task {
@@ -94,6 +95,7 @@ class ModelManager: NSObject {
         }
         _ = await MainActor.run {
           self.modelsBeingDeleted.remove(model.id)
+          self.downloadedModelIds.remove(model.id)
         }
         // Post a final notification after deletion is complete on disk
         NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
@@ -101,6 +103,9 @@ class ModelManager: NSObject {
         _ = await MainActor.run {
           self.modelsBeingDeleted.remove(model.id)
           if self.downloadedModelIds.contains(model.id) {
+            self.downloadedModels.append(model)
+          } else {
+            self.downloadedModelIds.insert(model.id)
             self.downloadedModels.append(model)
           }
         }

@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import Foundation
 import Observation
 import os.log
@@ -11,59 +10,45 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
 
   // Track multi-file downloads per model id
   struct ActiveDownload {
-    struct TaskState {
-      let task: URLSessionDownloadTask
-      var bytesWritten: Int64
-      var expectedBytes: Int64
-    }
-
     var progress: Progress
-    var tasks: [Int: TaskState]
-    var completedBytes: Int64 = 0
-    var completedExpectedBytes: Int64 = 0
+    var tasks: [Int: URLSessionDownloadTask]
+    var finishedBytes: Int64 = 0
 
     mutating func addTask(_ task: URLSessionDownloadTask) {
-      tasks[task.taskIdentifier] = TaskState(
-        task: task,
-        bytesWritten: 0,
-        expectedBytes: 0
-      )
-    }
-
-    mutating func updateTask(
-      identifier: Int,
-      bytesWritten: Int64,
-      expectedBytes: Int64?
-    ) {
-      guard var state = tasks[identifier] else { return }
-      state.bytesWritten = bytesWritten
-      if let expectedBytes, expectedBytes > 0 {
-        state.expectedBytes = expectedBytes
-      }
-      tasks[identifier] = state
-    }
-
-    mutating func removeTask(with identifier: Int) -> TaskState? {
-      return tasks.removeValue(forKey: identifier)
+      tasks[task.taskIdentifier] = task
+      refreshProgress()
     }
 
     mutating func cancelAllTasks() {
-      tasks.values.forEach { $0.task.cancel() }
+      tasks.values.forEach { $0.cancel() }
       tasks.removeAll()
-      completedBytes = 0
-      completedExpectedBytes = 0
+      finishedBytes = 0
+      refreshProgress()
+    }
+
+    mutating func removeTask(with identifier: Int) {
+      tasks.removeValue(forKey: identifier)
+      refreshProgress()
+    }
+
+    mutating func markTaskFinished(_ task: URLSessionDownloadTask, fileSize: Int64) {
+      tasks.removeValue(forKey: task.taskIdentifier)
+      finishedBytes += fileSize
+      refreshProgress()
     }
 
     mutating func refreshProgress() {
-      let activeWritten = tasks.values.reduce(Int64(0)) { $0 + $1.bytesWritten }
-      let activeExpected = tasks.values.reduce(Int64(0)) {
-        let value = $1.expectedBytes
-        return $0 + (value > 0 ? value : 0)
+      let activeBytes = tasks.values.reduce(Int64(0)) { result, task in
+        result + max(task.countOfBytesReceived, 0)
       }
-      let totalCompleted = completedBytes + activeWritten
-      let totalExpected = max(completedExpectedBytes + activeExpected, totalCompleted)
-      progress.totalUnitCount = totalExpected
-      progress.completedUnitCount = totalCompleted
+      let expectedActiveBytes = tasks.values.reduce(Int64(0)) { result, task in
+        let expected = task.countOfBytesExpectedToReceive
+        return result + (expected > 0 ? expected : max(task.countOfBytesReceived, 0))
+      }
+      let totalCompleted = finishedBytes + activeBytes
+      let totalExpected = max(progress.totalUnitCount, finishedBytes + expectedActiveBytes)
+      progress.totalUnitCount = max(totalExpected, 1)
+      progress.completedUnitCount = max(totalCompleted, 0)
     }
 
     var isEmpty: Bool { tasks.isEmpty }
@@ -96,12 +81,11 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
 
     // Publish aggregate before starting tasks to avoid race with delegate callbacks
     let modelId = model.id
+    let totalUnitCount = max(remainingBytesRequired(for: model), 1)
     updateActiveDownload(for: modelId, preserveEmpty: true) { aggregate in
-      if aggregate.progress.totalUnitCount != 0 || aggregate.progress.completedUnitCount != 0 {
-        aggregate.progress = Progress(totalUnitCount: 0)
-      }
-      aggregate.completedBytes = 0
-      aggregate.completedExpectedBytes = 0
+      aggregate.progress = Progress(totalUnitCount: totalUnitCount)
+      aggregate.finishedBytes = 0
+      aggregate.refreshProgress()
     }
 
     for fileUrl in filesToDownload {
@@ -207,16 +191,20 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
       }
 
       if self.activeDownloads[modelId] != nil {
-        if let aggregate = self.complete(task: downloadTask, for: modelId, fileSize: fileSize) {
-          self.activeDownloads[modelId] = aggregate
-          self.postDownloadsDidChange()
-        } else {
+        var aggregate = self.activeDownloads[modelId]!
+        aggregate.markTaskFinished(downloadTask, fileSize: fileSize)
+        if aggregate.isEmpty {
+          self.activeDownloads.removeValue(forKey: modelId)
           self.logger.info("All downloads completed for model: \(model.displayName)")
           NotificationCenter.default.post(
             name: .LBModelDownloadFinished,
             object: self,
             userInfo: ["model": model]
           )
+          self.postDownloadsDidChange()
+        } else {
+          self.activeDownloads[modelId] = aggregate
+          self.postDownloadsDidChange()
         }
       } else {
         // This case should not be hit if the download is tracked properly,
@@ -227,8 +215,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     } catch {
       logger.error("Error moving downloaded file: \(error.localizedDescription)")
       if var aggregate = self.activeDownloads[modelId] {
-        _ = aggregate.removeTask(with: downloadTask.taskIdentifier)
-        aggregate.refreshProgress()
+        aggregate.removeTask(with: downloadTask.taskIdentifier)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
         } else {
@@ -273,11 +260,6 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     else {
       return
     }
-    download.updateTask(
-      identifier: downloadTask.taskIdentifier,
-      bytesWritten: totalBytesWritten,
-      expectedBytes: totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : nil
-    )
     download.refreshProgress()
     self.activeDownloads[modelId] = download
     postDownloadsDidChange()
@@ -291,10 +273,10 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     if let error = error {
       logger.error("Model download failed: \(error.localizedDescription)")
       if var aggregate = self.activeDownloads[modelId] {
-        _ = aggregate.removeTask(with: task.taskIdentifier)
-        aggregate.refreshProgress()
+        aggregate.removeTask(with: task.taskIdentifier)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
+          postDownloadsDidChange()
         } else {
           self.activeDownloads[modelId] = aggregate
           postDownloadsDidChange()
@@ -358,7 +340,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   ) -> ActiveDownload? {
     var aggregate =
       activeDownloads[modelId]
-      ?? ActiveDownload(progress: Progress(totalUnitCount: 0), tasks: [:])
+      ?? ActiveDownload(progress: Progress(totalUnitCount: 0), tasks: [:], finishedBytes: 0)
     mutate(&aggregate)
     if aggregate.isEmpty && !preserveEmpty {
       activeDownloads.removeValue(forKey: modelId)
@@ -366,28 +348,6 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     }
     activeDownloads[modelId] = aggregate
     return aggregate
-  }
-
-  private func complete(
-    task: URLSessionDownloadTask,
-    for modelId: String,
-    fileSize: Int64
-  ) -> ActiveDownload? {
-    updateActiveDownload(for: modelId) { aggregate in
-      if var state = aggregate.removeTask(with: task.taskIdentifier) {
-        state.bytesWritten = fileSize
-        if state.expectedBytes <= 0 {
-          state.expectedBytes = fileSize
-        }
-        aggregate.completedBytes += state.bytesWritten
-        let expectedContribution =
-          state.expectedBytes > 0
-          ? state.expectedBytes
-          : state.bytesWritten
-        aggregate.completedExpectedBytes += expectedContribution
-      }
-      aggregate.refreshProgress()
-    }
   }
 
   private func postDownloadsDidChange() {
