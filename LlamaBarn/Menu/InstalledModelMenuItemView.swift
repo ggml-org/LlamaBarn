@@ -295,10 +295,10 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     infoRow.alignment = .centerY
     infoRow.translatesAutoresizingMaskIntoConstraints = false
     infoRow.addArrangedSubview(sizeLabel)
-    infoRow.addArrangedSubview(memorySeparatorLabel)
-    infoRow.addArrangedSubview(memoryLabel)
     infoRow.addArrangedSubview(separatorLabel)
     infoRow.addArrangedSubview(ctxLabel)
+    infoRow.addArrangedSubview(memorySeparatorLabel)
+    infoRow.addArrangedSubview(memoryLabel)
 
     actionsView.onDelete = { [weak self] in self?.performDelete() }
     actionsView.onReveal = { [weak self] in self?.performReveal() }
