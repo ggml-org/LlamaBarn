@@ -58,16 +58,16 @@ final class AppMenuInstalledSection {
 
   private let modelManager: ModelManager
   private let server: LlamaServer
-  private let onRequestFullRebuild: () -> Void
+  private let onMembershipChanged: (ModelCatalogEntry) -> Void
 
   init(
     modelManager: ModelManager,
     server: LlamaServer,
-    onRequestFullRebuild: @escaping () -> Void
+    onMembershipChanged: @escaping (ModelCatalogEntry) -> Void
   ) {
     self.modelManager = modelManager
     self.server = server
-    self.onRequestFullRebuild = onRequestFullRebuild
+    self.onMembershipChanged = onMembershipChanged
   }
 
   func add(to menu: NSMenu) {
@@ -110,7 +110,6 @@ final class AppMenuInstalledSection {
     }
 
     let item = makeInstalledRow(for: model)
-    item.representedObject = model.id as NSString
     menu.insertItem(item, at: range.endIndex)
   }
 
@@ -162,8 +161,8 @@ final class AppMenuInstalledSection {
       model: model,
       server: server,
       modelManager: modelManager
-    ) { [weak self] in
-      self?.onRequestFullRebuild()
+    ) { [weak self] entry in
+      self?.onMembershipChanged(entry)
     }
     let item = NSMenuItem.viewItem(with: view, minHeight: 28)
     item.representedObject = model.id as NSString

@@ -214,7 +214,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   private let model: ModelCatalogEntry
   private unowned let server: LlamaServer
   private unowned let modelManager: ModelManager
-  private let membershipChanged: () -> Void
+  private let membershipChanged: (ModelCatalogEntry) -> Void
 
   private static let iconBaselineYOffset: CGFloat = -2
 
@@ -238,7 +238,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
 
   init(
     model: ModelCatalogEntry, server: LlamaServer, modelManager: ModelManager,
-    membershipChanged: @escaping () -> Void
+    membershipChanged: @escaping (ModelCatalogEntry) -> Void
   ) {
     self.model = model
     self.server = server
@@ -382,7 +382,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
       if server.isActive(model: model) { server.stop() } else { server.start(model: model) }
     case .downloading:
       modelManager.cancelModelDownload(model)
-      membershipChanged()
+      membershipChanged(model)
     case .available:
       break
     }
@@ -570,7 +570,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     let status = modelManager.getModelStatus(model)
     guard case .downloaded = status else { return }
     modelManager.deleteDownloadedModel(model)
-    membershipChanged()
+    membershipChanged(model)
   }
 
   private func performStop() {

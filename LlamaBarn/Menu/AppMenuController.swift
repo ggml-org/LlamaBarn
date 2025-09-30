@@ -16,9 +16,8 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private lazy var installedSection = AppMenuInstalledSection(
     modelManager: modelManager,
     server: server
-  ) { [weak self] in
-    guard let self, let menu = self.statusItem.menu else { return }
-    self.rebuildMenu(menu)
+  ) { [weak self] model in
+    self?.didChangeDownloadStatus(for: model)
   }
   private lazy var catalogSection = AppMenuCatalogSection(
     modelManager: modelManager
@@ -183,6 +182,10 @@ final class AppMenuController: NSObject, NSMenuDelegate {
       }
     }
 
+    if let menu = statusItem.menu {
+      installedSection.pruneRows(in: menu)
+    }
+
     headerSection.refresh()
 
     statusItem.menu?.items.forEach { menuItem in
@@ -196,7 +199,6 @@ final class AppMenuController: NSObject, NSMenuDelegate {
     }
 
     if let menu = statusItem.menu {
-      installedSection.pruneRows(in: menu)
       installedSection.updatePlaceholderVisibility(
         in: menu,
         hasActiveDownloads: modelManager.hasActiveDownloads

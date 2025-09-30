@@ -1,5 +1,3 @@
-import AppKit
-import Combine
 import Foundation
 import Observation
 import os.log
@@ -29,7 +27,6 @@ class ModelManager: NSObject {
 
   var downloadedModels: [ModelCatalogEntry] = []
   private var downloadedModelIds: Set<String> = []
-  var modelsBeingDeleted: Set<String> = []
 
   var hasActiveDownloads: Bool {
     !downloader.activeDownloads.isEmpty
@@ -59,9 +56,6 @@ class ModelManager: NSObject {
     if downloadedModelIds.contains(model.id) {
       return .downloaded
     }
-    if modelsBeingDeleted.contains(model.id) {
-      return .available
-    }
     let downloadStatus = downloader.getDownloadStatus(for: model)
     if case .downloading = downloadStatus {
       return downloadStatus
@@ -81,9 +75,8 @@ class ModelManager: NSObject {
       llamaServer.stop()
     }
     downloader.cancelModelDownload(model)
-    modelsBeingDeleted.insert(model.id)
+    let wasTracked = downloadedModelIds.remove(model.id) != nil
     downloadedModels.removeAll { $0.id == model.id }
-    downloadedModelIds.remove(model.id)
     NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
 
     Task {
@@ -93,19 +86,14 @@ class ModelManager: NSObject {
             try FileManager.default.removeItem(atPath: path)
           }
         }
-        _ = await MainActor.run {
-          self.modelsBeingDeleted.remove(model.id)
-          self.downloadedModelIds.remove(model.id)
-        }
         // Post a final notification after deletion is complete on disk
         NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
       } catch {
         _ = await MainActor.run {
-          self.modelsBeingDeleted.remove(model.id)
-          if self.downloadedModelIds.contains(model.id) {
-            self.downloadedModels.append(model)
-          } else {
+          if wasTracked {
             self.downloadedModelIds.insert(model.id)
+          }
+          if !self.downloadedModels.contains(where: { $0.id == model.id }) {
             self.downloadedModels.append(model)
           }
         }
