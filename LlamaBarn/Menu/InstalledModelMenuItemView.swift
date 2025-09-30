@@ -79,23 +79,19 @@ private final class InstalledModelActionsView: NSView {
 
     addSubview(stack)
 
-    NSLayoutConstraint.activate([
-      ellipsisButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      ellipsisButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      stopButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      stopButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      deleteButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      deleteButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      revealButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      revealButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+    for button in [ellipsisButton, stopButton, deleteButton, revealButton] {
+      NSLayoutConstraint.activate([
+        button.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+        button.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      ])
+    }
 
+    NSLayoutConstraint.activate([
       stack.leadingAnchor.constraint(equalTo: leadingAnchor),
       stack.trailingAnchor.constraint(equalTo: trailingAnchor),
       stack.topAnchor.constraint(equalTo: topAnchor),
       stack.bottomAnchor.constraint(equalTo: bottomAnchor),
     ])
-
-    collapseActions()
   }
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -104,40 +100,8 @@ private final class InstalledModelActionsView: NSView {
     latestStatus = status
     latestIsRunning = isRunning
     latestHighlight = highlighted
-
-    switch status {
-    case .available, .downloading:
-      collapseActions()
-      ellipsisButton.isHidden = true
-      deleteButton.isHidden = true
-      revealButton.isHidden = true
-      stopButton.isHidden = true
-    case .downloaded:
-      if isRunning {
-        collapseActions()
-        ellipsisButton.isHidden = true
-        deleteButton.isHidden = true
-        revealButton.isHidden = true
-        stopButton.isHidden = false
-      } else if highlighted {
-        ellipsisButton.isHidden = isExpanded
-        deleteButton.isHidden = !isExpanded
-        revealButton.isHidden = !isExpanded
-        stopButton.isHidden = true
-      } else {
-        collapseActions()
-        ellipsisButton.isHidden = true
-        deleteButton.isHidden = true
-        revealButton.isHidden = true
-        stopButton.isHidden = true
-      }
-    }
-
+    applyVisibility(visibleActions(for: status, isRunning: isRunning, highlighted: highlighted))
     updateTints()
-  }
-
-  func collapseActions() {
-    isExpanded = false
   }
 
   func isInteractiveArea(at parentPoint: NSPoint, in parentView: NSView) -> Bool {
@@ -159,9 +123,9 @@ private final class InstalledModelActionsView: NSView {
 
   private func updateTints() {
     let tint = latestHighlight ? NSColor.labelColor : NSColor.secondaryLabelColor
-    ellipsisImageView.contentTintColor = tint
-    deleteImageView.contentTintColor = tint
-    revealImageView.contentTintColor = tint
+    for imageView in [ellipsisImageView, deleteImageView, revealImageView] {
+      imageView.contentTintColor = tint
+    }
     stopImageView.contentTintColor = .systemRed
   }
 
@@ -206,6 +170,38 @@ private final class InstalledModelActionsView: NSView {
     ])
 
     return (button, imageView)
+  }
+
+  private func visibleActions(for status: ModelStatus, isRunning: Bool, highlighted: Bool) -> Set<
+    Action
+  > {
+    switch status {
+    case .available:
+      isExpanded = false
+      return []
+    case .downloading(_):
+      isExpanded = false
+      return []
+    case .downloaded:
+      if isRunning {
+        isExpanded = false
+        return [.stop]
+      }
+
+      guard highlighted else {
+        isExpanded = false
+        return []
+      }
+
+      return isExpanded ? [.delete, .reveal] : [.ellipsis]
+    }
+  }
+
+  private func applyVisibility(_ actions: Set<Action>) {
+    ellipsisButton.isHidden = !actions.contains(.ellipsis)
+    deleteButton.isHidden = !actions.contains(.delete)
+    revealButton.isHidden = !actions.contains(.reveal)
+    stopButton.isHidden = !actions.contains(.stop)
   }
 }
 
