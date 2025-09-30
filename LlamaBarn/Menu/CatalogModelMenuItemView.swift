@@ -27,8 +27,6 @@ final class CatalogModelMenuItemView: MenuRowView {
   private let sizeLabel = NSTextField(labelWithString: "")
   private let separatorLabel = CenteredDotSeparatorView()
   private let ctxLabel = NSTextField(labelWithString: "")
-  private let memorySeparatorLabel = CenteredDotSeparatorView()
-  private let memoryLabel = NSTextField(labelWithString: "")
   private let warningSeparatorLabel = CenteredDotSeparatorView()
   private let warningImageView = NSImageView()
   private let progressLabel = NSTextField(labelWithString: "")
@@ -67,7 +65,7 @@ final class CatalogModelMenuItemView: MenuRowView {
     labelField.translatesAutoresizingMaskIntoConstraints = false
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-    let labels = [sizeLabel, ctxLabel, memoryLabel]
+    let labels = [sizeLabel, ctxLabel]
     for label in labels {
       label.font = Typography.secondary
       label.textColor = .secondaryLabelColor
@@ -87,8 +85,6 @@ final class CatalogModelMenuItemView: MenuRowView {
     infoRow.alignment = .centerY
     infoRow.translatesAutoresizingMaskIntoConstraints = false
     infoRow.addArrangedSubview(sizeLabel)
-    infoRow.addArrangedSubview(memorySeparatorLabel)
-    infoRow.addArrangedSubview(memoryLabel)
     infoRow.addArrangedSubview(separatorLabel)
     infoRow.addArrangedSubview(ctxLabel)
     infoRow.addArrangedSubview(warningSeparatorLabel)
@@ -179,41 +175,26 @@ final class CatalogModelMenuItemView: MenuRowView {
     labelField.stringValue = display.title
     labelField.textColor = display.titleColor
 
+    sizeLabel.attributedStringValue = IconLabelFormatter.make(
+      icon: IconLabelFormatter.sizeSymbol,
+      text: display.sizeText,
+      color: display.infoColor,
+      baselineOffset: Self.iconBaselineYOffset
+    )
+
     if display.compatible {
-      sizeLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: IconLabelFormatter.sizeSymbol,
-        text: display.sizeText,
-        color: display.infoColor,
-        baselineOffset: Self.iconBaselineYOffset
-      )
       ctxLabel.attributedStringValue = IconLabelFormatter.make(
         icon: IconLabelFormatter.contextSymbol,
         text: display.contextText,
         color: display.infoColor,
         baselineOffset: Self.iconBaselineYOffset
       )
-      sizeLabel.isHidden = false
     } else {
       ctxLabel.stringValue = display.contextText
-      sizeLabel.isHidden = true
     }
 
-    if let memoryText = display.memoryText {
-      memoryLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: IconLabelFormatter.memorySymbol,
-        text: memoryText,
-        color: display.infoColor,
-        baselineOffset: Self.iconBaselineYOffset
-      )
-      memoryLabel.isHidden = false
-      memorySeparatorLabel.isHidden = false
-      separatorLabel.isHidden = false
-    } else {
-      memoryLabel.stringValue = ""
-      memoryLabel.isHidden = true
-      memorySeparatorLabel.isHidden = true
-      separatorLabel.isHidden = true
-    }
+    sizeLabel.isHidden = false
+    separatorLabel.isHidden = false
 
     infoRow.toolTip = display.infoTooltip
 
@@ -222,7 +203,6 @@ final class CatalogModelMenuItemView: MenuRowView {
     warningImageView.toolTip = display.warningTooltip
     warningImageView.contentTintColor = display.infoColor
 
-    memoryLabel.textColor = display.infoColor
     ctxLabel.textColor = display.infoColor
 
     switch display.status {

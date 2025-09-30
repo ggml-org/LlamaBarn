@@ -13,7 +13,6 @@ enum VariantRowPresenter {
     let infoColor: NSColor
     let sizeText: String
     let contextText: String
-    let memoryText: String?
     let infoTooltip: String?
     let warningTooltip: String?
     let showsWarning: Bool
@@ -63,7 +62,6 @@ enum VariantRowPresenter {
     let recommendedContext = ModelCatalog.recommendedContextLength(for: model)
 
     let contextString: String
-    let memoryEstimate: String?
 
     if compatible {
       contextString = {
@@ -73,10 +71,8 @@ enum VariantRowPresenter {
         guard model.contextLength > 0 else { return "—" }
         return TokenFormatters.shortTokens(model.contextLength)
       }()
-      memoryEstimate = makeMemoryEstimateString(for: model, contextLength: recommendedContext)
     } else {
       contextString = "Won't run on this device."
-      memoryEstimate = nil
     }
 
     let infoTooltip: String? =
@@ -110,7 +106,6 @@ enum VariantRowPresenter {
       infoColor: infoColor,
       sizeText: model.totalSize,
       contextText: contextString,
-      memoryText: memoryEstimate,
       infoTooltip: infoTooltip,
       warningTooltip: warningTooltip,
       showsWarning: showsWarning,
@@ -145,25 +140,6 @@ enum VariantRowPresenter {
       return (true, "\(reason) for full \(ctxString) context")
     }
     return (true, "Cannot run at maximum context")
-  }
-
-  private static func makeMemoryEstimateString(
-    for model: ModelCatalogEntry,
-    contextLength: Int?
-  ) -> String? {
-    guard let contextLength, contextLength > 0 else { return nil }
-
-    let usageMB = ModelCatalog.runtimeMemoryUsageMB(
-      for: model,
-      contextLengthTokens: Double(contextLength)
-    )
-    guard usageMB > 0 else { return nil }
-
-    let formatter = ByteCountFormatter()
-    formatter.allowedUnits = [.useGB]
-    formatter.countStyle = .binary
-    let bytes = Int64(usageMB) * 1_048_576
-    return formatter.string(fromByteCount: bytes)
   }
 
   private static func progressPercent(_ progress: Progress) -> Int {
