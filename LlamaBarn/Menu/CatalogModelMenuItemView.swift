@@ -7,28 +7,13 @@ final class CatalogModelMenuItemView: MenuRowView {
   // Negative lowers the glyph relative to the text baseline.
   private static let iconBaselineYOffset: CGFloat = -2
 
-  private static let warningSymbol: NSImage? = {
-    guard
-      let image = NSImage(
-        systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)?
-        .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
-    else { return nil }
-    image.isTemplate = true
-    return image
-  }()
-
   private let model: ModelCatalogEntry
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
 
   private let statusIndicator = NSImageView()
   private let labelField = NSTextField(labelWithString: "")
-  private let infoRow = NSStackView()
-  private let sizeLabel = NSTextField(labelWithString: "")
-  private let separatorLabel = CenteredDotSeparatorView()
-  private let ctxLabel = NSTextField(labelWithString: "")
-  private let warningSeparatorLabel = CenteredDotSeparatorView()
-  private let warningImageView = NSImageView()
+  private let metadataLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
   private var rowClickRecognizer: NSClickGestureRecognizer?
   // Background handled by MenuRowView
@@ -66,38 +51,18 @@ final class CatalogModelMenuItemView: MenuRowView {
     labelField.translatesAutoresizingMaskIntoConstraints = false
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-    let labels = [sizeLabel, ctxLabel]
-    for label in labels {
-      label.font = Typography.secondary
-      label.textColor = .secondaryLabelColor
-      label.lineBreakMode = .byTruncatingTail
-      label.translatesAutoresizingMaskIntoConstraints = false
-    }
-
-    warningSeparatorLabel.isHidden = true
-
-    warningImageView.translatesAutoresizingMaskIntoConstraints = false
-    warningImageView.symbolConfiguration = .init(pointSize: 11, weight: .regular)
-    warningImageView.image = Self.warningSymbol
-    warningImageView.isHidden = true
-
-    infoRow.orientation = .horizontal
-    infoRow.spacing = 4
-    infoRow.alignment = .centerY
-    infoRow.translatesAutoresizingMaskIntoConstraints = false
-    infoRow.addArrangedSubview(sizeLabel)
-    infoRow.addArrangedSubview(separatorLabel)
-    infoRow.addArrangedSubview(ctxLabel)
-    infoRow.addArrangedSubview(warningSeparatorLabel)
-    infoRow.addArrangedSubview(warningImageView)
+    metadataLabel.font = Typography.secondary
+    metadataLabel.textColor = .secondaryLabelColor
+    metadataLabel.lineBreakMode = .byTruncatingTail
+    metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    // Two-line text column (title + size)
-    let textColumn = NSStackView(views: [labelField, infoRow])
+    // Two-line text column (title + metadata)
+    let textColumn = NSStackView(views: [labelField, metadataLabel])
     textColumn.translatesAutoresizingMaskIntoConstraints = false
     textColumn.orientation = .vertical
     textColumn.alignment = .leading
@@ -189,35 +154,9 @@ final class CatalogModelMenuItemView: MenuRowView {
     labelField.stringValue = display.title
     labelField.textColor = display.titleColor
 
-    sizeLabel.attributedStringValue = IconLabelFormatter.make(
-      icon: IconLabelFormatter.sizeSymbol,
-      text: display.sizeText,
-      color: display.infoColor,
-      baselineOffset: Self.iconBaselineYOffset
-    )
-
-    if display.compatible {
-      ctxLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: IconLabelFormatter.contextSymbol,
-        text: display.contextText,
-        color: display.infoColor,
-        baselineOffset: Self.iconBaselineYOffset
-      )
-    } else {
-      ctxLabel.stringValue = display.contextText
-    }
-
-    sizeLabel.isHidden = false
-    separatorLabel.isHidden = false
-
-    infoRow.toolTip = display.infoTooltip
-
-    warningSeparatorLabel.isHidden = !display.showsWarning
-    warningImageView.isHidden = !display.showsWarning
-    warningImageView.toolTip = display.warningTooltip
-    warningImageView.contentTintColor = display.infoColor
-
-    ctxLabel.textColor = display.infoColor
+    metadataLabel.attributedStringValue = makeMetadataLine(from: display)
+    metadataLabel.toolTip = combinedTooltip(
+      info: display.infoTooltip, warning: display.warningTooltip)
 
     switch display.status {
     case .downloaded:
@@ -246,5 +185,68 @@ final class CatalogModelMenuItemView: MenuRowView {
     // If the item is no longer actionable, clear any lingering hover highlight.
     if !display.isActionable { setHoverHighlight(false) }
     needsDisplay = true
+  }
+
+  private func makeMetadataLine(from display: VariantRowPresenter.DisplayData) -> NSAttributedString
+  {
+    let line = NSMutableAttributedString()
+
+    line.append(
+      IconLabelFormatter.make(
+        icon: IconLabelFormatter.sizeSymbol,
+        text: display.sizeText,
+        color: display.infoColor,
+        baselineOffset: Self.iconBaselineYOffset
+      )
+    )
+
+    line.append(MetadataSeparator.make(color: display.infoColor))
+
+    if display.compatible {
+      line.append(
+        IconLabelFormatter.make(
+          icon: IconLabelFormatter.contextSymbol,
+          text: display.contextText,
+          color: display.infoColor,
+          baselineOffset: Self.iconBaselineYOffset
+        )
+      )
+    } else {
+      line.append(
+        NSAttributedString(
+          string: display.contextText,
+          attributes: [
+            .font: Typography.secondary,
+            .foregroundColor: display.infoColor,
+          ]
+        )
+      )
+    }
+
+    if display.showsWarning {
+      line.append(MetadataSeparator.make(color: display.infoColor))
+      line.append(
+        IconLabelFormatter.makeIconOnly(
+          icon: MetadataIcons.warningSymbol,
+          color: display.infoColor,
+          baselineOffset: MetadataIcons.warningBaselineOffset
+        )
+      )
+    }
+
+    return line
+  }
+
+  private func combinedTooltip(info: String?, warning: String?) -> String? {
+    switch (info, warning) {
+    case (nil, nil):
+      return nil
+    case (let info?, nil):
+      return info
+    case (nil, let warning?):
+      return warning
+    case (let info?, let warning?):
+      return "\(info)\n\(warning)"
+    }
   }
 }

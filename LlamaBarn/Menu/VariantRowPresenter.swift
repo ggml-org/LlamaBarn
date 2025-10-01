@@ -38,18 +38,16 @@ enum VariantRowPresenter {
     let compatible = ModelCatalog.isModelCompatible(model)
     let actionable = isActionable(model: model, status: status)
 
-    let titleColor: NSColor
-    let infoColor: NSColor
-    if !compatible {
-      titleColor = .tertiaryLabelColor
-      infoColor = .tertiaryLabelColor
-    } else if !actionable {
-      titleColor = .secondaryLabelColor
-      infoColor = .tertiaryLabelColor
+    let isDownloaded: Bool
+    if case .downloaded = status {
+      isDownloaded = true
     } else {
-      titleColor = .labelColor
-      infoColor = .secondaryLabelColor
+      isDownloaded = false
     }
+
+    let titleColor = ModelVariantPalette.titleColor(
+      isDownloaded: isDownloaded, compatible: compatible)
+    let infoColor = ModelVariantPalette.metadataColor(compatible: compatible)
 
     let title: String = {
       var result = model.displayName

@@ -9,7 +9,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
   private let iconView = RoundedRectIconView()
   private let familyLabel = NSTextField(labelWithString: "")
-  private let badgesStack = NSStackView()
+  private let metadataLabel = NSTextField(labelWithString: "")
   private let chevron = NSImageView()
   // Background is provided by MenuRowView
   // No stateful map needed; we rebuild badges each refresh for clarity.
@@ -42,11 +42,10 @@ final class FamilyHeaderMenuItemView: MenuRowView {
     familyLabel.font = Typography.primary
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    badgesStack.orientation = .horizontal
-    badgesStack.spacing = 4
-    badgesStack.alignment = .centerY
-    // Let badges hug their intrinsic content; default distribution avoids stretching when hugging is required
-    badgesStack.translatesAutoresizingMaskIntoConstraints = false
+    metadataLabel.font = Typography.secondary
+    metadataLabel.textColor = .secondaryLabelColor
+    metadataLabel.lineBreakMode = .byTruncatingTail
+    metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
     // Match trailing indicator sizing (16x16 w/ pointSize 14) used in InstalledModelMenuItemView for alignment
@@ -54,7 +53,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
     chevron.contentTintColor = .secondaryLabelColor
     chevron.translatesAutoresizingMaskIntoConstraints = false
 
-    let textColumn = NSStackView(views: [familyLabel, badgesStack])
+    let textColumn = NSStackView(views: [familyLabel, metadataLabel])
     textColumn.orientation = .vertical
     // Use same vertical spacing as other two-line rows for visual consistency
     textColumn.spacing = 2
@@ -91,125 +90,69 @@ final class FamilyHeaderMenuItemView: MenuRowView {
   // No hover tint change for the header icon; keep consistent.
 
   func refresh() {
-    // Build one chip per variant label (e.g., "27B"), not per quantization/build.
-    let sorted = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
-    var used: Set<String> = []
-    var views: [NSView] = []
-    for model in sorted {
-      let key = groupKey(for: model)
-      if used.contains(key) { continue }
-      used.insert(key)
-      let status = modelManager.getModelStatus(model)
-      let downloaded = (status == .downloaded)
-      let compatible = ModelCatalog.isModelCompatible(model)
-      let chip = BadgeView()
-      chip.configure(
-        text: key,
-        showCheck: downloaded,
-        downloaded: downloaded,
-        compatible: compatible
-      )
-      if !views.isEmpty { views.append(CenteredDotSeparatorView()) }
-      views.append(chip)
-    }
-    badgesStack.setViews(views, in: .leading)
+    metadataLabel.attributedStringValue = makeMetadataLine()
     needsDisplay = true
   }
 
   private func groupKey(for model: ModelCatalogEntry) -> String { model.variant }
 
-}
+  private func makeMetadataLine() -> NSAttributedString {
+    let sorted = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
+    var used: Set<String> = []
+    let line = NSMutableAttributedString()
 
-private final class BadgeView: NSView {
-  private let check = NSImageView()
-  private let label = NSTextField(labelWithString: "")
-  private let innerStack = NSStackView()
-  private var checkVisible = false
-  // Cache last state so we can reapply colors on appearance changes.
-  private var lastDownloaded = false
-  private var lastCompatible = false
-  // Track last applied appearance to avoid double application (initial + menu vibrancy resolution) causing flash.
-  private var lastAppliedAppearanceName: NSAppearance.Name?
-  override init(frame frameRect: NSRect) {
-    super.init(frame: frameRect)
-    translatesAutoresizingMaskIntoConstraints = false
-    wantsLayer = true
-    check.translatesAutoresizingMaskIntoConstraints = false
-    // Align checkmark and text with standard secondary line size
-    check.symbolConfiguration = .init(pointSize: 10, weight: .semibold)
-    label.font = Typography.secondary
-    label.translatesAutoresizingMaskIntoConstraints = false
-    innerStack.orientation = .horizontal
-    innerStack.spacing = 2
-    innerStack.alignment = .centerY
-    innerStack.translatesAutoresizingMaskIntoConstraints = false
-    innerStack.addArrangedSubview(check)
-    innerStack.addArrangedSubview(label)
-    addSubview(innerStack)
-    NSLayoutConstraint.activate([
-      innerStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-      innerStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-      innerStack.topAnchor.constraint(equalTo: topAnchor),
-      innerStack.bottomAnchor.constraint(equalTo: bottomAnchor),
-    ])
-    setContentHuggingPriority(.required, for: .horizontal)
-    setContentCompressionResistancePriority(.required, for: .horizontal)
-  }
-  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-  func configure(text: String, showCheck: Bool, downloaded: Bool, compatible: Bool) {
-    label.stringValue = text
-    if showCheck {
-      check.isHidden = false
-      check.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)
-      check.contentTintColor = .llamaGreen
-    } else {
-      check.isHidden = true
-      check.image = nil
+    for model in sorted {
+      let key = groupKey(for: model)
+      if used.contains(key) { continue }
+      used.insert(key)
+
+      let status = modelManager.getModelStatus(model)
+      let downloaded = (status == .downloaded)
+      let compatible = ModelCatalog.isModelCompatible(model)
+      let color = ModelVariantPalette.familyMetadataColor(
+        downloaded: downloaded, compatible: compatible)
+      if line.length > 0 {
+        line.append(MetadataSeparator.make(color: color))
+      }
+
+      line.append(attributedVariantLabel(text: key, downloaded: downloaded, color: color))
     }
-    if showCheck != checkVisible {
-      checkVisible = showCheck
-      invalidateIntrinsicContentSize()
+
+    return line
+  }
+
+  private func attributedVariantLabel(
+    text: String,
+    downloaded: Bool,
+    color: NSColor
+  ) -> NSAttributedString {
+    if downloaded {
+      let result = NSMutableAttributedString()
+      result.append(
+        IconLabelFormatter.makeIconOnly(
+          icon: MetadataIcons.checkSymbol,
+          color: .llamaGreen,
+          baselineOffset: MetadataIcons.checkBaselineOffset
+        )
+      )
+      result.append(
+        NSAttributedString(
+          string: " \(text)",
+          attributes: [
+            .font: Typography.secondary,
+            .foregroundColor: color,
+          ]
+        )
+      )
+      return result
     }
-    // No internal padding visuals; remove outlines and rounding
-    layer?.cornerRadius = 0
-    layer?.borderWidth = 0
-    lastDownloaded = downloaded
-    lastCompatible = compatible
-    // Defer color application to next runloop so effectiveAppearance has stabilized within menu hierarchy.
-    DispatchQueue.main.async { [weak self] in self?.applyColors(force: false) }
-    // Ensure width recalculates if text length changes (e.g., reused view across families in future)
-    invalidateIntrinsicContentSize()
-  }
-  override func viewDidChangeEffectiveAppearance() {
-    super.viewDidChangeEffectiveAppearance()
-    // Re-resolve dynamic system colors (especially needed for CGColor on CALayer in dark mode).
-    applyColors(force: true)
-  }
-  private func applyColors(force: Bool) {
-    // Avoid redundant work & flicker if appearance name hasn't changed unless forced.
-    let currentName =
-      effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) ?? effectiveAppearance.name
-    if !force, lastAppliedAppearanceName == currentName { return }
-    lastAppliedAppearanceName = currentName
-    // Resolve dynamic colors to concrete before bridging to CGColor to avoid second-phase shifts.
-    // No border color since outlines are removed
-    // Final simplified ordering to avoid confusion & accidental lower contrast for supported chips:
-    // Downloaded: primary, Compatible (supported but not downloaded): secondary, Unsupported: disabled.
-    if lastDownloaded {
-      label.textColor = .labelColor
-    } else if lastCompatible {
-      label.textColor = .secondaryLabelColor
-    } else {
-      label.textColor = .tertiaryLabelColor
-    }
-  }
-  override var intrinsicContentSize: NSSize {
-    let labelSize = label.intrinsicContentSize
-    let checkWidth: CGFloat =
-      checkVisible
-      ? (check.intrinsicContentSize.width == 0 ? 10 : check.intrinsicContentSize.width) + 2 : 0  // +2 for spacing when visible
-    let width = checkWidth + labelSize.width
-    let height = labelSize.height
-    return NSSize(width: width, height: height)
+
+    return NSAttributedString(
+      string: text,
+      attributes: [
+        .font: Typography.secondary,
+        .foregroundColor: color,
+      ]
+    )
   }
 }

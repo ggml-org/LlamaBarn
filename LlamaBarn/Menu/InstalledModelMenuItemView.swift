@@ -290,11 +290,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
 
   /// Create a centered dot separator for the info line.
   private func makeSeparator() -> NSAttributedString {
-    let attrs: [NSAttributedString.Key: Any] = [
-      .font: Typography.secondary,
-      .foregroundColor: NSColor.secondaryLabelColor,
-    ]
-    return NSAttributedString(string: "  •  ", attributes: attrs)
+    MetadataSeparator.make()
   }
 
   override func viewDidChangeEffectiveAppearance() {
