@@ -3,74 +3,34 @@ import Foundation
 
 private final class InstalledModelActionsView: NSView {
   private enum Action {
-    case ellipsis
     case delete
-    case reveal
-    case stop
   }
 
   var onDelete: (() -> Void)?
-  var onReveal: (() -> Void)?
-  var onStop: (() -> Void)?
 
-  private let ellipsisButton: NSButton
-  private let ellipsisImageView: NSImageView
   private let deleteButton: NSButton
   private let deleteImageView: NSImageView
-  private let revealButton: NSButton
-  private let revealImageView: NSImageView
-  private let stopButton: NSButton
-  private let stopImageView: NSImageView
 
-  private var isExpanded = false
   private var latestStatus: ModelStatus = .available
   private var latestIsRunning = false
   private var latestHighlight = false
 
   override init(frame frameRect: NSRect) {
-    let ellipsis = Self.makeButton(
-      symbolName: "ellipsis",
-      accessibilityLabel: "More actions"
-    )
-    ellipsisButton = ellipsis.button
-    ellipsisImageView = ellipsis.imageView
-
     let delete = Self.makeButton(
       symbolName: "trash",
-      accessibilityLabel: "Delete model"
+      accessibilityLabel: "Delete"
     )
     deleteButton = delete.button
     deleteImageView = delete.imageView
-
-    let reveal = Self.makeButton(
-      symbolName: "folder",
-      accessibilityLabel: "Show in Finder"
-    )
-    revealButton = reveal.button
-    revealImageView = reveal.imageView
-
-    let stop = Self.makeButton(
-      symbolName: "stop",
-      accessibilityLabel: "Stop model",
-      tint: .systemRed
-    )
-    stopButton = stop.button
-    stopImageView = stop.imageView
 
     super.init(frame: frameRect)
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = false
 
-    ellipsisButton.target = self
-    ellipsisButton.action = #selector(didTapEllipsis)
     deleteButton.target = self
     deleteButton.action = #selector(didTapDelete)
-    revealButton.target = self
-    revealButton.action = #selector(didTapReveal)
-    stopButton.target = self
-    stopButton.action = #selector(didTapStop)
 
-    let stack = NSStackView(views: [ellipsisButton, stopButton, deleteButton, revealButton])
+    let stack = NSStackView(views: [deleteButton])
     stack.translatesAutoresizingMaskIntoConstraints = false
     stack.orientation = .horizontal
     stack.alignment = .centerY
@@ -79,12 +39,10 @@ private final class InstalledModelActionsView: NSView {
 
     addSubview(stack)
 
-    for button in [ellipsisButton, stopButton, deleteButton, revealButton] {
-      NSLayoutConstraint.activate([
-        button.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-        button.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      ])
-    }
+    NSLayoutConstraint.activate([
+      deleteButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      deleteButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+    ])
 
     NSLayoutConstraint.activate([
       stack.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -112,27 +70,15 @@ private final class InstalledModelActionsView: NSView {
 
   private func handle(action: Action) {
     switch action {
-    case .ellipsis:
-      isExpanded.toggle()
-      update(for: latestStatus, isRunning: latestIsRunning, highlighted: latestHighlight)
     case .delete: onDelete?()
-    case .reveal: onReveal?()
-    case .stop: onStop?()
     }
   }
 
   private func updateTints() {
-    let tint = latestHighlight ? NSColor.labelColor : NSColor.secondaryLabelColor
-    for imageView in [ellipsisImageView, deleteImageView, revealImageView] {
-      imageView.contentTintColor = tint
-    }
-    stopImageView.contentTintColor = .systemRed
+    deleteImageView.contentTintColor = .secondaryLabelColor
   }
 
-  @objc private func didTapEllipsis() { handle(action: .ellipsis) }
   @objc private func didTapDelete() { handle(action: .delete) }
-  @objc private func didTapReveal() { handle(action: .reveal) }
-  @objc private func didTapStop() { handle(action: .stop) }
 
   private static func makeButton(
     symbolName: String,
@@ -177,31 +123,20 @@ private final class InstalledModelActionsView: NSView {
   > {
     switch status {
     case .available:
-      isExpanded = false
       return []
     case .downloading(_):
-      isExpanded = false
       return []
     case .downloaded:
-      if isRunning {
-        isExpanded = false
-        return [.stop]
-      }
-
       guard highlighted else {
-        isExpanded = false
         return []
       }
 
-      return isExpanded ? [.delete, .reveal] : [.ellipsis]
+      return [.delete]
     }
   }
 
   private func applyVisibility(_ actions: Set<Action>) {
-    ellipsisButton.isHidden = !actions.contains(.ellipsis)
     deleteButton.isHidden = !actions.contains(.delete)
-    revealButton.isHidden = !actions.contains(.reveal)
-    stopButton.isHidden = !actions.contains(.stop)
   }
 }
 
@@ -297,8 +232,6 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     infoRow.addArrangedSubview(memoryLabel)
 
     actionsView.onDelete = { [weak self] in self?.performDelete() }
-    actionsView.onReveal = { [weak self] in self?.performReveal() }
-    actionsView.onStop = { [weak self] in self?.performStop() }
 
     // Order: icon | (label over bytes) | spacer | (state, progress, delete, action)
     // Spacer expands so trailing visuals sit flush right.
