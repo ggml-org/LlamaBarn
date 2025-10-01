@@ -6,7 +6,7 @@ import Foundation
 /// - Idle: circular icon (inactive) + label
 /// - Loading: circular icon (active)
 /// - Running: circular icon (active)
-final class InstalledModelMenuItemView: MenuRowView {
+final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate {
   private let model: ModelCatalogEntry
   private unowned let server: LlamaServer
   private unowned let modelManager: ModelManager
@@ -17,20 +17,14 @@ final class InstalledModelMenuItemView: MenuRowView {
   // Subviews
   private let circleIcon = CircularIconView()
   private let labelField = NSTextField(labelWithString: "")
+  private let infoLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")
-  // Second-line label: used for progress during downloads and for
-  // consistent two-line layout (size/badges) when idle/running.
-  private let infoRow = NSStackView()
-  private let sizeLabel = NSTextField(labelWithString: "")
-  private let separatorLabel = CenteredDotSeparatorView()
-  private let ctxLabel = NSTextField(labelWithString: "")
-  private let memorySeparatorLabel = CenteredDotSeparatorView()
-  private let memoryLabel = NSTextField(labelWithString: "")
   private let cancelImageView = NSImageView()
-  private let deleteButton = NSButton()
+  private let deleteImageView = NSImageView()
 
   // Hover handling is provided by MenuRowView
   private var rowClickRecognizer: NSClickGestureRecognizer?
+  private var deleteClickRecognizer: NSClickGestureRecognizer?
 
   init(
     model: ModelCatalogEntry, server: LlamaServer, modelManager: ModelManager,
@@ -59,6 +53,11 @@ final class InstalledModelMenuItemView: MenuRowView {
     labelField.lineBreakMode = .byTruncatingTail
     labelField.translatesAutoresizingMaskIntoConstraints = false
 
+    infoLabel.font = Typography.secondary
+    infoLabel.textColor = .secondaryLabelColor
+    infoLabel.lineBreakMode = .byTruncatingTail
+    infoLabel.translatesAutoresizingMaskIntoConstraints = false
+
     progressLabel.font = Typography.secondary
     progressLabel.textColor = .secondaryLabelColor
     progressLabel.alignment = .right
@@ -74,41 +73,16 @@ final class InstalledModelMenuItemView: MenuRowView {
     cancelImageView.contentTintColor = .systemRed
     cancelImageView.isHidden = true
 
-    deleteButton.translatesAutoresizingMaskIntoConstraints = false
-    deleteButton.isBordered = false
-    deleteButton.imagePosition = .imageOnly
-    deleteButton.setButtonType(.momentaryChange)
-    deleteButton.title = ""
-    deleteButton.toolTip = "Delete"
-    deleteButton.setAccessibilityLabel("Delete")
+    deleteImageView.translatesAutoresizingMaskIntoConstraints = false
+    deleteImageView.imageScaling = .scaleProportionallyDown
+    deleteImageView.symbolConfiguration = .init(pointSize: 13, weight: .regular)
     if let img = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete") {
       img.isTemplate = true
-      deleteButton.image = img
+      deleteImageView.image = img
     }
-    deleteButton.contentTintColor = .secondaryLabelColor
-    deleteButton.isHidden = true
-    deleteButton.target = self
-    deleteButton.action = #selector(performDelete)
+    deleteImageView.contentTintColor = .secondaryLabelColor
+    deleteImageView.isHidden = true
 
-    let labels = [sizeLabel, ctxLabel, memoryLabel]
-    for label in labels {
-      label.font = Typography.secondary
-      label.textColor = .secondaryLabelColor
-      label.lineBreakMode = .byTruncatingTail
-      label.translatesAutoresizingMaskIntoConstraints = false
-    }
-
-    infoRow.orientation = .horizontal
-    infoRow.spacing = 4
-    infoRow.alignment = .centerY
-    infoRow.translatesAutoresizingMaskIntoConstraints = false
-    infoRow.addArrangedSubview(sizeLabel)
-    infoRow.addArrangedSubview(separatorLabel)
-    infoRow.addArrangedSubview(ctxLabel)
-    infoRow.addArrangedSubview(memorySeparatorLabel)
-    infoRow.addArrangedSubview(memoryLabel)
-
-    // Order: icon | (label over bytes) | spacer | (state, progress, delete, action)
     // Spacer expands so trailing visuals sit flush right.
     let spacer = NSView()
     spacer.translatesAutoresizingMaskIntoConstraints = false
@@ -121,7 +95,7 @@ final class InstalledModelMenuItemView: MenuRowView {
     progressLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
     // Left: icon aligned with first text line, then two-line text column
-    let nameStack = NSStackView(views: [labelField, infoRow])
+    let nameStack = NSStackView(views: [labelField, infoLabel])
     nameStack.translatesAutoresizingMaskIntoConstraints = false
     nameStack.orientation = .vertical
     nameStack.spacing = 1
@@ -138,7 +112,7 @@ final class InstalledModelMenuItemView: MenuRowView {
     cancelImageView.setContentHuggingPriority(.required, for: .horizontal)
     cancelImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-    let rightStack = NSStackView(views: [progressLabel, cancelImageView, deleteButton])
+    let rightStack = NSStackView(views: [progressLabel, cancelImageView, deleteImageView])
     rightStack.translatesAutoresizingMaskIntoConstraints = false
     rightStack.orientation = .horizontal
     rightStack.spacing = 6
@@ -156,8 +130,8 @@ final class InstalledModelMenuItemView: MenuRowView {
       circleIcon.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
       cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
       cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.iconSize),
-      deleteButton.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
-      deleteButton.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      deleteImageView.widthAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
+      deleteImageView.heightAnchor.constraint(equalToConstant: MenuMetrics.iconBadgeSize),
 
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: MenuMetrics.progressWidth),
       rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -172,17 +146,37 @@ final class InstalledModelMenuItemView: MenuRowView {
     ])
   }
 
-  // Row click recognizer to toggle, letting the delete button handle its own action.
+  // Row click recognizer to toggle, letting the delete icon handle its own action.
   override func viewDidMoveToWindow() {
     super.viewDidMoveToWindow()
     if rowClickRecognizer == nil {
       let click = NSClickGestureRecognizer(target: self, action: #selector(didClickRow))
+      click.delegate = self
       addGestureRecognizer(click)
       rowClickRecognizer = click
+    }
+    if deleteClickRecognizer == nil {
+      let click = NSClickGestureRecognizer(target: self, action: #selector(didClickDelete))
+      deleteImageView.addGestureRecognizer(click)
+      deleteClickRecognizer = click
     }
   }
 
   @objc private func didClickRow() { toggle() }
+
+  @objc private func didClickDelete() { performDelete() }
+
+  // Prevent row toggle when clicking the delete icon.
+  func gestureRecognizer(
+    _ gestureRecognizer: NSGestureRecognizer, shouldAttemptToRecognizeWith event: NSEvent
+  ) -> Bool {
+    let loc = event.locationInWindow
+    let localPoint = deleteImageView.convert(loc, from: nil)
+    if deleteImageView.bounds.contains(localPoint) && !deleteImageView.isHidden {
+      return false
+    }
+    return true
+  }
 
   private func toggle() {
     let status = modelManager.getModelStatus(model)
@@ -200,151 +194,113 @@ final class InstalledModelMenuItemView: MenuRowView {
 
   override func hoverHighlightDidChange(_ highlighted: Bool) {
     let status = modelManager.getModelStatus(model)
-    // Show delete button only when hovering over a downloaded model
-    deleteButton.isHidden = !(highlighted && status == .downloaded)
-    // Update icon tint when highlight changes.
-    applyIconTint()
+    deleteImageView.isHidden = !(highlighted && status == .downloaded)
   }
 
   func refresh() {
-    // Determine state
     let status = modelManager.getModelStatus(model)
     let isActive = server.isActive(model: model)
     let isLoadingServer = isActive && server.isLoading
     let isRunning = isActive && server.isRunning
-    let recommendedContext = ModelCatalog.recommendedContextLength(for: model)
-    // Reset trailing visuals before applying current status
-    cancelImageView.isHidden = true
 
-    // Spinner is now displayed inside the circular icon instead of the right side.
+    // Update icon state
     circleIcon.setLoading(isLoadingServer)
+    circleIcon.isActive = isRunning
+    circleIcon.imageView.contentTintColor = isRunning ? .white : .labelColor
 
-    let sizeText = model.totalSize
-    let contextText: String = {
-      if let recommendedContext {
-        return TokenFormatters.shortTokens(recommendedContext)
-      }
-      return ""
-    }()
-    let memoryText: String? = {
-      if isRunning {
-        let memMB = server.memoryUsageMB
-        if memMB <= 0 { return nil }
-        if memMB >= 1024 {
-          let gb = memMB / 1024
-          let gbText = gb < 10 ? String(format: "%.1f", gb) : String(format: "%.0f", gb)
-          return "\(gbText) GB"
-        } else {
-          return String(format: "%.0f MB", memMB)
-        }
-      }
-      return nil
-    }()
-
-    // Download progress / action area
+    // Build info text based on state
     switch status {
     case .downloading(let progress):
       cancelImageView.isHidden = false
-      let percent: Int
-      if progress.totalUnitCount > 0 {
-        percent = Int(Double(progress.completedUnitCount) / Double(progress.totalUnitCount) * 100)
-      } else {
-        percent = 0
-      }
+      let percent =
+        progress.totalUnitCount > 0
+        ? Int(Double(progress.completedUnitCount) / Double(progress.totalUnitCount) * 100)
+        : 0
       progressLabel.stringValue = "\(percent)%"
-      // Second line: always show downloaded/total in GB with two decimals.
-      // When the network hasn't reported a total yet (0), fall back to catalog size.
+
       let completedText = ByteFormatters.gbTwoDecimals(progress.completedUnitCount)
-      let totalBytes: Int64 = {
-        if progress.totalUnitCount > 0 {
-          return progress.totalUnitCount
-        } else {
-          // fileSize is our catalog estimate for the full model (all parts).
-          return model.fileSize
-        }
-      }()
+      let totalBytes = progress.totalUnitCount > 0 ? progress.totalUnitCount : model.fileSize
       let totalText = ByteFormatters.gbTwoDecimals(totalBytes)
-      sizeLabel.attributedStringValue = IconLabelFormatter.make(
+
+      infoLabel.attributedStringValue = IconLabelFormatter.make(
         icon: IconLabelFormatter.sizeSymbol,
         text: "\(completedText) / \(totalText)",
         color: .secondaryLabelColor,
         baselineOffset: Self.iconBaselineYOffset
       )
-      ctxLabel.stringValue = ""
-      ctxLabel.isHidden = true
-      memoryLabel.stringValue = ""
-      memoryLabel.isHidden = true
-      memorySeparatorLabel.isHidden = true
-      separatorLabel.isHidden = true
-      infoRow.isHidden = false
-    // Removed indicator image in favor of simplified state display
+
     case .downloaded, .available:
+      cancelImageView.isHidden = true
       progressLabel.stringValue = ""
-      infoRow.isHidden = false
-
-      sizeLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: IconLabelFormatter.sizeSymbol,
-        text: sizeText,
-        color: .secondaryLabelColor,
-        baselineOffset: Self.iconBaselineYOffset
-      )
-      if contextText.isEmpty {
-        ctxLabel.isHidden = true
-        separatorLabel.isHidden = true
-      } else {
-        ctxLabel.attributedStringValue = IconLabelFormatter.make(
-          icon: IconLabelFormatter.contextSymbol,
-          text: contextText,
-          color: .secondaryLabelColor,
-          baselineOffset: Self.iconBaselineYOffset
-        )
-        ctxLabel.isHidden = false
-        separatorLabel.isHidden = false
-      }
-
-      if let memoryText {
-        memoryLabel.attributedStringValue = IconLabelFormatter.make(
-          icon: IconLabelFormatter.memorySymbol,
-          text: memoryText,
-          color: .secondaryLabelColor,
-          baselineOffset: Self.iconBaselineYOffset
-        )
-        memoryLabel.isHidden = false
-        memorySeparatorLabel.isHidden = false
-      } else {
-        memoryLabel.stringValue = ""
-        memoryLabel.isHidden = true
-        memorySeparatorLabel.isHidden = true
-      }
+      infoLabel.attributedStringValue = buildInfoText(isRunning: isRunning)
     }
-    // Update leading circular badge state and tinting
-    // Icon should become blue only after the model is done loading (running)
-    circleIcon.isActive = isRunning
-    applyIconTint(isActive: isRunning)
+
     needsDisplay = true
   }
 
-  /// Installed model icons use the primary label tint unless the server is running,
-  /// in which case the circular badge handles the white active glyph.
-  private func applyIconTint(isActive: Bool? = nil) {
-    let statusIsActive: Bool
-    if let isActive = isActive {
-      statusIsActive = isActive
-    } else {
-      let isActiveModel = server.isActive(model: model)
-      // Consider active (blue) only when the server is running
-      statusIsActive = isActiveModel && server.isRunning
+  /// Build the info line with size, context, and optionally memory usage.
+  private func buildInfoText(isRunning: Bool) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+
+    // Always show size
+    result.append(
+      IconLabelFormatter.make(
+        icon: IconLabelFormatter.sizeSymbol,
+        text: model.totalSize,
+        color: .secondaryLabelColor,
+        baselineOffset: Self.iconBaselineYOffset
+      ))
+
+    // Add context if available
+    if let recommendedContext = ModelCatalog.recommendedContextLength(for: model) {
+      result.append(makeSeparator())
+      result.append(
+        IconLabelFormatter.make(
+          icon: IconLabelFormatter.contextSymbol,
+          text: TokenFormatters.shortTokens(recommendedContext),
+          color: .secondaryLabelColor,
+          baselineOffset: Self.iconBaselineYOffset
+        ))
     }
-    // When active, circular view sets white tint; only tweak in inactive state.
-    if !statusIsActive {
-      circleIcon.imageView.contentTintColor = .labelColor
+
+    // Add memory usage when running
+    if isRunning {
+      let memMB = server.memoryUsageMB
+      if memMB > 0 {
+        let memoryText: String
+        if memMB >= 1024 {
+          let gb = memMB / 1024
+          memoryText = gb < 10 ? String(format: "%.1f GB", gb) : String(format: "%.0f GB", gb)
+        } else {
+          memoryText = String(format: "%.0f MB", memMB)
+        }
+        result.append(makeSeparator())
+        result.append(
+          IconLabelFormatter.make(
+            icon: IconLabelFormatter.memorySymbol,
+            text: memoryText,
+            color: .secondaryLabelColor,
+            baselineOffset: Self.iconBaselineYOffset
+          ))
+      }
     }
+
+    return result
+  }
+
+  /// Create a centered dot separator for the info line.
+  private func makeSeparator() -> NSAttributedString {
+    let attrs: [NSAttributedString.Key: Any] = [
+      .font: Typography.secondary,
+      .foregroundColor: NSColor.secondaryLabelColor,
+    ]
+    return NSAttributedString(string: "  •  ", attributes: attrs)
   }
 
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
     cancelImageView.contentTintColor = .systemRed
-    deleteButton.contentTintColor = .secondaryLabelColor
+    deleteImageView.contentTintColor = .secondaryLabelColor
   }
 
   @objc private func performDelete() {
@@ -352,18 +308,6 @@ final class InstalledModelMenuItemView: MenuRowView {
     guard case .downloaded = status else { return }
     modelManager.deleteDownloadedModel(model)
     membershipChanged(model)
-  }
-
-  private func performStop() {
-    let isActive = server.isActive(model: model)
-    guard isActive else { return }
-    server.stop()
-    refresh()
-  }
-
-  private func performReveal() {
-    let url = URL(fileURLWithPath: model.modelFilePath)
-    NSWorkspace.shared.activateFileViewerSelecting([url])
   }
 
 }
