@@ -5,8 +5,8 @@ import Foundation
 final class HeaderMenuItemView: NSView {
 
   private unowned let server: LlamaServer
-  private let titleLabel = NSTextField(labelWithString: "")
-  private let subtitleLabel = NSTextField(labelWithString: "")
+  private let appNameLabel = NSTextField(labelWithString: "")
+  private let serverStatusLabel = NSTextField(labelWithString: "")
   private let backgroundView = NSView()
   private let settingsButton = NSButton()
   private let isSettingsVisible: Bool
@@ -29,19 +29,19 @@ final class HeaderMenuItemView: NSView {
     backgroundView.translatesAutoresizingMaskIntoConstraints = false
     backgroundView.wantsLayer = true
 
-    titleLabel.font = Typography.primary
-    titleLabel.translatesAutoresizingMaskIntoConstraints = false
-    titleLabel.lineBreakMode = .byTruncatingTail
-    titleLabel.stringValue = "LlamaBarn"
+    appNameLabel.font = Typography.primary
+    appNameLabel.translatesAutoresizingMaskIntoConstraints = false
+    appNameLabel.lineBreakMode = .byTruncatingTail
+    appNameLabel.stringValue = "LlamaBarn"
 
-    subtitleLabel.font = Typography.secondary
-    subtitleLabel.textColor = .secondaryLabelColor
-    subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-    subtitleLabel.lineBreakMode = .byTruncatingTail
-    subtitleLabel.allowsEditingTextAttributes = true
-    subtitleLabel.isSelectable = true
+    serverStatusLabel.font = Typography.secondary
+    serverStatusLabel.textColor = .secondaryLabelColor
+    serverStatusLabel.translatesAutoresizingMaskIntoConstraints = false
+    serverStatusLabel.lineBreakMode = .byTruncatingTail
+    serverStatusLabel.allowsEditingTextAttributes = true
+    serverStatusLabel.isSelectable = true
 
-    let stack = NSStackView(views: [titleLabel, subtitleLabel])
+    let stack = NSStackView(views: [appNameLabel, serverStatusLabel])
     stack.orientation = .vertical
     stack.alignment = .leading
     stack.spacing = 2
@@ -59,20 +59,20 @@ final class HeaderMenuItemView: NSView {
     settingsButton.state = isSettingsVisible ? .on : .off
 
     // Horizontal container: [stack][spacer][settings][quit]
-    let h = NSStackView()
-    h.orientation = .horizontal
-    h.alignment = .centerY
-    h.spacing = 8
-    h.translatesAutoresizingMaskIntoConstraints = false
-    h.addArrangedSubview(stack)
-    h.addArrangedSubview(NSView())  // flexible spacer
-    h.addArrangedSubview(settingsButton)
-    (h.arrangedSubviews[1]).setContentHuggingPriority(.defaultLow, for: .horizontal)
-    (h.arrangedSubviews[1]).setContentCompressionResistancePriority(
+    let headerStackView = NSStackView()
+    headerStackView.orientation = .horizontal
+    headerStackView.alignment = .centerY
+    headerStackView.spacing = 8
+    headerStackView.translatesAutoresizingMaskIntoConstraints = false
+    headerStackView.addArrangedSubview(stack)
+    headerStackView.addArrangedSubview(NSView())  // flexible spacer
+    headerStackView.addArrangedSubview(settingsButton)
+    (headerStackView.arrangedSubviews[1]).setContentHuggingPriority(.defaultLow, for: .horizontal)
+    (headerStackView.arrangedSubviews[1]).setContentCompressionResistancePriority(
       .defaultLow, for: .horizontal)
 
     addSubview(backgroundView)
-    backgroundView.addSubview(h)
+    backgroundView.addSubview(headerStackView)
 
     NSLayoutConstraint.activate([
       backgroundView.leadingAnchor.constraint(
@@ -81,18 +81,18 @@ final class HeaderMenuItemView: NSView {
         equalTo: trailingAnchor, constant: -MenuMetrics.outerHorizontalPadding),
       backgroundView.topAnchor.constraint(equalTo: topAnchor),
       backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      h.leadingAnchor.constraint(
+      headerStackView.leadingAnchor.constraint(
         equalTo: backgroundView.leadingAnchor, constant: MenuMetrics.innerHorizontalPadding),
-      h.trailingAnchor.constraint(
+      headerStackView.trailingAnchor.constraint(
         equalTo: backgroundView.trailingAnchor, constant: -MenuMetrics.innerHorizontalPadding),
-      h.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
-      h.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
+      headerStackView.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
+      headerStackView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
       settingsButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 22),
     ])
   }
 
   func refresh() {
-    // Update subtitle based on server status.
+    // Update server status based on server state.
     if server.isRunning {
       let linkText = "localhost:\(LlamaServer.defaultPort)"
       let full = "Running on \(linkText)"
@@ -114,17 +114,17 @@ final class HeaderMenuItemView: NSView {
             .underlineStyle: NSUnderlineStyle.single.rawValue,
           ], range: nsRange)
       }
-      subtitleLabel.attributedStringValue = attributed
-      subtitleLabel.toolTip = "Open llama-server"
+      serverStatusLabel.attributedStringValue = attributed
+      serverStatusLabel.toolTip = "Open llama-server"
     } else {
-      subtitleLabel.attributedStringValue = NSAttributedString(
+      serverStatusLabel.attributedStringValue = NSAttributedString(
         string: "Server not running",
         attributes: [
           .font: Typography.secondary,
           .foregroundColor: NSColor.secondaryLabelColor,
         ]
       )
-      subtitleLabel.toolTip = nil
+      serverStatusLabel.toolTip = nil
     }
 
     needsDisplay = true
