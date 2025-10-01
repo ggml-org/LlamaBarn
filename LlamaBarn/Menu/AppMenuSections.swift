@@ -7,18 +7,15 @@ import SwiftUI
 /// section owns its layout and mutation logic.
 final class AppMenuHeaderSection {
   private let server: LlamaServer
-  private let llamaCppVersion: String
   private var titleView: HeaderMenuItemView?
 
   init(server: LlamaServer, llamaCppVersion: String) {
     self.server = server
-    self.llamaCppVersion = llamaCppVersion
   }
 
   func add(to menu: NSMenu, isSettingsVisible: Bool) {
     let view = HeaderMenuItemView(
       server: server,
-      llamaCppVersion: llamaCppVersion,
       isSettingsVisible: isSettingsVisible
     )
     titleView = view

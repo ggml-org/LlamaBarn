@@ -7,17 +7,12 @@ final class HeaderMenuItemView: NSView {
   private unowned let server: LlamaServer
   private let titleLabel = NSTextField(labelWithString: "")
   private let subtitleLabel = NSTextField(labelWithString: "")
-  private lazy var subtitleClickRecognizer = NSClickGestureRecognizer(
-    target: self, action: #selector(openServerURL))
   private let backgroundView = NSView()
   private let settingsButton = NSButton()
-  private let appBaseTitle = "LlamaBarn"
-  private let llamaCppVersion: String
   private let isSettingsVisible: Bool
 
-  init(server: LlamaServer, llamaCppVersion: String, isSettingsVisible: Bool) {
+  init(server: LlamaServer, isSettingsVisible: Bool) {
     self.server = server
-    self.llamaCppVersion = llamaCppVersion
     self.isSettingsVisible = isSettingsVisible
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
@@ -37,15 +32,14 @@ final class HeaderMenuItemView: NSView {
     titleLabel.font = Typography.primary
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.lineBreakMode = .byTruncatingTail
+    titleLabel.stringValue = "LlamaBarn"
 
     subtitleLabel.font = Typography.secondary
     subtitleLabel.textColor = .secondaryLabelColor
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.lineBreakMode = .byTruncatingTail
-    // Subtitle content now reflects server status; versions move to Settings submenu.
-    subtitleLabel.stringValue = ""
-    subtitleLabel.addGestureRecognizer(subtitleClickRecognizer)
-    subtitleClickRecognizer.isEnabled = false
+    subtitleLabel.allowsEditingTextAttributes = true
+    subtitleLabel.isSelectable = true
 
     let stack = NSStackView(views: [titleLabel, subtitleLabel])
     stack.orientation = .vertical
@@ -98,20 +92,11 @@ final class HeaderMenuItemView: NSView {
   }
 
   func refresh() {
-    // Always show a clean title.
-    titleLabel.attributedStringValue = NSAttributedString(
-      string: appBaseTitle,
-      attributes: [
-        .font: Typography.primary,
-        .foregroundColor: NSColor.labelColor,
-      ]
-    )
-
-    // Merge server status into the header subtitle. Include server memory footprint when running.
+    // Update subtitle based on server status.
     if server.isRunning {
-      let base = "Running on "
       let linkText = "localhost:\(LlamaServer.defaultPort)"
-      let full = base + linkText
+      let full = "Running on \(linkText)"
+      let url = URL(string: "http://\(linkText)/")!
 
       let attributed = NSMutableAttributedString(
         string: full,
@@ -119,18 +104,18 @@ final class HeaderMenuItemView: NSView {
           .font: Typography.secondary,
           .foregroundColor: NSColor.labelColor,
         ])
-      // Make just the host:port look like a link.
+      // Use .link attribute so NSTextField handles clicks automatically.
       if let range = full.range(of: linkText) {
         let nsRange = NSRange(range, in: full)
         attributed.addAttributes(
           [
+            .link: url,
             .foregroundColor: NSColor.linkColor,
             .underlineStyle: NSUnderlineStyle.single.rawValue,
           ], range: nsRange)
       }
       subtitleLabel.attributedStringValue = attributed
       subtitleLabel.toolTip = "Open llama-server"
-      subtitleClickRecognizer.isEnabled = true
     } else {
       subtitleLabel.attributedStringValue = NSAttributedString(
         string: "Server not running",
@@ -140,17 +125,9 @@ final class HeaderMenuItemView: NSView {
         ]
       )
       subtitleLabel.toolTip = nil
-      subtitleClickRecognizer.isEnabled = false
     }
 
     needsDisplay = true
-  }
-
-  @objc private func openServerURL() {
-    guard server.isRunning else { return }
-    if let url = URL(string: "http://localhost:\(LlamaServer.defaultPort)/") {
-      NSWorkspace.shared.open(url)
-    }
   }
 
   @objc private func toggleSettings() {
