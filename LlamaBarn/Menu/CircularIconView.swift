@@ -76,11 +76,11 @@ final class CircularIconView: NSView {
 
     if isActive {
       layer.borderWidth = 0
-      layer.backgroundColor = NSColor.cgColor(.controlAccentColor, in: self)
+      layer.setBackgroundColor(.controlAccentColor, in: self)
       imageView.contentTintColor = .white
     } else {
       layer.borderWidth = 0
-      layer.backgroundColor = NSColor.cgColor(.lbBadgeBackground, in: self)
+      layer.setBackgroundColor(.lbBadgeBackground, in: self)
       // Default (may be overridden by caller for hover emphasis)
       imageView.contentTintColor = .labelColor
     }

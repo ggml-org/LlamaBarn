@@ -16,12 +16,12 @@ enum MenuMetrics {
 
 extension NSView {
   /// Applies or clears the standard hover highlight background on a container view.
-  /// Uses dynamic colors resolved for the view’s effective appearance and sets a rounded corner.
+  /// Uses dynamic colors resolved for the view's effective appearance and sets a rounded corner.
   func lbSetHoverHighlighted(_ highlighted: Bool, cornerRadius: CGFloat = MenuMetrics.cornerRadius)
   {
     wantsLayer = true
     let color: NSColor = highlighted ? .lbHoverBackground : .clear
-    layer?.backgroundColor = NSColor.cgColor(color, in: self)
+    layer?.setBackgroundColor(color, in: self)
     layer?.cornerRadius = cornerRadius
   }
 }
