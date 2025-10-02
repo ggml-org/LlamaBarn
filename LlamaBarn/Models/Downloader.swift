@@ -5,8 +5,8 @@ import os.log
 
 /// Manages the low-level details of downloading model files using URLSession.
 @Observable
-class ModelDownloader: NSObject, URLSessionDownloadDelegate {
-  static let shared = ModelDownloader()
+class Downloader: NSObject, URLSessionDownloadDelegate {
+  static let shared = Downloader()
 
   // Track multi-file downloads per model id
   struct ActiveDownload {
@@ -57,7 +57,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   var activeDownloads: [String: ActiveDownload] = [:]
 
   private var urlSession: URLSession!
-  private let logger = Logger(subsystem: "LlamaBarn", category: "ModelDownloader")
+  private let logger = Logger(subsystem: "LlamaBarn", category: "Downloader")
 
   private override init() {
     super.init()
@@ -65,7 +65,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
   }
 
-  func getDownloadStatus(for model: ModelCatalogEntry) -> ModelStatus {
+  func getDownloadStatus(for model: CatalogEntry) -> ModelStatus {
     if let download = activeDownloads[model.id] {
       return .downloading(download.progress)
     }
@@ -73,7 +73,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   }
 
   /// Downloads all required files for a model
-  func downloadModel(_ model: ModelCatalogEntry) throws {
+  func downloadModel(_ model: CatalogEntry) throws {
     let filesToDownload = try prepareDownload(for: model)
     guard !filesToDownload.isEmpty else { return }
 
@@ -101,7 +101,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   }
 
   /// Cancels an ongoing download and removes it from tracking
-  func cancelModelDownload(_ model: ModelCatalogEntry) {
+  func cancelModelDownload(_ model: CatalogEntry) {
     if let download = activeDownloads[model.id] {
       var mutable = download
       mutable.cancelAllTasks()
@@ -111,7 +111,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
   }
 
   /// Determines which files need downloading for the given model
-  private func filesRequired(for model: ModelCatalogEntry) -> [URL] {
+  private func filesRequired(for model: CatalogEntry) -> [URL] {
     var files: [URL] = []
 
     // Main model file
@@ -139,7 +139,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     didFinishDownloadingTo location: URL
   ) {
     guard let modelId = downloadTask.taskDescription,
-      let model = ModelCatalog.entry(forId: modelId)
+      let model = Catalog.entry(forId: modelId)
     else {
       return
     }
@@ -228,7 +228,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
 
   private func handleDownloadFailure(
     modelId: String,
-    model: ModelCatalogEntry,
+    model: CatalogEntry,
     task: URLSessionDownloadTask,
     tempLocation: URL?,
     destinationURL: URL?,
@@ -287,7 +287,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
 
   // MARK: - Helpers
 
-  private func prepareDownload(for model: ModelCatalogEntry) throws -> [URL] {
+  private func prepareDownload(for model: CatalogEntry) throws -> [URL] {
     let filesToDownload = filesRequired(for: model)
     guard !filesToDownload.isEmpty else { return [] }
 
@@ -299,16 +299,16 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     return filesToDownload
   }
 
-  private func validateCompatibility(for model: ModelCatalogEntry) throws {
-    guard ModelCatalog.isModelCompatible(model) else {
+  private func validateCompatibility(for model: CatalogEntry) throws {
+    guard Catalog.isModelCompatible(model) else {
       let reason =
-        ModelCatalog.incompatibilitySummary(model)
+        Catalog.incompatibilitySummary(model)
         ?? "isn't compatible with this Mac's memory."
       throw DownloadError.notCompatible(reason: reason)
     }
   }
 
-  private func remainingBytesRequired(for model: ModelCatalogEntry) -> Int64 {
+  private func remainingBytesRequired(for model: CatalogEntry) -> Int64 {
     let existingBytes: Int64 = model.allLocalModelPaths.reduce(0) { sum, path in
       guard FileManager.default.fileExists(atPath: path),
         let attrs = try? FileManager.default.attributesOfItem(atPath: path),
@@ -319,7 +319,7 @@ class ModelDownloader: NSObject, URLSessionDownloadDelegate {
     return max(model.fileSize - existingBytes, 0)
   }
 
-  private func validateDiskSpace(for model: ModelCatalogEntry, remainingBytes: Int64) throws {
+  private func validateDiskSpace(for model: CatalogEntry, remainingBytes: Int64) throws {
     guard remainingBytes > 0 else { return }
 
     let modelsDir = URL(fileURLWithPath: model.modelFilePath).deletingLastPathComponent()

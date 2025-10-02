@@ -5,7 +5,7 @@ import Foundation
 /// - https://huggingface.co/api/models?author={organization}&search={query} -- search based on author and query
 
 /// Static catalog of available AI models with their configurations and metadata
-enum ModelCatalog {
+enum Catalog {
 
   /// Fraction of system memory available for models on standard configurations.
   /// Macs with ≥128 GB of RAM can safely allocate 75% to the model since they retain ample headroom.
@@ -38,11 +38,11 @@ enum ModelCatalog {
     let additionalParts: [URL]?
     let serverArgs: [String]
 
-    func asEntry(family: ModelFamily, model: Model) -> ModelCatalogEntry {
+    func asEntry(family: ModelFamily, model: Model) -> CatalogEntry {
       let effectiveArgs = (family.serverArgs ?? []) + (model.serverArgs ?? []) + serverArgs
-      return ModelCatalogEntry(
+      return CatalogEntry(
         id: id
-          ?? ModelCatalog.makeId(family: family.name, modelLabel: model.label, build: self),
+          ?? Catalog.makeId(family: family.name, modelLabel: model.label, build: self),
         family: family.name,
         variant: model.label,
         releaseDate: model.releaseDate,
@@ -95,7 +95,7 @@ enum ModelCatalog {
   }
 
   /// Families expressed with shared metadata to reduce duplication
-  static let families: [ModelFamily] = ModelCatalogFamilies.families
+  static let families: [ModelFamily] = CatalogFamilies.families
 
   // MARK: - ID + flatten helpers
 
@@ -131,16 +131,16 @@ enum ModelCatalog {
 
   // MARK: - Accessors
 
-  static func allEntries() -> [ModelCatalogEntry] {
+  static func allEntries() -> [CatalogEntry] {
     families.flatMap { family in
-      family.models.flatMap { model -> [ModelCatalogEntry] in
+      family.models.flatMap { model -> [CatalogEntry] in
         let allBuilds = [model.build] + model.quantizedBuilds
         return allBuilds.map { build in build.asEntry(family: family, model: model) }
       }
     }
   }
 
-  static func entry(forId id: String) -> ModelCatalogEntry? {
+  static func entry(forId id: String) -> CatalogEntry? {
     for family in families {
       for model in family.models {
         let allBuilds = [model.build] + model.quantizedBuilds
@@ -165,7 +165,7 @@ enum ModelCatalog {
   /// - Returns: Rounded context length (multiple of 1024) or nil when the model cannot satisfy the
   ///            minimum requirements.
   static func safeContextLength(
-    for model: ModelCatalogEntry,
+    for model: CatalogEntry,
     desiredTokens: Int? = nil
   ) -> Int? {
     let minimumTokens = Int(minimumContextLengthTokens)
@@ -204,13 +204,13 @@ enum ModelCatalog {
   }
 
   /// Recommended context length to launch the model with, honoring memory constraints.
-  static func recommendedContextLength(for model: ModelCatalogEntry) -> Int? {
+  static func recommendedContextLength(for model: CatalogEntry) -> Int? {
     safeContextLength(for: model)
   }
 
   /// Checks if a model can fit within system memory constraints
   static func isModelCompatible(
-    _ model: ModelCatalogEntry,
+    _ model: CatalogEntry,
     contextLengthTokens: Double = compatibilityContextLengthTokens
   ) -> Bool {
     let minimumTokens = minimumContextLengthTokens
@@ -231,7 +231,7 @@ enum ModelCatalog {
   /// estimated memory needed (rounded to whole GB).
   /// Example: "needs ~12 GB of mem". Returns nil if compatible.
   static func incompatibilitySummary(
-    _ model: ModelCatalogEntry,
+    _ model: CatalogEntry,
     contextLengthTokens: Double = compatibilityContextLengthTokens
   ) -> String? {
     if Double(model.contextLength) < minimumContextLengthTokens {
@@ -262,7 +262,7 @@ enum ModelCatalog {
   }
 
   static func runtimeMemoryUsageMB(
-    for model: ModelCatalogEntry,
+    for model: CatalogEntry,
     contextLengthTokens: Double = compatibilityContextLengthTokens
   ) -> UInt64 {
     // Memory calculations use binary units so they line up with Activity Monitor.
@@ -276,12 +276,12 @@ enum ModelCatalog {
 
 }
 
-private typealias ModelFamily = ModelCatalog.ModelFamily
-private typealias Model = ModelCatalog.Model
-private typealias ModelBuild = ModelCatalog.ModelBuild
+private typealias ModelFamily = Catalog.ModelFamily
+private typealias Model = Catalog.Model
+private typealias ModelBuild = Catalog.ModelBuild
 
-enum ModelCatalogFamilies {
-  static let families: [ModelCatalog.ModelFamily] = [
+enum CatalogFamilies {
+  static let families: [Catalog.ModelFamily] = [
     // MARK: DeepSeek R1 0528 (migrated)
     ModelFamily(
       name: "DeepSeek R1 0528",

@@ -274,15 +274,15 @@ class LlamaServer {
   }
 
   /// Checks if the specified model is currently active
-  func isActive(model: ModelCatalogEntry) -> Bool {
+  func isActive(model: CatalogEntry) -> Bool {
     return activeModelPath == model.modelFilePath
   }
 
-  /// Convenience method to start server using a ModelCatalogEntry
-  func start(model: ModelCatalogEntry) {
+  /// Convenience method to start server using a CatalogEntry
+  func start(model: CatalogEntry) {
     guard let launch = makeLaunchConfiguration(for: model, requestedContext: nil) else {
       let reason =
-        ModelCatalog.incompatibilitySummary(model)
+        Catalog.incompatibilitySummary(model)
         ?? "insufficient memory for required context"
       DispatchQueue.main.async {
         self.state = .error(.launchFailed(reason))
@@ -298,12 +298,12 @@ class LlamaServer {
     )
   }
 
-  /// Convenience method to start server using a ModelCatalogEntry and a specific context length
-  func start(model: ModelCatalogEntry, contextLength: Int) {
+  /// Convenience method to start server using a CatalogEntry and a specific context length
+  func start(model: CatalogEntry, contextLength: Int) {
     let desired = contextLength <= 0 ? model.contextLength : contextLength
     guard let launch = makeLaunchConfiguration(for: model, requestedContext: desired) else {
       let reason =
-        ModelCatalog.incompatibilitySummary(
+        Catalog.incompatibilitySummary(
           model, contextLengthTokens: Double(model.contextLength))
         ?? "insufficient memory for requested context"
       DispatchQueue.main.async {
@@ -321,12 +321,12 @@ class LlamaServer {
   }
 
   private func makeLaunchConfiguration(
-    for model: ModelCatalogEntry,
+    for model: CatalogEntry,
     requestedContext: Int?
   ) -> (applied: Int, args: [String])? {
     let sanitizedArgs = Self.removeContextArguments(from: model.serverArgs)
     guard
-      let safeContext = ModelCatalog.safeContextLength(
+      let safeContext = Catalog.safeContextLength(
         for: model, desiredTokens: requestedContext)
     else {
       logger.error("No safe context length for model \(model.displayName, privacy: .public)")

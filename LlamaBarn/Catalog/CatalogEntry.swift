@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a complete AI model configuration with metadata and file locations
-struct ModelCatalogEntry: Identifiable, Codable {
+struct CatalogEntry: Identifiable, Codable {
   let id: String  // Unique identifier for the model
   let family: String  // Model family name (e.g., "Qwen 3", "Gemma 3n")
   let variant: String  // Size/variant identifier (e.g., "8B", "E4B")
@@ -75,8 +75,8 @@ struct ModelCatalogEntry: Identifiable, Codable {
     let maxTokens =
       contextLength > 0
       ? Double(contextLength)
-      : ModelCatalog.compatibilityContextLengthTokens
-    return ModelCatalog.runtimeMemoryUsageMB(
+      : Catalog.compatibilityContextLengthTokens
+    return Catalog.runtimeMemoryUsageMB(
       for: self, contextLengthTokens: maxTokens)
   }
 

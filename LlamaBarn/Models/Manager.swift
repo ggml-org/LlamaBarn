@@ -22,18 +22,18 @@ enum ModelStatus: Equatable {
 
 /// Manages the high-level state of available and downloaded models.
 @Observable
-class ModelManager: NSObject {
-  static let shared = ModelManager()
+class Manager: NSObject {
+  static let shared = Manager()
 
-  var downloadedModels: [ModelCatalogEntry] = []
+  var downloadedModels: [CatalogEntry] = []
   private var downloadedModelIds: Set<String> = []
 
   var hasActiveDownloads: Bool {
     !downloader.activeDownloads.isEmpty
   }
 
-  private let downloader = ModelDownloader.shared
-  private let logger = Logger(subsystem: "LlamaBarn", category: "ModelManager")
+  private let downloader = Downloader.shared
+  private let logger = Logger(subsystem: "LlamaBarn", category: "Manager")
   private var observers: [NSObjectProtocol] = []
 
   private override init() {
@@ -47,12 +47,12 @@ class ModelManager: NSObject {
   }
 
   /// Downloads a model by delegating to the downloader.
-  func downloadModel(_ model: ModelCatalogEntry) throws {
+  func downloadModel(_ model: CatalogEntry) throws {
     try downloader.downloadModel(model)
   }
 
   /// Gets the current status of a model.
-  func getModelStatus(_ model: ModelCatalogEntry) -> ModelStatus {
+  func getModelStatus(_ model: CatalogEntry) -> ModelStatus {
     if downloadedModelIds.contains(model.id) {
       return .downloaded
     }
@@ -64,12 +64,12 @@ class ModelManager: NSObject {
   }
 
   /// Checks if a model has been completely downloaded.
-  func isModelDownloaded(_ model: ModelCatalogEntry) -> Bool {
+  func isModelDownloaded(_ model: CatalogEntry) -> Bool {
     return downloadedModelIds.contains(model.id)
   }
 
   /// Safely deletes a downloaded model and its associated files.
-  func deleteDownloadedModel(_ model: ModelCatalogEntry) {
+  func deleteDownloadedModel(_ model: CatalogEntry) {
     let llamaServer = LlamaServer.shared
     if llamaServer.activeModelPath == model.modelFilePath {
       llamaServer.stop()
@@ -105,7 +105,7 @@ class ModelManager: NSObject {
 
   /// Scans the local models directory and updates the list of downloaded models.
   func refreshDownloadedModels() {
-    let modelsDir = ModelCatalogEntry.getModelStorageDirectory()
+    let modelsDir = CatalogEntry.getModelStorageDirectory()
     guard let files = try? FileManager.default.contentsOfDirectory(atPath: modelsDir.path) else {
       self.downloadedModels = []
       self.downloadedModelIds = []
@@ -114,7 +114,7 @@ class ModelManager: NSObject {
     }
     let fileSet = Set(files)
 
-    self.downloadedModels = ModelCatalog.allEntries().filter { model in
+    self.downloadedModels = Catalog.allEntries().filter { model in
       guard fileSet.contains(model.downloadUrl.lastPathComponent) else {
         return false
       }
@@ -133,7 +133,7 @@ class ModelManager: NSObject {
   }
 
   /// Cancels an ongoing download.
-  func cancelModelDownload(_ model: ModelCatalogEntry) {
+  func cancelModelDownload(_ model: CatalogEntry) {
     downloader.cancelModelDownload(model)
   }
 

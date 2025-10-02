@@ -4,8 +4,8 @@ import Foundation
 /// Displays a model family with variant badges summarizing status.
 final class FamilyHeaderMenuItemView: MenuRowView {
   private let family: String
-  private let models: [ModelCatalogEntry]
-  private unowned let modelManager: ModelManager
+  private let models: [CatalogEntry]
+  private unowned let modelManager: Manager
 
   private let iconView = RoundedRectIconView()
   private let familyLabel = NSTextField(labelWithString: "")
@@ -16,7 +16,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
   // Hover handling provided by MenuRowView
 
-  init(family: String, models: [ModelCatalogEntry], modelManager: ModelManager) {
+  init(family: String, models: [CatalogEntry], modelManager: Manager) {
     self.family = family
     self.models = models
     self.modelManager = modelManager
@@ -95,7 +95,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
   }
 
   private func makeMetadataLine() -> NSAttributedString {
-    let sorted = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
+    let sorted = models.sorted(by: CatalogEntry.displayOrder(_:_:))
     var used: Set<String> = []
     let line = NSMutableAttributedString()
 
@@ -105,7 +105,7 @@ final class FamilyHeaderMenuItemView: MenuRowView {
 
       let status = modelManager.getModelStatus(model)
       let downloaded = (status == .downloaded)
-      let compatible = ModelCatalog.isModelCompatible(model)
+      let compatible = Catalog.isModelCompatible(model)
       let color: NSColor = (downloaded || compatible) ? .labelColor : .secondaryLabelColor
       if line.length > 0 {
         line.append(MetadataSeparator.make(color: color))

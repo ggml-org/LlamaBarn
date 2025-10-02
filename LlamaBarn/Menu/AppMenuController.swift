@@ -5,7 +5,7 @@ import Foundation
 /// Breaks menu construction into section helpers so each concern stays focused.
 final class AppMenuController: NSObject, NSMenuDelegate {
   private let statusItem: NSStatusItem
-  private let modelManager: ModelManager
+  private let modelManager: Manager
   private let server: LlamaServer
 
   private lazy var headerSection = AppMenuHeaderSection(
@@ -30,7 +30,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   private var menuWidth: CGFloat = 260
   private var observers: [NSObjectProtocol] = []
 
-  init(modelManager: ModelManager = .shared, server: LlamaServer = .shared) {
+  init(modelManager: Manager = .shared, server: LlamaServer = .shared) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.modelManager = modelManager
     self.server = server
@@ -110,7 +110,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
   /// Called from variant rows when a user starts/cancels a download.
   /// Keeps the submenu open by updating views in place and ensuring the
   /// Installed section reflects membership for downloading items.
-  private func didChangeDownloadStatus(for model: ModelCatalogEntry) {
+  private func didChangeDownloadStatus(for model: CatalogEntry) {
     guard let menu = statusItem.menu else { return }
 
     switch modelManager.getModelStatus(model) {

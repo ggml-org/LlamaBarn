@@ -7,8 +7,8 @@ final class CatalogModelMenuItemView: MenuRowView {
   // Negative lowers the glyph relative to the text baseline.
   private static let iconBaselineYOffset: CGFloat = -2
 
-  private let model: ModelCatalogEntry
-  private unowned let modelManager: ModelManager
+  private let model: CatalogEntry
+  private unowned let modelManager: Manager
   private let membershipChanged: () -> Void
 
   private let statusIndicator = NSImageView()
@@ -21,7 +21,7 @@ final class CatalogModelMenuItemView: MenuRowView {
   // Hover handling provided by MenuRowView
 
   init(
-    model: ModelCatalogEntry, modelManager: ModelManager, membershipChanged: @escaping () -> Void
+    model: CatalogEntry, modelManager: Manager, membershipChanged: @escaping () -> Void
   ) {
     self.model = model
     self.modelManager = modelManager

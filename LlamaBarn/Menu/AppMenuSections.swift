@@ -53,14 +53,14 @@ final class AppMenuInstalledSection {
     static let placeholderTitle = "No installed models"
   }
 
-  private let modelManager: ModelManager
+  private let modelManager: Manager
   private let server: LlamaServer
-  private let onMembershipChanged: (ModelCatalogEntry) -> Void
+  private let onMembershipChanged: (CatalogEntry) -> Void
 
   init(
-    modelManager: ModelManager,
+    modelManager: Manager,
     server: LlamaServer,
-    onMembershipChanged: @escaping (ModelCatalogEntry) -> Void
+    onMembershipChanged: @escaping (CatalogEntry) -> Void
   ) {
     self.modelManager = modelManager
     self.server = server
@@ -72,12 +72,12 @@ final class AppMenuInstalledSection {
     header.representedObject = Constants.headerIdentifier
     menu.addItem(header)
 
-    let downloadingModels = ModelCatalog.allEntries().filter { entry in
+    let downloadingModels = Catalog.allEntries().filter { entry in
       if case .downloading = modelManager.getModelStatus(entry) { return true }
       return false
     }
     let installed = (modelManager.downloadedModels + downloadingModels)
-      .sorted(by: ModelCatalogEntry.displayOrder(_:_:))
+      .sorted(by: CatalogEntry.displayOrder(_:_:))
 
     guard !installed.isEmpty else {
       let emptyItem = NSMenuItem()
@@ -92,7 +92,7 @@ final class AppMenuInstalledSection {
     }
   }
 
-  func ensureRow(for model: ModelCatalogEntry, in menu: NSMenu) {
+  func ensureRow(for model: CatalogEntry, in menu: NSMenu) {
     guard var range = installedSectionRange(in: menu) else { return }
     let alreadyPresent = menu.items[range].contains {
       ($0.representedObject as? NSString) == (model.id as NSString)
@@ -110,7 +110,7 @@ final class AppMenuInstalledSection {
     menu.insertItem(item, at: range.endIndex)
   }
 
-  func removeRow(for model: ModelCatalogEntry, in menu: NSMenu) {
+  func removeRow(for model: CatalogEntry, in menu: NSMenu) {
     guard let range = installedSectionRange(in: menu) else { return }
     guard
       let absoluteIdx = menu.items[range].firstIndex(where: {
@@ -133,10 +133,10 @@ final class AppMenuInstalledSection {
 
   func pruneRows(in menu: NSMenu) {
     guard let range = installedSectionRange(in: menu) else { return }
-    let staleModels: [ModelCatalogEntry] = menu.items[range].compactMap { item in
+    let staleModels: [CatalogEntry] = menu.items[range].compactMap { item in
       guard
         let id = item.representedObject as? NSString,
-        let entry = ModelCatalog.entry(forId: id as String)
+        let entry = Catalog.entry(forId: id as String)
       else { return nil }
       if case .available = modelManager.getModelStatus(entry) { return entry }
       return nil
@@ -153,7 +153,7 @@ final class AppMenuInstalledSection {
     }
   }
 
-  private func makeInstalledRow(for model: ModelCatalogEntry) -> NSMenuItem {
+  private func makeInstalledRow(for model: CatalogEntry) -> NSMenuItem {
     let view = InstalledModelMenuItemView(
       model: model,
       server: server,
@@ -191,12 +191,12 @@ final class AppMenuInstalledSection {
 }
 
 final class AppMenuCatalogSection {
-  private let modelManager: ModelManager
-  private let onDownloadStatusChange: (ModelCatalogEntry) -> Void
+  private let modelManager: Manager
+  private let onDownloadStatusChange: (CatalogEntry) -> Void
 
   init(
-    modelManager: ModelManager,
-    onDownloadStatusChange: @escaping (ModelCatalogEntry) -> Void
+    modelManager: Manager,
+    onDownloadStatusChange: @escaping (CatalogEntry) -> Void
   ) {
     self.modelManager = modelManager
     self.onDownloadStatusChange = onDownloadStatusChange
@@ -204,7 +204,7 @@ final class AppMenuCatalogSection {
 
   func add(to menu: NSMenu) {
     let showQuantized = UserSettings.showQuantizedVariants
-    let families = ModelCatalog.families
+    let families = Catalog.families
 
     guard !families.isEmpty else { return }
 
@@ -212,7 +212,7 @@ final class AppMenuCatalogSection {
     menu.addItem(makeSectionHeaderItem("Available"))
 
     for family in families.sorted(by: { $0.name < $1.name }) {
-      var models = [ModelCatalogEntry]()
+      var models = [CatalogEntry]()
       for model in family.models {
         let builds = showQuantized ? ([model.build] + model.quantizedBuilds) : [model.build]
         for build in builds {
@@ -242,7 +242,7 @@ final class AppMenuCatalogSection {
       submenu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
       submenu.addItem(.separator())
 
-      let sortedModels = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
+      let sortedModels = models.sorted(by: CatalogEntry.displayOrder(_:_:))
       for model in sortedModels {
         let view = CatalogModelMenuItemView(model: model, modelManager: modelManager) {
           [weak self] in

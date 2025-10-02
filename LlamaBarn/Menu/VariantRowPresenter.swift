@@ -23,10 +23,10 @@ enum VariantRowPresenter {
     let compatible: Bool
   }
 
-  static func isActionable(model: ModelCatalogEntry, status: ModelStatus) -> Bool {
+  static func isActionable(model: CatalogEntry, status: ModelStatus) -> Bool {
     switch status {
     case .available:
-      return ModelCatalog.isModelCompatible(model)
+      return Catalog.isModelCompatible(model)
     case .downloading:
       return true
     case .downloaded:
@@ -34,8 +34,8 @@ enum VariantRowPresenter {
     }
   }
 
-  static func makeDisplay(for model: ModelCatalogEntry, status: ModelStatus) -> DisplayData {
-    let compatible = ModelCatalog.isModelCompatible(model)
+  static func makeDisplay(for model: CatalogEntry, status: ModelStatus) -> DisplayData {
+    let compatible = Catalog.isModelCompatible(model)
     let actionable = isActionable(model: model, status: status)
 
     let isDownloaded = (status == .downloaded)
@@ -50,7 +50,7 @@ enum VariantRowPresenter {
       return result
     }()
 
-    let recommendedContext = ModelCatalog.recommendedContextLength(for: model)
+    let recommendedContext = Catalog.recommendedContextLength(for: model)
 
     let contextString: String
 
@@ -70,7 +70,7 @@ enum VariantRowPresenter {
     let infoTooltip: String? =
       compatible
       ? nil
-      : (ModelCatalog.incompatibilitySummary(model) ?? "not compatible")
+      : (Catalog.incompatibilitySummary(model) ?? "not compatible")
 
     let (showsWarning, warningTooltip) = makeMaxContextWarning(for: model, compatible: compatible)
 
@@ -110,15 +110,15 @@ enum VariantRowPresenter {
   }
 
   private static func makeMaxContextWarning(
-    for model: ModelCatalogEntry,
+    for model: CatalogEntry,
     compatible: Bool
   ) -> (Bool, String?) {
     guard compatible, model.contextLength > 0 else { return (false, nil) }
     let maxTokens = Double(model.contextLength)
-    if maxTokens <= ModelCatalog.compatibilityContextLengthTokens {
+    if maxTokens <= Catalog.compatibilityContextLengthTokens {
       return (false, nil)
     }
-    let stillFits = ModelCatalog.isModelCompatible(
+    let stillFits = Catalog.isModelCompatible(
       model,
       contextLengthTokens: maxTokens
     )

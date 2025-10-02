@@ -41,7 +41,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     // Initialize the shared model library manager to scan for existing models
-    _ = ModelManager.shared
+    _ = Manager.shared
 
     // Create the AppKit-based status bar menu (installed models only for now)
     menuController = AppMenuController()

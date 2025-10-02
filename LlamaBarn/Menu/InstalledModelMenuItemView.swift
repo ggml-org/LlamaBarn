@@ -7,10 +7,10 @@ import Foundation
 /// - Loading: circular icon (active)
 /// - Running: circular icon (active)
 final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate {
-  private let model: ModelCatalogEntry
+  private let model: CatalogEntry
   private unowned let server: LlamaServer
-  private unowned let modelManager: ModelManager
-  private let membershipChanged: (ModelCatalogEntry) -> Void
+  private unowned let modelManager: Manager
+  private let membershipChanged: (CatalogEntry) -> Void
 
   private static let iconBaselineYOffset: CGFloat = -2
 
@@ -27,8 +27,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
   private var deleteClickRecognizer: NSClickGestureRecognizer?
 
   init(
-    model: ModelCatalogEntry, server: LlamaServer, modelManager: ModelManager,
-    membershipChanged: @escaping (ModelCatalogEntry) -> Void
+    model: CatalogEntry, server: LlamaServer, modelManager: Manager,
+    membershipChanged: @escaping (CatalogEntry) -> Void
   ) {
     self.model = model
     self.server = server
@@ -252,7 +252,7 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
       ))
 
     // Add context if available
-    if let recommendedContext = ModelCatalog.recommendedContextLength(for: model) {
+    if let recommendedContext = Catalog.recommendedContextLength(for: model) {
       result.append(makeSeparator())
       result.append(
         IconLabelFormatter.make(
