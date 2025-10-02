@@ -12,8 +12,6 @@ final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegat
   private unowned let modelManager: Manager
   private let membershipChanged: (CatalogEntry) -> Void
 
-  private static let iconBaselineYOffset: CGFloat = -2
-
   // Subviews
   private let circleIcon = CircularIconView()
   private let modelNameLabel = NSTextField(labelWithString: "")
@@ -53,9 +51,12 @@ final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegat
     modelNameLabel.lineBreakMode = .byTruncatingTail
     modelNameLabel.translatesAutoresizingMaskIntoConstraints = false
 
+    // Configure metadata label (second line showing size, context, memory)
+    // Contains all metadata fields in a single attributed string (e.g., "📦 2.53 GB · 🧠 84k")
     metadataLabel.font = Typography.secondary
     metadataLabel.textColor = .secondaryLabelColor
     metadataLabel.lineBreakMode = .byTruncatingTail
+    metadataLabel.usesSingleLineMode = true
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
@@ -225,8 +226,7 @@ final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegat
       metadataLabel.attributedStringValue = MetadataLabel.make(
         icon: MetadataLabel.sizeSymbol,
         text: "\(completedSizeText) / \(totalSizeText)",
-        color: .secondaryLabelColor,
-        baselineOffset: Self.iconBaselineYOffset
+        color: .secondaryLabelColor
       )
 
     case .downloaded, .available:
@@ -247,8 +247,7 @@ final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegat
       MetadataLabel.make(
         icon: MetadataLabel.sizeSymbol,
         text: model.totalSize,
-        color: .secondaryLabelColor,
-        baselineOffset: Self.iconBaselineYOffset
+        color: .secondaryLabelColor
       ))
 
     // Add context if available
@@ -258,8 +257,7 @@ final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegat
         MetadataLabel.make(
           icon: MetadataLabel.contextSymbol,
           text: TokenFormatters.shortTokens(recommendedContext),
-          color: .secondaryLabelColor,
-          baselineOffset: Self.iconBaselineYOffset
+          color: .secondaryLabelColor
         ))
     }
 
@@ -279,8 +277,7 @@ final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegat
           MetadataLabel.make(
             icon: MetadataLabel.memorySymbol,
             text: memoryText,
-            color: .secondaryLabelColor,
-            baselineOffset: Self.iconBaselineYOffset
+            color: .secondaryLabelColor
           ))
       }
     }

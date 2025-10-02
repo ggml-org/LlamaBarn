@@ -30,18 +30,11 @@ enum MetadataLabel {
 
   static func makeIconOnly(
     icon: NSImage?,
-    color: NSColor,
-    baselineOffset: CGFloat = -2
+    color: NSColor
   ) -> NSAttributedString {
     guard let icon else { return NSAttributedString() }
     let attachment = NSTextAttachment()
     attachment.image = icon
-    attachment.bounds = CGRect(
-      x: 0,
-      y: baselineOffset,
-      width: icon.size.width,
-      height: icon.size.height
-    )
     let composed = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment)
     )
@@ -57,8 +50,7 @@ enum MetadataLabel {
     icon: NSImage?,
     text: String,
     color: NSColor,
-    font: NSFont = Typography.secondary,
-    baselineOffset: CGFloat = -2
+    font: NSFont = Typography.secondary
   ) -> NSAttributedString {
     let attributes: [NSAttributedString.Key: Any] = [
       .font: font,
@@ -71,12 +63,6 @@ enum MetadataLabel {
 
     let attachment = NSTextAttachment()
     attachment.image = icon
-    attachment.bounds = CGRect(
-      x: 0,
-      y: baselineOffset,
-      width: icon.size.width,
-      height: icon.size.height
-    )
 
     let composed = NSMutableAttributedString(
       attributedString: NSAttributedString(attachment: attachment)
@@ -129,7 +115,4 @@ enum MetadataIcons {
     image.isTemplate = true
     return image
   }()
-
-  static let checkBaselineOffset: CGFloat = -2
-  static let warningBaselineOffset: CGFloat = -2
 }

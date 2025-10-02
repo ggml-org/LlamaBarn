@@ -3,10 +3,6 @@ import Foundation
 
 /// Interactive menu item for a downloadable model build inside a family submenu.
 final class CatalogModelMenuItemView: MenuItemView {
-  // Central tweak for inline SF Symbol vertical alignment beside secondary text.
-  // Negative lowers the glyph relative to the text baseline.
-  private static let iconBaselineYOffset: CGFloat = -2
-
   private let model: CatalogEntry
   private unowned let modelManager: Manager
   private let membershipChanged: () -> Void
@@ -51,9 +47,12 @@ final class CatalogModelMenuItemView: MenuItemView {
     labelField.translatesAutoresizingMaskIntoConstraints = false
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
+    // Configure metadata label (second line showing size, context, warnings)
+    // Contains all metadata fields in a single attributed string (e.g., "📦 4.28 GB · 🧠 84k")
     metadataLabel.font = Typography.secondary
     metadataLabel.textColor = .secondaryLabelColor
     metadataLabel.lineBreakMode = .byTruncatingTail
+    metadataLabel.usesSingleLineMode = true
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
@@ -196,8 +195,7 @@ final class CatalogModelMenuItemView: MenuItemView {
       MetadataLabel.make(
         icon: MetadataLabel.sizeSymbol,
         text: display.sizeText,
-        color: .secondaryLabelColor,
-        baselineOffset: Self.iconBaselineYOffset
+        color: .secondaryLabelColor
       )
     )
 
@@ -208,8 +206,7 @@ final class CatalogModelMenuItemView: MenuItemView {
         MetadataLabel.make(
           icon: MetadataLabel.contextSymbol,
           text: display.contextText,
-          color: .secondaryLabelColor,
-          baselineOffset: Self.iconBaselineYOffset
+          color: .secondaryLabelColor
         )
       )
     } else {
@@ -229,8 +226,7 @@ final class CatalogModelMenuItemView: MenuItemView {
       line.append(
         MetadataLabel.makeIconOnly(
           icon: MetadataIcons.warningSymbol,
-          color: .secondaryLabelColor,
-          baselineOffset: MetadataIcons.warningBaselineOffset
+          color: .secondaryLabelColor
         )
       )
     }

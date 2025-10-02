@@ -50,10 +50,12 @@ final class FamilyMenuItemView: MenuItemView {
     familyLabel.font = Typography.primary
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    // Configure metadata label (shows model sizes)
+    // Configure metadata label (second line showing all available model sizes)
+    // Contains all size entries in a single attributed string (e.g., "✓ 270M · 1B · ✓ 4B · 12B")
     metadataLabel.font = Typography.secondary
     metadataLabel.textColor = .secondaryLabelColor
     metadataLabel.lineBreakMode = .byTruncatingTail
+    metadataLabel.usesSingleLineMode = true
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     // Configure chevron indicator
@@ -159,8 +161,7 @@ final class FamilyMenuItemView: MenuItemView {
       result.append(
         MetadataLabel.makeIconOnly(
           icon: MetadataIcons.checkSymbol,
-          color: .llamaGreen,
-          baselineOffset: MetadataIcons.checkBaselineOffset
+          color: .llamaGreen
         )
       )
       result.append(NSAttributedString(string: " "))
