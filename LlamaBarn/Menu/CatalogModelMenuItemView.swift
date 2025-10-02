@@ -191,8 +191,8 @@ final class CatalogModelMenuItemView: MenuRowView {
     let line = NSMutableAttributedString()
 
     line.append(
-      IconLabelFormatter.make(
-        icon: IconLabelFormatter.sizeSymbol,
+      MetadataLabel.make(
+        icon: MetadataLabel.sizeSymbol,
         text: display.sizeText,
         color: display.infoColor,
         baselineOffset: Self.iconBaselineYOffset
@@ -203,8 +203,8 @@ final class CatalogModelMenuItemView: MenuRowView {
 
     if display.compatible {
       line.append(
-        IconLabelFormatter.make(
-          icon: IconLabelFormatter.contextSymbol,
+        MetadataLabel.make(
+          icon: MetadataLabel.contextSymbol,
           text: display.contextText,
           color: display.infoColor,
           baselineOffset: Self.iconBaselineYOffset
@@ -225,7 +225,7 @@ final class CatalogModelMenuItemView: MenuRowView {
     if display.showsWarning {
       line.append(MetadataSeparator.make(color: display.infoColor))
       line.append(
-        IconLabelFormatter.makeIconOnly(
+        MetadataLabel.makeIconOnly(
           icon: MetadataIcons.warningSymbol,
           color: display.infoColor,
           baselineOffset: MetadataIcons.warningBaselineOffset

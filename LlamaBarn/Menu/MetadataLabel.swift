@@ -1,6 +1,6 @@
 import AppKit
 
-enum IconLabelFormatter {
+enum MetadataLabel {
   static let sizeSymbol: NSImage? = {
     guard
       let image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)?

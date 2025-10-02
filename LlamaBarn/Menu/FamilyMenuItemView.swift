@@ -121,7 +121,7 @@ final class FamilyMenuItemView: MenuRowView {
 
     if downloaded {
       result.append(
-        IconLabelFormatter.makeIconOnly(
+        MetadataLabel.makeIconOnly(
           icon: MetadataIcons.checkSymbol,
           color: .llamaGreen,
           baselineOffset: MetadataIcons.checkBaselineOffset

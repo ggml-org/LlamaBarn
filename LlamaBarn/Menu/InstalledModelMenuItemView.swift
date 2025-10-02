@@ -222,8 +222,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
       let totalBytes = progress.totalUnitCount > 0 ? progress.totalUnitCount : model.fileSize
       let totalSizeText = ByteFormatters.gbTwoDecimals(totalBytes)
 
-      metadataLabel.attributedStringValue = IconLabelFormatter.make(
-        icon: IconLabelFormatter.sizeSymbol,
+      metadataLabel.attributedStringValue = MetadataLabel.make(
+        icon: MetadataLabel.sizeSymbol,
         text: "\(completedSizeText) / \(totalSizeText)",
         color: .secondaryLabelColor,
         baselineOffset: Self.iconBaselineYOffset
@@ -244,8 +244,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
 
     // Always show size
     result.append(
-      IconLabelFormatter.make(
-        icon: IconLabelFormatter.sizeSymbol,
+      MetadataLabel.make(
+        icon: MetadataLabel.sizeSymbol,
         text: model.totalSize,
         color: .secondaryLabelColor,
         baselineOffset: Self.iconBaselineYOffset
@@ -255,8 +255,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
     if let recommendedContext = Catalog.recommendedContextLength(for: model) {
       result.append(makeSeparator())
       result.append(
-        IconLabelFormatter.make(
-          icon: IconLabelFormatter.contextSymbol,
+        MetadataLabel.make(
+          icon: MetadataLabel.contextSymbol,
           text: TokenFormatters.shortTokens(recommendedContext),
           color: .secondaryLabelColor,
           baselineOffset: Self.iconBaselineYOffset
@@ -276,8 +276,8 @@ final class InstalledModelMenuItemView: MenuRowView, NSGestureRecognizerDelegate
         }
         result.append(makeSeparator())
         result.append(
-          IconLabelFormatter.make(
-            icon: IconLabelFormatter.memorySymbol,
+          MetadataLabel.make(
+            icon: MetadataLabel.memorySymbol,
             text: memoryText,
             color: .secondaryLabelColor,
             baselineOffset: Self.iconBaselineYOffset
