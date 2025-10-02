@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Displays a model family with variant badges summarizing status.
+/// Interactive row that triggers a submenu for a model family, showing variant badges with download/compatibility status.
 final class FamilyMenuItemView: MenuRowView {
   private let family: String
   private let models: [CatalogEntry]
@@ -11,10 +11,8 @@ final class FamilyMenuItemView: MenuRowView {
   private let familyLabel = NSTextField(labelWithString: "")
   private let metadataLabel = NSTextField(labelWithString: "")
   private let chevron = NSImageView()
-  // Background is provided by MenuRowView
-  // No stateful map needed; we rebuild badges each refresh for clarity.
-
-  // Hover handling provided by MenuRowView
+  // Background and hover handling provided by MenuRowView.
+  // Badges are rebuilt on each refresh rather than tracked statefully for simplicity.
 
   init(family: String, models: [CatalogEntry], modelManager: Manager) {
     self.family = family
@@ -34,11 +32,10 @@ final class FamilyMenuItemView: MenuRowView {
     wantsLayer = true
     iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.setImage(NSImage(named: models.first?.icon ?? ""))
-    // Family rows never become "active" blue; keep inactive style always.
+    // Family rows trigger submenus rather than actions, so never show active state.
     iconView.isActive = false
 
     familyLabel.stringValue = family
-    // Match primary row font size used elsewhere (Installed models, server status, catalog entries)
     familyLabel.font = Typography.primary
     familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -48,30 +45,28 @@ final class FamilyMenuItemView: MenuRowView {
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
-    // Match trailing indicator sizing (16x16 w/ pointSize 14) used in InstalledModelMenuItemView for alignment
+    // Match InstalledModelMenuItemView trailing indicator sizing for alignment.
     chevron.symbolConfiguration = .init(pointSize: 14, weight: .regular)
     chevron.contentTintColor = .secondaryLabelColor
     chevron.translatesAutoresizingMaskIntoConstraints = false
 
     let textColumn = NSStackView(views: [familyLabel, metadataLabel])
     textColumn.orientation = .vertical
-    // Use same vertical spacing as other two-line rows for visual consistency
     textColumn.spacing = 2
     textColumn.alignment = .leading
     textColumn.translatesAutoresizingMaskIntoConstraints = false
 
-    // Nest icon + text column so we can align icon with first line (family label) instead of vertical center.
+    // Center icon vertically against two-line text to match InstalledModelMenuItemView layout.
     let leadingStack = NSStackView(views: [iconView, textColumn])
     leadingStack.orientation = .horizontal
     leadingStack.spacing = 6
-    // Match InstalledModelMenuItemView: vertically center circular badge relative to two-line text.
     leadingStack.alignment = .centerY
     leadingStack.translatesAutoresizingMaskIntoConstraints = false
 
     let hStack = NSStackView(views: [leadingStack, NSView(), chevron])
     hStack.orientation = .horizontal
     hStack.spacing = 6
-    hStack.alignment = .centerY  // overall row still vertically centered in its container
+    hStack.alignment = .centerY
     hStack.translatesAutoresizingMaskIntoConstraints = false
 
     contentView.addSubview(hStack)
@@ -87,7 +82,6 @@ final class FamilyMenuItemView: MenuRowView {
       hStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
   }
-  // No hover tint change for the header icon; keep consistent.
 
   func refresh() {
     metadataLabel.attributedStringValue = makeMetadataLine()
@@ -96,6 +90,7 @@ final class FamilyMenuItemView: MenuRowView {
 
   private func makeMetadataLine() -> NSAttributedString {
     let sorted = models.sorted(by: CatalogEntry.displayOrder(_:_:))
+    // Deduplicate variants since multiple builds can share the same variant name.
     var used: Set<String> = []
     let line = NSMutableAttributedString()
 
@@ -122,8 +117,9 @@ final class FamilyMenuItemView: MenuRowView {
     downloaded: Bool,
     color: NSColor
   ) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+
     if downloaded {
-      let result = NSMutableAttributedString()
       result.append(
         IconLabelFormatter.makeIconOnly(
           icon: MetadataIcons.checkSymbol,
@@ -131,24 +127,19 @@ final class FamilyMenuItemView: MenuRowView {
           baselineOffset: MetadataIcons.checkBaselineOffset
         )
       )
-      result.append(
-        NSAttributedString(
-          string: " \(text)",
-          attributes: [
-            .font: Typography.secondary,
-            .foregroundColor: color,
-          ]
-        )
-      )
-      return result
+      result.append(NSAttributedString(string: " "))
     }
 
-    return NSAttributedString(
-      string: text,
-      attributes: [
-        .font: Typography.secondary,
-        .foregroundColor: color,
-      ]
+    result.append(
+      NSAttributedString(
+        string: text,
+        attributes: [
+          .font: Typography.secondary,
+          .foregroundColor: color,
+        ]
+      )
     )
+
+    return result
   }
 }
