@@ -94,28 +94,24 @@ final class FamilyHeaderMenuItemView: MenuRowView {
     needsDisplay = true
   }
 
-  private func groupKey(for model: ModelCatalogEntry) -> String { model.variant }
-
   private func makeMetadataLine() -> NSAttributedString {
     let sorted = models.sorted(by: ModelCatalogEntry.displayOrder(_:_:))
     var used: Set<String> = []
     let line = NSMutableAttributedString()
 
     for model in sorted {
-      let key = groupKey(for: model)
-      if used.contains(key) { continue }
-      used.insert(key)
+      if used.contains(model.variant) { continue }
+      used.insert(model.variant)
 
       let status = modelManager.getModelStatus(model)
       let downloaded = (status == .downloaded)
       let compatible = ModelCatalog.isModelCompatible(model)
-      let color = ModelVariantPalette.familyMetadataColor(
-        downloaded: downloaded, compatible: compatible)
+      let color: NSColor = (downloaded || compatible) ? .labelColor : .secondaryLabelColor
       if line.length > 0 {
         line.append(MetadataSeparator.make(color: color))
       }
 
-      line.append(attributedVariantLabel(text: key, downloaded: downloaded, color: color))
+      line.append(attributedVariantLabel(text: model.variant, downloaded: downloaded, color: color))
     }
 
     return line
