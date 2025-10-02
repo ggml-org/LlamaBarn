@@ -1,6 +1,6 @@
 import AppKit
 
-enum ModelRowPresenter {
+enum CatalogModelPresenter {
   struct DisplayData {
     enum StatusIcon {
       case downloaded
@@ -10,7 +10,6 @@ enum ModelRowPresenter {
 
     let title: String
     let titleColor: NSColor
-    let infoColor: NSColor
     let sizeText: String
     let contextText: String
     let infoTooltip: String?
@@ -40,7 +39,6 @@ enum ModelRowPresenter {
 
     let isDownloaded = (status == .downloaded)
     let titleColor: NSColor = (isDownloaded || compatible) ? .labelColor : .tertiaryLabelColor
-    let infoColor: NSColor = compatible ? .secondaryLabelColor : .tertiaryLabelColor
 
     let title: String = {
       var result = model.displayName
@@ -95,7 +93,6 @@ enum ModelRowPresenter {
     return DisplayData(
       title: title,
       titleColor: titleColor,
-      infoColor: infoColor,
       sizeText: model.totalSize,
       contextText: contextString,
       infoTooltip: infoTooltip,

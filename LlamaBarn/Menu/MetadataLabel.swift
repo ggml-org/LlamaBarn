@@ -94,7 +94,7 @@ enum MetadataLabel {
 enum MetadataSeparator {
   static func make(
     font: NSFont = Typography.secondary,
-    color: NSColor = .secondaryLabelColor
+    color: NSColor = .tertiaryLabelColor
   ) -> NSAttributedString {
     NSAttributedString(
       string: " • ",

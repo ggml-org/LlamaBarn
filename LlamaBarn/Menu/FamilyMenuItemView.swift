@@ -103,7 +103,7 @@ final class FamilyMenuItemView: MenuItemView {
       let compatible = Catalog.isModelCompatible(model)
       let color: NSColor = (downloaded || compatible) ? .labelColor : .secondaryLabelColor
       if line.length > 0 {
-        line.append(MetadataSeparator.make(color: color))
+        line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
       }
 
       line.append(attributedSizeLabel(text: model.size, downloaded: downloaded, color: color))

@@ -38,7 +38,7 @@ final class CatalogModelMenuItemView: MenuItemView {
 
   // Only allow hover highlight for actionable rows (available/compatible or downloading).
   override var hoverHighlightEnabled: Bool {
-    ModelRowPresenter.isActionable(model: model, status: modelManager.getModelStatus(model))
+    CatalogModelPresenter.isActionable(model: model, status: modelManager.getModelStatus(model))
   }
 
   private func setup() {
@@ -149,7 +149,7 @@ final class CatalogModelMenuItemView: MenuItemView {
 
   func refresh() {
     let status = modelManager.getModelStatus(model)
-    let display = ModelRowPresenter.makeDisplay(for: model, status: status)
+    let display = CatalogModelPresenter.makeDisplay(for: model, status: status)
 
     labelField.stringValue = display.title
     labelField.textColor = display.titleColor
@@ -187,26 +187,28 @@ final class CatalogModelMenuItemView: MenuItemView {
     needsDisplay = true
   }
 
-  private func makeMetadataLine(from display: ModelRowPresenter.DisplayData) -> NSAttributedString {
+  private func makeMetadataLine(from display: CatalogModelPresenter.DisplayData)
+    -> NSAttributedString
+  {
     let line = NSMutableAttributedString()
 
     line.append(
       MetadataLabel.make(
         icon: MetadataLabel.sizeSymbol,
         text: display.sizeText,
-        color: display.infoColor,
+        color: .secondaryLabelColor,
         baselineOffset: Self.iconBaselineYOffset
       )
     )
 
-    line.append(MetadataSeparator.make(color: display.infoColor))
+    line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
 
     if display.compatible {
       line.append(
         MetadataLabel.make(
           icon: MetadataLabel.contextSymbol,
           text: display.contextText,
-          color: display.infoColor,
+          color: .secondaryLabelColor,
           baselineOffset: Self.iconBaselineYOffset
         )
       )
@@ -216,18 +218,18 @@ final class CatalogModelMenuItemView: MenuItemView {
           string: display.contextText,
           attributes: [
             .font: Typography.secondary,
-            .foregroundColor: display.infoColor,
+            .foregroundColor: NSColor.tertiaryLabelColor,
           ]
         )
       )
     }
 
     if display.showsWarning {
-      line.append(MetadataSeparator.make(color: display.infoColor))
+      line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
       line.append(
         MetadataLabel.makeIconOnly(
           icon: MetadataIcons.warningSymbol,
-          color: display.infoColor,
+          color: .secondaryLabelColor,
           baselineOffset: MetadataIcons.warningBaselineOffset
         )
       )
