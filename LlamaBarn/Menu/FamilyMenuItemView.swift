@@ -180,34 +180,16 @@ final class FamilyMenuItemView: MenuItemView {
       let quantLabel = shortQuantizationLabel(model.quantization)
       if !quantLabel.isEmpty {
         result.append(
-          superscriptQuantizationLabel(
-            quantLabel,
-            baseFont: baseFont,
-            color: color
+          NSAttributedString(
+            string: quantLabel,
+            attributes: [
+              .font: baseFont,
+              .foregroundColor: color,
+            ]
           ))
       }
     }
 
     return result
-  }
-
-  private func superscriptQuantizationLabel(
-    _ label: String,
-    baseFont: NSFont,
-    color: NSColor
-  ) -> NSAttributedString {
-    let superscriptFont = NSFont.systemFont(
-      ofSize: max(baseFont.pointSize - 2, 8), weight: .regular)
-    // Raise the quantization label enough to read as a variant badge without breaking line height.
-    let baselineOffset = baseFont.capHeight * 0.55
-
-    return NSAttributedString(
-      string: label,
-      attributes: [
-        .font: superscriptFont,
-        .baselineOffset: baselineOffset,
-        .foregroundColor: color,
-      ]
-    )
   }
 }
