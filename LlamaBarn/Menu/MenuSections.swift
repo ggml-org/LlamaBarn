@@ -222,9 +222,11 @@ final class CatalogSection {
 
       if models.isEmpty { continue }
 
+      let sortedModels = models.sorted(by: CatalogEntry.familyDisplayOrder(_:_:))
+
       let familyView = FamilyMenuItemView(
         family: family.name,
-        models: models,
+        sortedModels: sortedModels,
         modelManager: modelManager
       )
       let familyItem = NSMenuItem.viewItem(with: familyView)
@@ -242,7 +244,6 @@ final class CatalogSection {
       submenu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
       submenu.addItem(.separator())
 
-      let sortedModels = models.sorted(by: CatalogEntry.displayOrder(_:_:))
       for model in sortedModels {
         let view = CatalogModelMenuItemView(model: model, modelManager: modelManager) {
           [weak self] in

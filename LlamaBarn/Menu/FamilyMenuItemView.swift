@@ -9,7 +9,7 @@ final class FamilyMenuItemView: MenuItemView {
   // MARK: - Properties
 
   private let family: String
-  private let models: [CatalogEntry]
+  private let sortedModels: [CatalogEntry]
   private unowned let modelManager: Manager
 
   private let iconView = RoundedRectIconView()
@@ -19,9 +19,9 @@ final class FamilyMenuItemView: MenuItemView {
 
   // MARK: - Initialization
 
-  init(family: String, models: [CatalogEntry], modelManager: Manager) {
+  init(family: String, sortedModels: [CatalogEntry], modelManager: Manager) {
     self.family = family
-    self.models = models
+    self.sortedModels = sortedModels
     self.modelManager = modelManager
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
@@ -41,7 +41,7 @@ final class FamilyMenuItemView: MenuItemView {
 
     // Configure icon view
     iconView.translatesAutoresizingMaskIntoConstraints = false
-    iconView.setImage(NSImage(named: models.first?.icon ?? ""))
+    iconView.setImage(NSImage(named: sortedModels.first?.icon ?? ""))
     // Family rows trigger submenus rather than actions, so never show active state.
     iconView.isActive = false
 
@@ -108,17 +108,15 @@ final class FamilyMenuItemView: MenuItemView {
 
   // MARK: - Metadata Line Construction
 
-  /// Builds an attributed string showing all unique model sizes in this family,
-  /// highlighting downloaded models with underlines and compatible models with darker text.
+  /// Builds an attributed string showing each unique model build in this family,
+  /// highlighting downloads with a checkmark and compatible models with darker text.
   private func makeMetadataLine() -> NSAttributedString {
-    let sorted = models.sorted(by: CatalogEntry.displayOrder(_:_:))
-    // Deduplicate sizes since multiple builds can share the same size.
+    // Deduplicate by the underlying build so separate quantized entries remain visible once.
     var used: Set<String> = []
     let line = NSMutableAttributedString()
 
-    for model in sorted {
-      if used.contains(model.size) { continue }
-      used.insert(model.size)
+    for model in sortedModels {
+      guard used.insert(model.id).inserted else { continue }
 
       let status = modelManager.getModelStatus(model)
       let downloaded = (status == .downloaded)
@@ -126,25 +124,36 @@ final class FamilyMenuItemView: MenuItemView {
       // Use darker text for downloaded or compatible models to make them stand out.
       let color: NSColor = (downloaded || compatible) ? .labelColor : .secondaryLabelColor
 
-      // Add separator between size labels
+      // Add separator between entries
       if line.length > 0 {
         line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
       }
 
-      line.append(attributedSizeLabel(text: model.size, downloaded: downloaded, color: color))
+      line.append(attributedSizeLabel(for: model, downloaded: downloaded, color: color))
     }
 
     return line
   }
 
+  private func shortQuantizationLabel(_ quantization: String) -> String {
+    let upper = quantization.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    guard !upper.isEmpty else { return upper }
+    if let idx = upper.firstIndex(where: { $0 == "_" || $0 == "-" }) {
+      let prefix = upper[..<idx]
+      if !prefix.isEmpty { return String(prefix) }
+    }
+    return upper
+  }
+
   /// Creates an attributed string for a model size label.
   /// Downloaded models show a green checkmark to indicate they're already installed.
   private func attributedSizeLabel(
-    text: String,
+    for model: CatalogEntry,
     downloaded: Bool,
     color: NSColor
   ) -> NSAttributedString {
     let result = NSMutableAttributedString()
+    let baseFont = Typography.secondary
 
     if downloaded {
       result.append(
@@ -159,14 +168,46 @@ final class FamilyMenuItemView: MenuItemView {
 
     result.append(
       NSAttributedString(
-        string: text,
+        string: model.size,
         attributes: [
-          .font: Typography.secondary,
+          .font: baseFont,
           .foregroundColor: color,
         ]
       )
     )
 
+    if !model.isFullPrecision {
+      let quantLabel = shortQuantizationLabel(model.quantization)
+      if !quantLabel.isEmpty {
+        result.append(
+          superscriptQuantizationLabel(
+            quantLabel,
+            baseFont: baseFont,
+            color: color
+          ))
+      }
+    }
+
     return result
+  }
+
+  private func superscriptQuantizationLabel(
+    _ label: String,
+    baseFont: NSFont,
+    color: NSColor
+  ) -> NSAttributedString {
+    let superscriptFont = NSFont.systemFont(
+      ofSize: max(baseFont.pointSize - 2, 8), weight: .regular)
+    // Raise the quantization label enough to read as a variant badge without breaking line height.
+    let baselineOffset = baseFont.capHeight * 0.55
+
+    return NSAttributedString(
+      string: label,
+      attributes: [
+        .font: superscriptFont,
+        .baselineOffset: baselineOffset,
+        .foregroundColor: color,
+      ]
+    )
   }
 }
