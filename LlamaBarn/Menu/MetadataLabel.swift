@@ -97,7 +97,7 @@ enum MetadataSeparator {
     color: NSColor = .secondaryLabelColor
   ) -> NSAttributedString {
     NSAttributedString(
-      string: "  •  ",
+      string: " • ",
       attributes: [
         .font: font,
         .foregroundColor: color,
