@@ -4,7 +4,7 @@ import Foundation
 struct CatalogEntry: Identifiable, Codable {
   let id: String  // Unique identifier for the model
   let family: String  // Model family name (e.g., "Qwen 3", "Gemma 3n")
-  let variant: String  // Size/variant identifier (e.g., "8B", "E4B")
+  let size: String  // Model size (e.g., "8B", "E4B")
   let releaseDate: Date  // Model release date
   let contextLength: Int  // Maximum context length in tokens
   let fileSize: Int64  // File size in bytes for progress tracking and display
@@ -23,7 +23,7 @@ struct CatalogEntry: Identifiable, Codable {
   init(
     id: String,
     family: String,
-    variant: String,
+    size: String,
     releaseDate: Date,
     contextLength: Int,
     fileSize: Int64,
@@ -37,7 +37,7 @@ struct CatalogEntry: Identifiable, Codable {
   ) {
     self.id = id
     self.family = family
-    self.variant = variant
+    self.size = size
     self.releaseDate = releaseDate
     self.contextLength = contextLength
     self.fileSize = fileSize
@@ -50,9 +50,9 @@ struct CatalogEntry: Identifiable, Codable {
     self.isFullPrecision = isFullPrecision
   }
 
-  /// Display name combining family and variant
+  /// Display name combining family and size
   var displayName: String {
-    "\(family) \(variant)"
+    "\(family) \(size)"
   }
 
   // Removed: isSlidingWindowFamily; models that should run with max context include "-c 0" in serverArgs.

@@ -203,7 +203,7 @@ final class CatalogSection {
   }
 
   func add(to menu: NSMenu) {
-    let showQuantized = UserSettings.showQuantizedVariants
+    let showQuantized = UserSettings.showQuantizedModels
     let families = Catalog.families
 
     guard !families.isEmpty else { return }

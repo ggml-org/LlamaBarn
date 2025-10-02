@@ -3,7 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
   @State private var launchAtLogin = LaunchAtLogin.isEnabled
-  @State private var showQuantizedVariants = UserSettings.showQuantizedVariants
+  @State private var showQuantizedModels = UserSettings.showQuantizedModels
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -21,12 +21,12 @@ struct SettingsView: View {
       HStack {
         Text("Show quantized models")
         Spacer()
-        Toggle("", isOn: $showQuantizedVariants)
+        Toggle("", isOn: $showQuantizedModels)
           .labelsHidden()
           .toggleStyle(SwitchToggleStyle())
           .controlSize(.mini)
-          .onChange(of: showQuantizedVariants) { _, newValue in
-            UserSettings.showQuantizedVariants = newValue
+          .onChange(of: showQuantizedModels) { _, newValue in
+            UserSettings.showQuantizedModels = newValue
           }
       }
     }

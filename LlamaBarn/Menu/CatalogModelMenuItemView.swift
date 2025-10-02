@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Menu row for a downloadable model variant inside a family submenu.
+/// Menu row for a downloadable model build inside a family submenu.
 final class CatalogModelMenuItemView: MenuRowView {
   // Central tweak for inline SF Symbol vertical alignment beside secondary text.
   // Negative lowers the glyph relative to the text baseline.
@@ -38,7 +38,7 @@ final class CatalogModelMenuItemView: MenuRowView {
 
   // Only allow hover highlight for actionable rows (available/compatible or downloading).
   override var hoverHighlightEnabled: Bool {
-    VariantRowPresenter.isActionable(model: model, status: modelManager.getModelStatus(model))
+    ModelRowPresenter.isActionable(model: model, status: modelManager.getModelStatus(model))
   }
 
   private func setup() {
@@ -149,7 +149,7 @@ final class CatalogModelMenuItemView: MenuRowView {
 
   func refresh() {
     let status = modelManager.getModelStatus(model)
-    let display = VariantRowPresenter.makeDisplay(for: model, status: status)
+    let display = ModelRowPresenter.makeDisplay(for: model, status: status)
 
     labelField.stringValue = display.title
     labelField.textColor = display.titleColor
@@ -187,8 +187,7 @@ final class CatalogModelMenuItemView: MenuRowView {
     needsDisplay = true
   }
 
-  private func makeMetadataLine(from display: VariantRowPresenter.DisplayData) -> NSAttributedString
-  {
+  private func makeMetadataLine(from display: ModelRowPresenter.DisplayData) -> NSAttributedString {
     let line = NSMutableAttributedString()
 
     line.append(

@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Interactive row that triggers a submenu for a model family, showing variant badges with download/compatibility status.
+/// Interactive row that triggers a submenu for a model family, showing model size indicators with download/compatibility status.
 final class FamilyMenuItemView: MenuRowView {
   private let family: String
   private let models: [CatalogEntry]
@@ -12,7 +12,7 @@ final class FamilyMenuItemView: MenuRowView {
   private let metadataLabel = NSTextField(labelWithString: "")
   private let chevron = NSImageView()
   // Background and hover handling provided by MenuRowView.
-  // Badges are rebuilt on each refresh rather than tracked statefully for simplicity.
+  // Size indicators are rebuilt on each refresh rather than tracked statefully for simplicity.
 
   init(family: String, models: [CatalogEntry], modelManager: Manager) {
     self.family = family
@@ -90,13 +90,13 @@ final class FamilyMenuItemView: MenuRowView {
 
   private func makeMetadataLine() -> NSAttributedString {
     let sorted = models.sorted(by: CatalogEntry.displayOrder(_:_:))
-    // Deduplicate variants since multiple builds can share the same variant name.
+    // Deduplicate sizes since multiple builds can share the same size.
     var used: Set<String> = []
     let line = NSMutableAttributedString()
 
     for model in sorted {
-      if used.contains(model.variant) { continue }
-      used.insert(model.variant)
+      if used.contains(model.size) { continue }
+      used.insert(model.size)
 
       let status = modelManager.getModelStatus(model)
       let downloaded = (status == .downloaded)
@@ -106,13 +106,13 @@ final class FamilyMenuItemView: MenuRowView {
         line.append(MetadataSeparator.make(color: color))
       }
 
-      line.append(attributedVariantLabel(text: model.variant, downloaded: downloaded, color: color))
+      line.append(attributedSizeLabel(text: model.size, downloaded: downloaded, color: color))
     }
 
     return line
   }
 
-  private func attributedVariantLabel(
+  private func attributedSizeLabel(
     text: String,
     downloaded: Bool,
     color: NSColor

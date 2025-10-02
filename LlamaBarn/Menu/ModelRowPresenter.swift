@@ -1,6 +1,6 @@
 import AppKit
 
-enum VariantRowPresenter {
+enum ModelRowPresenter {
   struct DisplayData {
     enum StatusIcon {
       case downloaded

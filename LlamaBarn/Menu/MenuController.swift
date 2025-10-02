@@ -107,7 +107,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
   // MARK: - Live updates without closing submenus
 
-  /// Called from variant rows when a user starts/cancels a download.
+  /// Called from model rows when a user starts/cancels a download.
   /// Keeps the submenu open by updating views in place and ensuring the
   /// Installed section reflects membership for downloading items.
   private func didChangeDownloadStatus(for model: CatalogEntry) {

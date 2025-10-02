@@ -44,7 +44,7 @@ enum Catalog {
         id: id
           ?? Catalog.makeId(family: family.name, modelLabel: model.label, build: self),
         family: family.name,
-        variant: model.label,
+        size: model.label,
         releaseDate: model.releaseDate,
         contextLength: model.contextLength,
         fileSize: fileSize,
