@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 
 /// Shared helpers that build individual sections of the status bar menu.
-/// Breaks the large MenuController into focused collaborators so each
+/// Breaks the large Controller into focused collaborators so each
 /// section owns its layout and mutation logic.
 final class MenuHeaderSection {
   private let server: LlamaServer
@@ -120,7 +120,7 @@ final class InstalledSection {
 
     menu.removeItem(at: absoluteIdx)
     let remainingItems = menu.items[installedSectionRange(in: menu) ?? range]
-    let hasRows = remainingItems.contains { $0.view is InstalledModelMenuItemView }
+    let hasRows = remainingItems.contains { $0.view is InstalledModelItemView }
     if !hasRows {
       let emptyItem = NSMenuItem()
       emptyItem.title = Constants.placeholderTitle
@@ -154,7 +154,7 @@ final class InstalledSection {
   }
 
   private func makeInstalledRow(for model: CatalogEntry) -> NSMenuItem {
-    let view = InstalledModelMenuItemView(
+    let view = InstalledModelItemView(
       model: model,
       server: server,
       modelManager: modelManager
@@ -224,7 +224,7 @@ final class CatalogSection {
 
       let sortedModels = models.sorted(by: CatalogEntry.familyDisplayOrder(_:_:))
 
-      let familyView = FamilyMenuItemView(
+      let familyView = FamilyItemView(
         family: family.name,
         sortedModels: sortedModels,
         modelManager: modelManager
@@ -245,7 +245,7 @@ final class CatalogSection {
       submenu.addItem(.separator())
 
       for model in sortedModels {
-        let view = CatalogModelMenuItemView(model: model, modelManager: modelManager) {
+        let view = CatalogModelItemView(model: model, modelManager: modelManager) {
           [weak self] in
           self?.onDownloadStatusChange(model)
         }

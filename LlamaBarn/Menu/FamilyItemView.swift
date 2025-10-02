@@ -3,9 +3,9 @@ import Foundation
 
 /// Interactive menu item that triggers a submenu for a model family, showing model size indicators with download/compatibility status.
 ///
-/// Background and hover handling provided by MenuItemView.
+/// Background and hover handling provided by ItemView.
 /// Size indicators are rebuilt on each refresh rather than tracked statefully for simplicity.
-final class FamilyMenuItemView: MenuItemView {
+final class FamilyItemView: ItemView {
   // MARK: - Properties
 
   private let family: String

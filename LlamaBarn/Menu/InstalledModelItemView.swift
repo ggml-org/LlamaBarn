@@ -6,7 +6,7 @@ import Foundation
 /// - Idle: circular icon (inactive) + label
 /// - Loading: circular icon (active)
 /// - Running: circular icon (active)
-final class InstalledModelMenuItemView: MenuItemView, NSGestureRecognizerDelegate {
+final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let model: CatalogEntry
   private unowned let server: LlamaServer
   private unowned let modelManager: Manager

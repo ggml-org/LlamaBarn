@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 /// Interactive menu item for a downloadable model build inside a family submenu.
-final class CatalogModelMenuItemView: MenuItemView {
+final class CatalogModelItemView: ItemView {
   private let model: CatalogEntry
   private unowned let modelManager: Manager
   private let membershipChanged: () -> Void

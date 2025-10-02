@@ -3,7 +3,7 @@ import Foundation
 
 /// Controls the status bar item and its AppKit menu.
 /// Breaks menu construction into section helpers so each concern stays focused.
-final class MenuController: NSObject, NSMenuDelegate {
+final class Controller: NSObject, NSMenuDelegate {
   private let statusItem: NSStatusItem
   private let modelManager: Manager
   private let server: LlamaServer
@@ -67,7 +67,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
   func menuDidClose(_ menu: NSMenu) {
     menu.items.forEach { (item: NSMenuItem) in
-      (item.view as? MenuItemView)?.setHoverHighlight(false)
+      (item.view as? ItemView)?.setHoverHighlight(false)
     }
     guard menu === statusItem.menu else { return }
     removeObservers()
@@ -75,9 +75,9 @@ final class MenuController: NSObject, NSMenuDelegate {
   }
 
   func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
-    let highlighted = item?.view as? MenuItemView
+    let highlighted = item?.view as? ItemView
     menu.items.forEach { (entry: NSMenuItem) in
-      guard let row = entry.view as? MenuItemView else { return }
+      guard let row = entry.view as? ItemView else { return }
       row.setHoverHighlight(row === highlighted)
     }
   }
@@ -189,13 +189,13 @@ final class MenuController: NSObject, NSMenuDelegate {
     headerSection.refresh()
 
     statusItem.menu?.items.forEach { menuItem in
-      if let view = menuItem.view as? InstalledModelMenuItemView { view.refresh() }
+      if let view = menuItem.view as? InstalledModelItemView { view.refresh() }
       if let submenu = menuItem.submenu {
         submenu.items.forEach { subItem in
-          if let view = subItem.view as? CatalogModelMenuItemView { view.refresh() }
+          if let view = subItem.view as? CatalogModelItemView { view.refresh() }
         }
       }
-      if let famView = menuItem.view as? FamilyMenuItemView { famView.refresh() }
+      if let famView = menuItem.view as? FamilyItemView { famView.refresh() }
     }
 
     if let menu = statusItem.menu {

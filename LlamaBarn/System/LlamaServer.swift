@@ -486,7 +486,7 @@ class LlamaServer {
     }
   }
 
-  // Removed: getLlamaCppVersion() — MenuController reads version directly.
+  // Removed: getLlamaCppVersion() — Controller reads version directly.
 
   deinit {
     stop()
