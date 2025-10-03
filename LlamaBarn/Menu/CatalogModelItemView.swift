@@ -50,13 +50,13 @@ final class CatalogModelItemView: ItemView {
     // Configure metadata label (second line showing size, context, warnings)
     // Contains all metadata fields in a single attributed string (e.g., "📦 4.28 GB · 🧠 84k")
     metadataLabel.font = Typography.secondary
-    metadataLabel.textColor = .secondaryLabelColor
+    metadataLabel.textColor = .labelColor
     metadataLabel.lineBreakMode = .byTruncatingTail
     metadataLabel.usesSingleLineMode = true
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
-    progressLabel.textColor = .secondaryLabelColor
+    progressLabel.textColor = .labelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -74,14 +74,8 @@ final class CatalogModelItemView: ItemView {
     leading.alignment = .top
     leading.spacing = 6
 
-    // Main horizontal row with flexible space and trailing visuals (progress only)
-    let trailing = NSStackView(views: [progressLabel])
-    trailing.translatesAutoresizingMaskIntoConstraints = false
-    trailing.orientation = .horizontal
-    trailing.alignment = .centerY
-    trailing.spacing = 6
-
-    let hStack = NSStackView(views: [leading, NSView(), trailing])
+    // Main horizontal row with flexible space and trailing progress label
+    let hStack = NSStackView(views: [leading, NSView(), progressLabel])
     hStack.translatesAutoresizingMaskIntoConstraints = false
     hStack.orientation = .horizontal
     hStack.spacing = 6
@@ -151,32 +145,21 @@ final class CatalogModelItemView: ItemView {
     let display = CatalogModelPresenter.makeDisplay(for: model, status: status)
 
     labelField.stringValue = display.title
-    labelField.textColor = display.titleColor
+    labelField.textColor = .labelColor
 
     metadataLabel.attributedStringValue = makeMetadataLine(from: display)
     metadataLabel.toolTip = combinedTooltip(
       info: display.infoTooltip, warning: display.warningTooltip)
 
-    switch display.status {
-    case .downloaded:
-      statusIndicator.image = NSImage(
-        systemSymbolName: "checkmark.circle", accessibilityDescription: nil)
-      statusIndicator.contentTintColor = .llamaGreen
-    case .downloading:
-      statusIndicator.image = NSImage(
-        systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
-      statusIndicator.contentTintColor = .secondaryLabelColor
-    case .available(let compatible):
-      if compatible {
-        statusIndicator.image = NSImage(
-          systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
-        statusIndicator.contentTintColor = .secondaryLabelColor
-      } else {
-        statusIndicator.image = NSImage(
-          systemSymbolName: "nosign", accessibilityDescription: nil)
-        statusIndicator.contentTintColor = .tertiaryLabelColor
+    // Update status indicator icon
+    let symbolName =
+      switch display.status {
+      case .downloaded: "checkmark.circle"
+      case .downloading: "arrow.down.circle"
+      case .available(let compatible): compatible ? "arrow.down.circle" : "nosign"
       }
-    }
+    statusIndicator.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+    statusIndicator.contentTintColor = .labelColor
 
     progressLabel.stringValue = display.progressText ?? ""
     toolTip = display.rowTooltip
@@ -191,69 +174,25 @@ final class CatalogModelItemView: ItemView {
   {
     let line = NSMutableAttributedString()
 
-    line.append(
-      MetadataLabel.make(
-        icon: MetadataLabel.sizeSymbol,
-        text: display.sizeText,
-        color: .secondaryLabelColor
-      )
-    )
-
-    line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
-
-    line.append(
-      MetadataLabel.make(
-        icon: MetadataLabel.memorySymbol,
-        text: display.memoryText,
-        color: .secondaryLabelColor
-      )
-    )
-
-    line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
-
-    if display.compatible {
-      line.append(
-        MetadataLabel.make(
-          icon: MetadataLabel.contextSymbol,
-          text: display.contextText,
-          color: .secondaryLabelColor
-        )
-      )
-    } else {
-      line.append(
-        NSAttributedString(
-          string: display.contextText,
-          attributes: [
-            .font: Typography.secondary,
-            .foregroundColor: NSColor.tertiaryLabelColor,
-          ]
-        )
-      )
-    }
+    line.append(MetadataLabel.make(icon: MetadataLabel.sizeSymbol, text: display.sizeText))
+    line.append(MetadataLabel.makeSeparator())
+    line.append(MetadataLabel.make(icon: MetadataLabel.memorySymbol, text: display.memoryText))
+    line.append(MetadataLabel.makeSeparator())
+    line.append(MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: display.contextText))
 
     if display.showsWarning {
-      line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
-      line.append(
-        MetadataLabel.makeIconOnly(
-          icon: MetadataIcons.warningSymbol,
-          color: .secondaryLabelColor
-        )
-      )
+      line.append(MetadataLabel.makeSeparator())
+      line.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.warningSymbol))
     }
 
     return line
   }
 
   private func combinedTooltip(info: String?, warning: String?) -> String? {
-    switch (info, warning) {
-    case (nil, nil):
-      return nil
-    case (let info?, nil):
-      return info
-    case (nil, let warning?):
-      return warning
-    case (let info?, let warning?):
-      return "\(info)\n\(warning)"
-    }
+    [info, warning].compactMap { $0 }.joined(separator: "\n").nilIfEmpty
   }
+}
+
+extension String {
+  var nilIfEmpty: String? { isEmpty ? nil : self }
 }

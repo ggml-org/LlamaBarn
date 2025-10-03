@@ -37,9 +37,7 @@ enum CatalogModelPresenter {
   static func makeDisplay(for model: CatalogEntry, status: ModelStatus) -> DisplayData {
     let compatible = Catalog.isModelCompatible(model)
     let actionable = isActionable(model: model, status: status)
-
-    let isDownloaded = (status == .downloaded)
-    let titleColor: NSColor = (isDownloaded || compatible) ? .labelColor : .tertiaryLabelColor
+    let titleColor: NSColor = .labelColor
 
     let title: String = {
       var result = model.displayName

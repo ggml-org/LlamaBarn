@@ -24,7 +24,7 @@ final class SectionHeaderView: NSView {
     container.translatesAutoresizingMaskIntoConstraints = false
     label.translatesAutoresizingMaskIntoConstraints = false
     label.font = Typography.secondary
-    label.textColor = .secondaryLabelColor
+    label.textColor = .labelColor
     label.stringValue = title
     label.lineBreakMode = .byTruncatingTail
 

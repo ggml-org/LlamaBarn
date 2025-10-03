@@ -285,7 +285,7 @@ final class FooterSection {
 
     let versionLabel = NSTextField(labelWithString: versionText)
     versionLabel.font = Typography.primary
-    versionLabel.textColor = .secondaryLabelColor
+    versionLabel.textColor = .labelColor
     versionLabel.lineBreakMode = .byTruncatingMiddle
     versionLabel.translatesAutoresizingMaskIntoConstraints = false
 

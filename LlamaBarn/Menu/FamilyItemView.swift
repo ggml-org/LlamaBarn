@@ -53,7 +53,7 @@ final class FamilyItemView: ItemView {
     // Configure metadata label (second line showing all available model sizes)
     // Contains all size entries in a single attributed string (e.g., "✓ 270M · 1B · ✓ 4B · 12B")
     metadataLabel.font = Typography.secondary
-    metadataLabel.textColor = .secondaryLabelColor
+    metadataLabel.textColor = .labelColor
     metadataLabel.lineBreakMode = .byTruncatingTail
     metadataLabel.usesSingleLineMode = true
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -62,7 +62,7 @@ final class FamilyItemView: ItemView {
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
     // Match InstalledModelMenuItemView trailing indicator sizing for alignment.
     chevron.symbolConfiguration = .init(pointSize: 14, weight: .regular)
-    chevron.contentTintColor = .secondaryLabelColor
+    chevron.contentTintColor = .labelColor
     chevron.translatesAutoresizingMaskIntoConstraints = false
 
     // Build layout hierarchy: icon + text column on left, chevron on right
@@ -111,7 +111,7 @@ final class FamilyItemView: ItemView {
   // MARK: - Metadata Line Construction
 
   /// Builds an attributed string showing each unique model build in this family,
-  /// highlighting downloads with a checkmark and compatible models with darker text.
+  /// highlighting downloads with a checkmark.
   private func makeMetadataLine() -> NSAttributedString {
     // Deduplicate by the underlying build so separate quantized entries remain visible once.
     var used: Set<String> = []
@@ -122,65 +122,42 @@ final class FamilyItemView: ItemView {
 
       let status = modelManager.getModelStatus(model)
       let downloaded = (status == .downloaded)
-      let compatible = Catalog.isModelCompatible(model)
-      // Use darker text for downloaded or compatible models to make them stand out.
-      let color: NSColor = (downloaded || compatible) ? .labelColor : .secondaryLabelColor
 
       // Add separator between entries
       if line.length > 0 {
-        line.append(MetadataSeparator.make(color: .tertiaryLabelColor))
+        line.append(MetadataLabel.makeSeparator())
       }
 
-      line.append(attributedSizeLabel(for: model, downloaded: downloaded, color: color))
+      line.append(attributedSizeLabel(for: model, downloaded: downloaded))
     }
 
     return line
   }
 
   /// Creates an attributed string for a model size label.
-  /// Downloaded models show a green checkmark to indicate they're already installed.
+  /// Downloaded models show a checkmark to indicate they're already installed.
   private func attributedSizeLabel(
     for model: CatalogEntry,
-    downloaded: Bool,
-    color: NSColor
+    downloaded: Bool
   ) -> NSAttributedString {
     let result = NSMutableAttributedString()
-    let baseFont = Typography.secondary
 
+    // Add checkmark for downloaded models
     if downloaded {
-      result.append(
-        MetadataLabel.makeIconOnly(
-          icon: MetadataIcons.checkSymbol,
-          color: .llamaGreen
-        )
-      )
+      result.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.checkSymbol))
       result.append(NSAttributedString(string: " "))
     }
 
-    result.append(
-      NSAttributedString(
-        string: model.size,
-        attributes: [
-          .font: baseFont,
-          .foregroundColor: color,
-        ]
-      )
-    )
-
+    // Build size text (e.g., "27B" or "27B-Q4")
+    var sizeText = model.size
     if !model.isFullPrecision {
       let quantLabel = QuantizationFormatters.short(model.quantization)
       if !quantLabel.isEmpty {
-        result.append(
-          NSAttributedString(
-            string: "-" + quantLabel,
-            attributes: [
-              .font: baseFont,
-              .foregroundColor: color,
-            ]
-          ))
+        sizeText += "-" + quantLabel
       }
     }
 
+    result.append(NSAttributedString(string: sizeText, attributes: [.font: Typography.secondary]))
     return result
   }
 }

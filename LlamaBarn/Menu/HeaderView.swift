@@ -35,7 +35,7 @@ final class HeaderView: NSView {
     appNameLabel.stringValue = "LlamaBarn"
 
     serverStatusLabel.font = Typography.secondary
-    serverStatusLabel.textColor = .secondaryLabelColor
+    serverStatusLabel.textColor = .labelColor
     serverStatusLabel.translatesAutoresizingMaskIntoConstraints = false
     serverStatusLabel.lineBreakMode = .byTruncatingTail
     serverStatusLabel.allowsEditingTextAttributes = true
@@ -121,7 +121,7 @@ final class HeaderView: NSView {
         string: "Server not running",
         attributes: [
           .font: Typography.secondary,
-          .foregroundColor: NSColor.secondaryLabelColor,
+          .foregroundColor: NSColor.labelColor,
         ]
       )
       serverStatusLabel.toolTip = nil

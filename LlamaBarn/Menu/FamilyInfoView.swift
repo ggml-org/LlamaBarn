@@ -39,7 +39,7 @@ final class FamilyInfoView: NSView {
 
     descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
     descriptionLabel.font = Typography.secondary
-    descriptionLabel.textColor = .secondaryLabelColor
+    descriptionLabel.textColor = .labelColor
     descriptionLabel.stringValue = blurb
     descriptionLabel.lineBreakMode = .byWordWrapping
 

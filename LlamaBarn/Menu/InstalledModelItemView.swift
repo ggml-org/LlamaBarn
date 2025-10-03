@@ -54,35 +54,18 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     // Configure metadata label (second line showing size, context, memory)
     // Contains all metadata fields in a single attributed string (e.g., "📦 2.53 GB · 🧠 84k")
     metadataLabel.font = Typography.secondary
-    metadataLabel.textColor = .secondaryLabelColor
+    metadataLabel.textColor = .labelColor
     metadataLabel.lineBreakMode = .byTruncatingTail
     metadataLabel.usesSingleLineMode = true
     metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
-    progressLabel.textColor = .secondaryLabelColor
+    progressLabel.textColor = .labelColor
     progressLabel.alignment = .right
     progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    if let img = NSImage(systemSymbolName: "xmark", accessibilityDescription: "Cancel download") {
-      img.isTemplate = true
-      cancelImageView.image = img
-    }
-    cancelImageView.translatesAutoresizingMaskIntoConstraints = false
-    cancelImageView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
-    cancelImageView.imageScaling = .scaleProportionallyDown
-    cancelImageView.contentTintColor = .systemRed
-    cancelImageView.isHidden = true
-
-    deleteImageView.translatesAutoresizingMaskIntoConstraints = false
-    deleteImageView.imageScaling = .scaleProportionallyDown
-    deleteImageView.symbolConfiguration = .init(pointSize: 13, weight: .regular)
-    if let img = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete") {
-      img.isTemplate = true
-      deleteImageView.image = img
-    }
-    deleteImageView.contentTintColor = .secondaryLabelColor
-    deleteImageView.isHidden = true
+    configureImageView(cancelImageView, symbol: "xmark", pointSize: 12, color: .systemRed)
+    configureImageView(deleteImageView, symbol: "trash", pointSize: 12, color: .labelColor)
 
     // Spacer expands so trailing visuals sit flush right.
     let spacer = NSView()
@@ -207,7 +190,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     // Update icon state
     circleIcon.setLoading(isServerLoading)
     circleIcon.isActive = isRunning
-    circleIcon.imageView.contentTintColor = isRunning ? .white : .labelColor
+    circleIcon.imageView.contentTintColor = .labelColor
 
     // Build info text based on state
     switch status {
@@ -225,8 +208,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
       metadataLabel.attributedStringValue = MetadataLabel.make(
         icon: MetadataLabel.sizeSymbol,
-        text: "\(completedSizeText) / \(totalSizeText)",
-        color: .secondaryLabelColor
+        text: "\(completedSizeText) / \(totalSizeText)"
       )
 
     case .downloaded, .available:
@@ -242,58 +224,29 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private func buildInfoText(isRunning: Bool) -> NSAttributedString {
     let result = NSMutableAttributedString()
 
-    // Always show size
-    result.append(
-      MetadataLabel.make(
-        icon: MetadataLabel.sizeSymbol,
-        text: model.totalSize,
-        color: .secondaryLabelColor
-      ))
+    result.append(MetadataLabel.make(icon: MetadataLabel.sizeSymbol, text: model.totalSize))
 
-    // Add context if available
     if let recommendedContext = Catalog.recommendedContextLength(for: model) {
-      result.append(makeSeparator())
+      result.append(MetadataLabel.makeSeparator())
       result.append(
         MetadataLabel.make(
           icon: MetadataLabel.contextSymbol,
-          text: TokenFormatters.shortTokens(recommendedContext),
-          color: .secondaryLabelColor
+          text: TokenFormatters.shortTokens(recommendedContext)
         ))
     }
 
-    // Add memory usage when running
-    if isRunning {
-      let memMB = server.memoryUsageMB
-      if memMB > 0 {
-        let memoryText: String
-        if memMB >= 1024 {
-          let gb = memMB / 1024
-          memoryText = gb < 10 ? String(format: "%.1f GB", gb) : String(format: "%.0f GB", gb)
-        } else {
-          memoryText = String(format: "%.0f MB", memMB)
-        }
-        result.append(makeSeparator())
-        result.append(
-          MetadataLabel.make(
-            icon: MetadataLabel.memorySymbol,
-            text: memoryText,
-            color: .secondaryLabelColor
-          ))
-      }
+    if isRunning, let memoryText = formatMemory(server.memoryUsageMB) {
+      result.append(MetadataLabel.makeSeparator())
+      result.append(MetadataLabel.make(icon: MetadataLabel.memorySymbol, text: memoryText))
     }
 
     return result
   }
 
-  /// Create a centered dot separator for the info line.
-  private func makeSeparator() -> NSAttributedString {
-    MetadataSeparator.make()
-  }
-
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
     cancelImageView.contentTintColor = .systemRed
-    deleteImageView.contentTintColor = .secondaryLabelColor
+    deleteImageView.contentTintColor = .labelColor
   }
 
   @objc private func performDelete() {
@@ -304,14 +257,35 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   private func makeTitle() -> String {
-    var result = model.displayName
-    if !model.isFullPrecision {
-      let shortQuant = QuantizationFormatters.short(model.quantization)
-      if !shortQuant.isEmpty {
-        result += "-\(shortQuant)"
-      }
+    var title = model.displayName
+    if !model.isFullPrecision,
+      let quantLabel = QuantizationFormatters.short(model.quantization).nilIfEmpty
+    {
+      title += "-\(quantLabel)"
     }
-    return result
+    return title
   }
 
+  private func configureImageView(
+    _ imageView: NSImageView, symbol: String, pointSize: CGFloat, color: NSColor
+  ) {
+    if let img = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
+      img.isTemplate = true
+      imageView.image = img
+    }
+    imageView.translatesAutoresizingMaskIntoConstraints = false
+    imageView.symbolConfiguration = .init(pointSize: pointSize, weight: .regular)
+    imageView.imageScaling = .scaleProportionallyDown
+    imageView.contentTintColor = color
+    imageView.isHidden = true
+  }
+
+  private func formatMemory(_ memMB: Double) -> String? {
+    guard memMB > 0 else { return nil }
+    if memMB >= 1024 {
+      let gb = memMB / 1024
+      return gb < 10 ? String(format: "%.1f GB", gb) : String(format: "%.0f GB", gb)
+    }
+    return String(format: "%.0f MB", memMB)
+  }
 }
