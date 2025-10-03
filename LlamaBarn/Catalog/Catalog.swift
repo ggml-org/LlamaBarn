@@ -49,6 +49,7 @@ enum Catalog {
         contextLength: model.contextLength,
         fileSize: fileSize,
         ctxFootprint: ctxFootprint,
+        overhead: family.overhead,
         downloadUrl: downloadUrl,
         additionalParts: additionalParts,
         serverArgs: effectiveArgs,
@@ -73,6 +74,7 @@ enum Catalog {
     let series: String  // e.g. "qwen"
     let blurb: String  // short one- or two-sentence description
     let serverArgs: [String]?  // optional defaults for all models/builds
+    let overhead: Double  // overhead multiplier for file size
     let models: [Model]
 
     init(
@@ -80,12 +82,14 @@ enum Catalog {
       series: String,
       blurb: String,
       serverArgs: [String]? = nil,
+      overhead: Double = 1.05,
       models: [Model]
     ) {
       self.name = name
       self.series = series
       self.blurb = blurb
       self.serverArgs = serverArgs
+      self.overhead = overhead
       self.models = models
     }
 
@@ -177,7 +181,8 @@ enum Catalog {
     let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
     let availableMemoryMB = Double(systemMemoryMB) * memoryFraction
     let fileSizeMB = Double(model.fileSize) / 1_048_576.0
-    if fileSizeMB > availableMemoryMB { return nil }
+    let fileSizeWithOverheadMB = fileSizeMB * model.overhead
+    if fileSizeWithOverheadMB > availableMemoryMB { return nil }
 
     let effectiveDesired = desiredTokens.flatMap { $0 > 0 ? $0 : nil } ?? model.contextLength
     let desiredTokensDouble = Double(effectiveDesired)
@@ -187,7 +192,7 @@ enum Catalog {
       if ctxBytesPerToken <= 0 {
         return Double(model.contextLength)
       }
-      let remainingMB = availableMemoryMB - fileSizeMB
+      let remainingMB = availableMemoryMB - fileSizeWithOverheadMB
       if remainingMB <= 0 { return 0 }
       let remainingBytes = remainingMB * 1_048_576.0
       return remainingBytes / ctxBytesPerToken
@@ -267,10 +272,11 @@ enum Catalog {
   ) -> UInt64 {
     // Memory calculations use binary units so they line up with Activity Monitor.
     let fileSizeMB = Double(model.fileSize) / 1_048_576.0
+    let fileSizeWithOverheadMB = fileSizeMB * model.overhead
     let contextMultiplier = contextLengthTokens / 1_000.0
     let ctxBytes = Double(model.ctxFootprint) * contextMultiplier
     let ctxMB = ctxBytes / 1_048_576.0
-    let totalMB = fileSizeMB + ctxMB
+    let totalMB = fileSizeWithOverheadMB + ctxMB
     return UInt64(ceil(totalMB))
   }
 
@@ -393,6 +399,7 @@ enum CatalogFamilies {
       blurb:
         "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
       serverArgs: nil,
+      overhead: 1.3,
       models: [
         Model(
           label: "27B",
@@ -582,6 +589,7 @@ enum CatalogFamilies {
       blurb:
         "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
       serverArgs: nil,
+      overhead: 1.1,
       models: [
         Model(
           label: "30B",
@@ -626,6 +634,7 @@ enum CatalogFamilies {
       blurb:
         "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
       serverArgs: nil,
+      overhead: 1.1,
       models: [
         Model(
           label: "30B",
@@ -704,6 +713,7 @@ enum CatalogFamilies {
       blurb:
         "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
       serverArgs: nil,
+      overhead: 1.1,
       models: [
         Model(
           label: "30B",

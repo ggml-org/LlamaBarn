@@ -11,6 +11,9 @@ struct CatalogEntry: Identifiable, Codable {
   /// Estimated KV-cache footprint for a 1k-token context, in bytes.
   /// This helps us preflight memory requirements before launching llama-server.
   let ctxFootprint: Int
+  /// Overhead multiplier for the model file size (e.g., 1.3 = 30% overhead).
+  /// Applied during memory calculations to account for loading overhead.
+  let overhead: Double
   let downloadUrl: URL  // Remote download URL
   /// Optional additional model shards. When present, the first shard in `downloadUrl`
   /// should be passed to `--model` and llama-server will discover the rest in the same directory.
@@ -28,6 +31,7 @@ struct CatalogEntry: Identifiable, Codable {
     contextLength: Int,
     fileSize: Int64,
     ctxFootprint: Int,
+    overhead: Double = 1.05,
     downloadUrl: URL,
     additionalParts: [URL]? = nil,
     serverArgs: [String],
@@ -42,6 +46,7 @@ struct CatalogEntry: Identifiable, Codable {
     self.contextLength = contextLength
     self.fileSize = fileSize
     self.ctxFootprint = ctxFootprint
+    self.overhead = overhead
     self.downloadUrl = downloadUrl
     self.additionalParts = additionalParts
     self.serverArgs = serverArgs
