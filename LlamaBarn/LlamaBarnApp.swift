@@ -15,7 +15,7 @@ struct LlamaBarnApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
   private var updaterController: SPUStandardUpdaterController?
-  private let logger = Logger(subsystem: "app.llamabarn.LlamaBarn", category: "AppDelegate")
+  private let logger = Logger(subsystem: Logging.subsystem, category: "AppDelegate")
   private var menuController: Controller?
   private var updatesObserver: NSObjectProtocol?
 
