@@ -39,37 +39,26 @@ final class CatalogModelItemView: ItemView {
 
   private func setup() {
     wantsLayer = true
-    statusIndicator.translatesAutoresizingMaskIntoConstraints = false
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
     labelField.font = Typography.primary
-    labelField.lineBreakMode = .byTruncatingTail
-    labelField.translatesAutoresizingMaskIntoConstraints = false
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
     // Configure metadata label (second line showing size, context, warnings)
     // Contains all metadata fields in a single attributed string (e.g., "📦 4.28 GB · 🧠 84k")
     metadataLabel.font = Typography.secondary
-    metadataLabel.textColor = .labelColor
-    metadataLabel.lineBreakMode = .byTruncatingTail
-    metadataLabel.usesSingleLineMode = true
-    metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
-    progressLabel.textColor = .labelColor
     progressLabel.alignment = .right
-    progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
     // Two-line text column (title + metadata)
     let textColumn = NSStackView(views: [labelField, metadataLabel])
-    textColumn.translatesAutoresizingMaskIntoConstraints = false
     textColumn.orientation = .vertical
     textColumn.alignment = .leading
     textColumn.spacing = 1
 
     // Leading group aligns status icon with first line of text
     let leading = NSStackView(views: [statusIndicator, textColumn])
-    leading.translatesAutoresizingMaskIntoConstraints = false
     leading.orientation = .horizontal
     leading.alignment = .top
     leading.spacing = 6

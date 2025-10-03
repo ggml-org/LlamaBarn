@@ -48,28 +48,19 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
     modelNameLabel.stringValue = makeTitle()
     modelNameLabel.font = Typography.primary
-    modelNameLabel.lineBreakMode = .byTruncatingTail
-    modelNameLabel.translatesAutoresizingMaskIntoConstraints = false
 
     // Configure metadata label (second line showing size, context, memory)
     // Contains all metadata fields in a single attributed string (e.g., "📦 2.53 GB · 🧠 84k")
     metadataLabel.font = Typography.secondary
-    metadataLabel.textColor = .labelColor
-    metadataLabel.lineBreakMode = .byTruncatingTail
-    metadataLabel.usesSingleLineMode = true
-    metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     progressLabel.font = Typography.secondary
-    progressLabel.textColor = .labelColor
     progressLabel.alignment = .right
-    progressLabel.translatesAutoresizingMaskIntoConstraints = false
 
     configureImageView(cancelImageView, symbol: "xmark", pointSize: 12, color: .systemRed)
     configureImageView(deleteImageView, symbol: "trash", pointSize: 12, color: .labelColor)
 
     // Spacer expands so trailing visuals sit flush right.
     let spacer = NSView()
-    spacer.translatesAutoresizingMaskIntoConstraints = false
     spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
     spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
@@ -80,13 +71,11 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
     // Left: icon aligned with first text line, then two-line text column
     let nameStack = NSStackView(views: [modelNameLabel, metadataLabel])
-    nameStack.translatesAutoresizingMaskIntoConstraints = false
     nameStack.orientation = .vertical
     nameStack.spacing = 1
     nameStack.alignment = .leading
 
     let leading = NSStackView(views: [circleIcon, nameStack])
-    leading.translatesAutoresizingMaskIntoConstraints = false
     leading.orientation = .horizontal
     // Vertically center the circular icon relative to the two-line text, like Wi‑Fi menu
     leading.alignment = .centerY
@@ -97,7 +86,6 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     cancelImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
 
     let rightStack = NSStackView(views: [progressLabel, cancelImageView, deleteImageView])
-    rightStack.translatesAutoresizingMaskIntoConstraints = false
     rightStack.orientation = .horizontal
     rightStack.spacing = 6
     rightStack.alignment = .centerY
@@ -273,9 +261,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
       img.isTemplate = true
       imageView.image = img
     }
-    imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.symbolConfiguration = .init(pointSize: pointSize, weight: .regular)
-    imageView.imageScaling = .scaleProportionallyDown
     imageView.contentTintColor = color
     imageView.isHidden = true
   }

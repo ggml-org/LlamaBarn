@@ -17,7 +17,6 @@ final class CircularIconView: NSView {
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.symbolConfiguration = .init(pointSize: Metrics.smallIconSize, weight: .regular)
-    imageView.imageScaling = .scaleProportionallyDown
 
     // Configure spinner but keep it hidden until used.
     spinner.translatesAutoresizingMaskIntoConstraints = false

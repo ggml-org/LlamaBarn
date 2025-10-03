@@ -17,7 +17,6 @@ final class RoundedRectIconView: NSView {
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.symbolConfiguration = .init(pointSize: Metrics.smallIconSize, weight: .regular)
-    imageView.imageScaling = .scaleProportionallyDown
 
     addSubview(imageView)
     NSLayoutConstraint.activate([

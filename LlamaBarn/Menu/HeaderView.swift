@@ -30,14 +30,9 @@ final class HeaderView: NSView {
     backgroundView.wantsLayer = true
 
     appNameLabel.font = Typography.primary
-    appNameLabel.translatesAutoresizingMaskIntoConstraints = false
-    appNameLabel.lineBreakMode = .byTruncatingTail
     appNameLabel.stringValue = "LlamaBarn"
 
     serverStatusLabel.font = Typography.secondary
-    serverStatusLabel.textColor = .labelColor
-    serverStatusLabel.translatesAutoresizingMaskIntoConstraints = false
-    serverStatusLabel.lineBreakMode = .byTruncatingTail
     serverStatusLabel.allowsEditingTextAttributes = true
     serverStatusLabel.isSelectable = true
 
@@ -45,13 +40,11 @@ final class HeaderView: NSView {
     stack.orientation = .vertical
     stack.alignment = .leading
     stack.spacing = 2
-    stack.translatesAutoresizingMaskIntoConstraints = false
 
     // Trailing Settings and Quit controls (header buttons)
     settingsButton.bezelStyle = .texturedRounded
     settingsButton.title = "Settings"
     settingsButton.font = Typography.secondary
-    settingsButton.translatesAutoresizingMaskIntoConstraints = false
     settingsButton.setButtonType(.toggle)
     settingsButton.target = self
     settingsButton.action = #selector(toggleSettings)
@@ -60,10 +53,10 @@ final class HeaderView: NSView {
 
     // Horizontal container: [stack][spacer][settings][quit]
     let headerStackView = NSStackView()
+    headerStackView.translatesAutoresizingMaskIntoConstraints = false
     headerStackView.orientation = .horizontal
     headerStackView.alignment = .centerY
     headerStackView.spacing = 8
-    headerStackView.translatesAutoresizingMaskIntoConstraints = false
     headerStackView.addArrangedSubview(stack)
     headerStackView.addArrangedSubview(NSView())  // flexible spacer
     headerStackView.addArrangedSubview(settingsButton)

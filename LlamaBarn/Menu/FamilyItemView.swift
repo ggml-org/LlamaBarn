@@ -40,7 +40,6 @@ final class FamilyItemView: ItemView {
     wantsLayer = true
 
     // Configure icon view
-    iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.setImage(NSImage(named: sortedModels.first?.icon ?? ""))
     // Family rows trigger submenus rather than actions, so never show active state.
     iconView.isActive = false
@@ -48,43 +47,35 @@ final class FamilyItemView: ItemView {
     // Configure family name label
     familyLabel.stringValue = family
     familyLabel.font = Typography.primary
-    familyLabel.translatesAutoresizingMaskIntoConstraints = false
 
     // Configure metadata label (second line showing all available model sizes)
     // Contains all size entries in a single attributed string (e.g., "✓ 270M · 1B · ✓ 4B · 12B")
     metadataLabel.font = Typography.secondary
-    metadataLabel.textColor = .labelColor
-    metadataLabel.lineBreakMode = .byTruncatingTail
-    metadataLabel.usesSingleLineMode = true
-    metadataLabel.translatesAutoresizingMaskIntoConstraints = false
 
     // Configure chevron indicator
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
     // Match InstalledModelMenuItemView trailing indicator sizing for alignment.
     chevron.symbolConfiguration = .init(pointSize: 14, weight: .regular)
     chevron.contentTintColor = .labelColor
-    chevron.translatesAutoresizingMaskIntoConstraints = false
 
     // Build layout hierarchy: icon + text column on left, chevron on right
     let textColumn = NSStackView(views: [familyLabel, metadataLabel])
     textColumn.orientation = .vertical
     textColumn.spacing = 2
     textColumn.alignment = .leading
-    textColumn.translatesAutoresizingMaskIntoConstraints = false
 
     // Center icon vertically against two-line text to match InstalledModelMenuItemView layout.
     let leadingStack = NSStackView(views: [iconView, textColumn])
     leadingStack.orientation = .horizontal
     leadingStack.spacing = 6
     leadingStack.alignment = .centerY
-    leadingStack.translatesAutoresizingMaskIntoConstraints = false
 
     // Main row with flexible space between leading content and chevron
     let hStack = NSStackView(views: [leadingStack, NSView(), chevron])
+    hStack.translatesAutoresizingMaskIntoConstraints = false
     hStack.orientation = .horizontal
     hStack.spacing = 6
     hStack.alignment = .centerY
-    hStack.translatesAutoresizingMaskIntoConstraints = false
 
     contentView.addSubview(hStack)
 
