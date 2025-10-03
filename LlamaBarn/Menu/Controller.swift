@@ -8,10 +8,7 @@ final class Controller: NSObject, NSMenuDelegate {
   private let modelManager: Manager
   private let server: LlamaServer
 
-  private lazy var headerSection = MenuHeaderSection(
-    server: server,
-    llamaCppVersion: AppInfo.llamaCppVersion
-  )
+  private lazy var headerSection = MenuHeaderSection(server: server)
   private let settingsSection = MenuSettingsSection()
   private lazy var installedSection = InstalledSection(
     modelManager: modelManager,
@@ -106,20 +103,11 @@ final class Controller: NSObject, NSMenuDelegate {
   // MARK: - Live updates without closing submenus
 
   /// Called from model rows when a user starts/cancels a download.
-  /// Keeps the submenu open by updating views in place and ensuring the
-  /// Installed section reflects membership for downloading items.
-  private func didChangeDownloadStatus(for model: CatalogEntry) {
-    guard let menu = statusItem.menu else { return }
-
-    switch modelManager.getModelStatus(model) {
-    case .downloading:
-      installedSection.ensureRow(for: model, in: menu)
-    case .available:
-      installedSection.removeRow(for: model, in: menu)
-    case .downloaded:
-      break
+  /// Rebuilds the installed section to reflect membership changes while keeping submenus open.
+  private func didChangeDownloadStatus(for _: CatalogEntry) {
+    if let menu = statusItem.menu {
+      installedSection.refresh(in: menu)
     }
-
     performRefresh()
   }
 
@@ -145,6 +133,10 @@ final class Controller: NSObject, NSMenuDelegate {
     observers.append(
       center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) {
         [weak self] _ in
+        // Installed list changed (download completed or model deleted) - rebuild section
+        if let menu = self?.statusItem.menu {
+          self?.installedSection.refresh(in: menu)
+        }
         self?.performRefresh()
       })
     observers.append(
@@ -180,12 +172,9 @@ final class Controller: NSObject, NSMenuDelegate {
       }
     }
 
-    if let menu = statusItem.menu {
-      installedSection.pruneRows(in: menu)
-    }
-
     headerSection.refresh()
 
+    // Refresh existing views in place for progress updates without rebuilding section structure
     statusItem.menu?.items.forEach { menuItem in
       if let view = menuItem.view as? InstalledModelItemView { view.refresh() }
       if let submenu = menuItem.submenu {
@@ -194,13 +183,6 @@ final class Controller: NSObject, NSMenuDelegate {
         }
       }
       if let famView = menuItem.view as? FamilyItemView { famView.refresh() }
-    }
-
-    if let menu = statusItem.menu {
-      installedSection.updatePlaceholderVisibility(
-        in: menu,
-        hasActiveDownloads: modelManager.hasActiveDownloads
-      )
     }
   }
 }
