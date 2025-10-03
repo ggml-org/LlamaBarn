@@ -154,7 +154,8 @@ class LlamaServer {
       "--jinja",
     ]
 
-    // Add batch size optimization for devices with 32+ GB RAM
+    // Enable larger batch size (-ub 2048) for better model performance on high-memory devices.
+    // This improves throughput but increases memory usage, so we only enable it on Macs with ≥32 GB RAM.
     let systemMemoryGB = Double(SystemMemory.getMemoryMB()) / 1024.0
     if systemMemoryGB >= 32.0 {
       arguments.append(contentsOf: ["-ub", "2048"])
