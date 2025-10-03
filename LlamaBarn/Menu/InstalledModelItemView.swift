@@ -13,7 +13,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let membershipChanged: (CatalogEntry) -> Void
 
   // Subviews
-  private let circleIcon = CircularIconView()
+  private let circleIcon = IconBadgeView()
   private let modelNameLabel = NSTextField(labelWithString: "")
   private let metadataLabel = NSTextField(labelWithString: "")
   private let progressLabel = NSTextField(labelWithString: "")

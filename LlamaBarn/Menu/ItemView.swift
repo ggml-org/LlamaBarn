@@ -13,8 +13,6 @@ class ItemView: NSView {
 
   /// Override to disable hover highlight based on dynamic state (e.g., only when server is running).
   var hoverHighlightEnabled: Bool { true }
-  /// Override to change corner radius of the background.
-  var hoverCornerRadius: CGFloat { Metrics.cornerRadius }
   /// Called whenever the hover highlight changes.
   func hoverHighlightDidChange(_ highlighted: Bool) {}
 
@@ -82,7 +80,7 @@ class ItemView: NSView {
     let effectiveHighlight = highlighted && hoverHighlightEnabled
     guard effectiveHighlight != isHoverHighlighted else { return }
     isHoverHighlighted = effectiveHighlight
-    backgroundView.lbSetHoverHighlighted(effectiveHighlight, cornerRadius: hoverCornerRadius)
+    backgroundView.lbSetHoverHighlighted(effectiveHighlight, cornerRadius: Metrics.cornerRadius)
     hoverHighlightDidChange(effectiveHighlight)
   }
 

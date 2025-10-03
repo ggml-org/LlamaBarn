@@ -4,7 +4,7 @@ import Foundation
 /// Submenu header that shows the model family "business card":
 /// rounded-rect family icon, family name, and a short description.
 final class FamilyInfoView: NSView {
-  private let iconView = RoundedRectIconView()
+  private let iconView = IconBadgeView(cornerStyle: .rounded)
   private let titleLabel = NSTextField(labelWithString: "")
   private let descriptionLabel = NSTextField(labelWithString: "")
   private let container = NSView()
@@ -30,7 +30,6 @@ final class FamilyInfoView: NSView {
 
     iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.setImage(NSImage(named: iconName))
-    iconView.isActive = false
 
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.font = Typography.primary

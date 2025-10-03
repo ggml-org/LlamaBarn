@@ -1,16 +1,24 @@
 import AppKit
 
-/// Small circular badge that hosts a template image centered inside.
-/// - Inactive: clear background, subtle border, primary tint.
-/// - Active: filled with `controlAccentColor`, no border, white glyph.
-final class CircularIconView: NSView {
+/// Small badge that hosts a template image centered inside.
+/// Supports both circular and rounded-rectangle corner styles.
+/// - Inactive: clear background, primary tint.
+/// - Active: filled with `controlAccentColor`, white glyph.
+final class IconBadgeView: NSView {
+  enum CornerStyle {
+    case circular  // corner radius = bounds.height / 2
+    case rounded  // corner radius = Metrics.cornerRadius
+  }
+
   let imageView = NSImageView()
   private let spinner = NSProgressIndicator()
+  private let cornerStyle: CornerStyle
 
   var isActive: Bool = false { didSet { refresh() } }
   private var isLoading: Bool = false { didSet { refresh() } }
 
-  override init(frame frameRect: NSRect) {
+  init(frame frameRect: NSRect = .zero, cornerStyle: CornerStyle = .circular) {
+    self.cornerStyle = cornerStyle
     super.init(frame: frameRect)
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
@@ -43,7 +51,11 @@ final class CircularIconView: NSView {
 
   override func layout() {
     super.layout()
-    layer?.cornerRadius = bounds.height / 2
+    layer?.cornerRadius =
+      switch cornerStyle {
+      case .circular: bounds.height / 2
+      case .rounded: Metrics.cornerRadius
+      }
   }
 
   override func viewDidChangeEffectiveAppearance() {
@@ -74,11 +86,9 @@ final class CircularIconView: NSView {
     spinner.isHidden = !isLoading
 
     if isActive {
-      layer.borderWidth = 0
       layer.setBackgroundColor(.controlAccentColor, in: self)
       imageView.contentTintColor = .white
     } else {
-      layer.borderWidth = 0
       layer.setBackgroundColor(.lbBadgeBackground, in: self)
       // Default (may be overridden by caller for hover emphasis)
       imageView.contentTintColor = .labelColor

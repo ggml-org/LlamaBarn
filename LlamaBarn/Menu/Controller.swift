@@ -92,8 +92,6 @@ final class Controller: NSObject, NSMenuDelegate {
     if isSettingsVisible {
       settingsSection.add(to: menu, menuWidth: menuWidth)
       menu.addItem(.separator())
-    } else {
-      settingsSection.clear()
     }
 
     installedSection.add(to: menu)

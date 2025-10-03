@@ -29,21 +29,14 @@ final class MenuHeaderSection {
 }
 
 final class MenuSettingsSection {
-  private var settingsView: NSHostingView<SettingsView>?
-
   func add(to menu: NSMenu, menuWidth: CGFloat) {
     let rootView = SettingsView()
     let view = NSHostingView(rootView: rootView)
-    settingsView = view
     let height = view.fittingSize.height
     view.frame = NSRect(x: 0, y: 0, width: menuWidth, height: height)
     let item = NSMenuItem.viewItem(with: view)
     item.isEnabled = true
     menu.addItem(item)
-  }
-
-  func clear() {
-    settingsView = nil
   }
 }
 

@@ -12,7 +12,7 @@ final class FamilyItemView: ItemView {
   private let sortedModels: [CatalogEntry]
   private unowned let modelManager: Manager
 
-  private let iconView = RoundedRectIconView()
+  private let iconView = IconBadgeView(cornerStyle: .rounded)
   private let familyLabel = NSTextField(labelWithString: "")
   private let metadataLabel = NSTextField(labelWithString: "")
   private let chevron = NSImageView()
@@ -41,8 +41,6 @@ final class FamilyItemView: ItemView {
 
     // Configure icon view
     iconView.setImage(NSImage(named: sortedModels.first?.icon ?? ""))
-    // Family rows trigger submenus rather than actions, so never show active state.
-    iconView.isActive = false
 
     // Configure family name label
     familyLabel.stringValue = family

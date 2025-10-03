@@ -181,7 +181,3 @@ final class CatalogModelItemView: ItemView {
     [info, warning].compactMap { $0 }.joined(separator: "\n").nilIfEmpty
   }
 }
-
-extension String {
-  var nilIfEmpty: String? { isEmpty ? nil : self }
-}
