@@ -204,13 +204,12 @@ final class CatalogSection {
     menu.addItem(.separator())
     menu.addItem(makeSectionHeaderItem("Available"))
 
-    for family in families.sorted(by: { $0.name < $1.name }) {
-      var models = [CatalogEntry]()
-      for model in family.models {
-        let builds = showQuantized ? ([model.build] + model.quantizedBuilds) : [model.build]
-        for build in builds {
-          models.append(build.asEntry(family: family, model: model))
-        }
+    for family in families {
+      // Reuse cached catalog entries instead of rebuilding them from scratch.
+      // Previously called build.asEntry() in nested loops, recreating ~30 structs every menu build.
+      // Now we filter the pre-built cache, combining family and quantization checks in one pass.
+      let models = Catalog.allEntries().filter { entry in
+        entry.family == family.name && (showQuantized || entry.isFullPrecision)
       }
 
       if models.isEmpty { continue }

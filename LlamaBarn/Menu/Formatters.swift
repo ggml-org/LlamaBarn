@@ -7,6 +7,23 @@ enum ByteFormatters {
     let gb = Double(bytes) / 1_000_000_000.0
     return String(format: "%.2f GB", gb)
   }
+
+  /// Cached ByteCountFormatter for decimal GB formatting.
+  /// Formatters are expensive to create (system locale lookups, number formatting setup).
+  /// Since we call this repeatedly during menu display and status updates, caching the formatter
+  /// eliminates this overhead. Follows the same pattern as DateFormatters below.
+  private static let decimalGB: ByteCountFormatter = {
+    let formatter = ByteCountFormatter()
+    formatter.allowedUnits = [.useGB]
+    formatter.countStyle = .decimal
+    return formatter
+  }()
+
+  /// Formats byte count as decimal GB using cached formatter (e.g., "3.14 GB").
+  /// Uses 1 GB = 1,000,000,000 bytes to match network/download UI conventions.
+  static func decimalGBString(_ bytes: Int64) -> String {
+    decimalGB.string(fromByteCount: bytes)
+  }
 }
 
 enum DateFormatters {

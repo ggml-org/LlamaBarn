@@ -98,8 +98,9 @@ enum Catalog {
     }
   }
 
-  /// Families expressed with shared metadata to reduce duplication
-  static let families: [ModelFamily] = CatalogFamilies.families
+  /// Families expressed with shared metadata to reduce duplication.
+  /// Pre-sorted by name to eliminate runtime sorting overhead.
+  static let families: [ModelFamily] = CatalogFamilies.families.sorted(by: { $0.name < $1.name })
 
   // MARK: - ID + flatten helpers
 
@@ -135,26 +136,32 @@ enum Catalog {
 
   // MARK: - Accessors
 
-  static func allEntries() -> [CatalogEntry] {
+  /// Cached catalog entries computed once at initialization.
+  /// The catalog is defined statically and never changes at runtime, so we build this list once
+  /// instead of rebuilding it on every menu open, download completion, or status check.
+  /// Eliminates ~30+ struct allocations and nested iterations per refresh.
+  private static let cachedEntries: [CatalogEntry] = {
     families.flatMap { family in
       family.models.flatMap { model -> [CatalogEntry] in
         let allBuilds = [model.build] + model.quantizedBuilds
         return allBuilds.map { build in build.asEntry(family: family, model: model) }
       }
     }
+  }()
+
+  /// Dictionary mapping model IDs to entries for O(1) lookups.
+  /// Replaces linear search through families/models/builds when looking up by ID,
+  /// which happens frequently during downloads and status checks.
+  private static let entriesById: [String: CatalogEntry] = {
+    Dictionary(uniqueKeysWithValues: cachedEntries.map { ($0.id, $0) })
+  }()
+
+  static func allEntries() -> [CatalogEntry] {
+    cachedEntries
   }
 
   static func entry(forId id: String) -> CatalogEntry? {
-    for family in families {
-      for model in family.models {
-        let allBuilds = [model.build] + model.quantizedBuilds
-        for build in allBuilds {
-          let entry = build.asEntry(family: family, model: model)
-          if entry.id == id { return entry }
-        }
-      }
-    }
-    return nil
+    entriesById[id]
   }
 
   /// Gets system memory in MB using shared system memory utility

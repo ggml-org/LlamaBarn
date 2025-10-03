@@ -38,17 +38,23 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     }
 
     mutating func refreshProgress() {
-      let activeBytes = tasks.values.reduce(Int64(0)) { result, task in
-        result + max(task.countOfBytesReceived, 0)
-      }
-      let expectedActiveBytes = tasks.values.reduce(Int64(0)) { result, task in
+      // Calculate both active and expected bytes in a single pass.
+      // Called on every didWriteData callback (even with throttling, this is still 10x/sec per download),
+      // so avoiding redundant iterations over tasks.values is important for responsiveness.
+      var activeBytes: Int64 = 0
+      var expectedActiveBytes: Int64 = 0
+
+      for task in tasks.values {
+        let received = task.countOfBytesReceived
+        activeBytes += received
         let expected = task.countOfBytesExpectedToReceive
-        return result + (expected > 0 ? expected : max(task.countOfBytesReceived, 0))
+        expectedActiveBytes += expected > 0 ? expected : received
       }
+
       let totalCompleted = finishedBytes + activeBytes
       let totalExpected = max(progress.totalUnitCount, finishedBytes + expectedActiveBytes)
       progress.totalUnitCount = max(totalExpected, 1)
-      progress.completedUnitCount = max(totalCompleted, 0)
+      progress.completedUnitCount = totalCompleted
     }
 
     var isEmpty: Bool { tasks.isEmpty }
@@ -58,6 +64,13 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
 
   private var urlSession: URLSession!
   private let logger = Logger(subsystem: Logging.subsystem, category: "Downloader")
+
+  // Throttle progress notifications to prevent excessive UI refreshes.
+  // URLSession's didWriteData can fire hundreds of times per second during fast downloads,
+  // and each notification triggers a full menu refresh. Limiting to 10 updates/sec (100ms)
+  // maintains smooth progress UI while avoiding performance bottlenecks.
+  private var lastNotificationTime: [String: Date] = [:]
+  private let notificationThrottleInterval: TimeInterval = 0.1
 
   private override init() {
     super.init()
@@ -74,6 +87,13 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
 
   /// Downloads all required files for a model
   func downloadModel(_ model: CatalogEntry) throws {
+    // Prevent duplicate downloads if user clicks download multiple times or if called from multiple code paths.
+    // Without this check, we'd start redundant URLSession tasks, waste bandwidth, and corrupt download state.
+    if activeDownloads[model.id] != nil {
+      logger.info("Download already in progress for model: \(model.displayName)")
+      return
+    }
+
     let filesToDownload = try prepareDownload(for: model)
     guard !filesToDownload.isEmpty else { return }
 
@@ -106,6 +126,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
       var mutable = download
       mutable.cancelAllTasks()
       activeDownloads.removeValue(forKey: model.id)
+      lastNotificationTime.removeValue(forKey: model.id)
     }
     NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
   }
@@ -195,6 +216,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         aggregate.markTaskFinished(downloadTask, fileSize: fileSize)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
+          self.lastNotificationTime.removeValue(forKey: modelId)
           self.logger.info("All downloads completed for model: \(model.displayName)")
           NotificationCenter.default.post(
             name: .LBModelDownloadFinished,
@@ -247,6 +269,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     if var aggregate = self.activeDownloads[modelId] {
       aggregate.cancelAllTasks()
       self.activeDownloads.removeValue(forKey: modelId)
+      self.lastNotificationTime.removeValue(forKey: modelId)
     }
     postDownloadsDidChange()
   }
@@ -262,7 +285,14 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     }
     download.refreshProgress()
     self.activeDownloads[modelId] = download
-    postDownloadsDidChange()
+
+    // Throttle notifications to avoid excessive UI updates
+    let now = Date()
+    let lastTime = lastNotificationTime[modelId] ?? .distantPast
+    if now.timeIntervalSince(lastTime) >= notificationThrottleInterval {
+      lastNotificationTime[modelId] = now
+      postDownloadsDidChange()
+    }
   }
 
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
@@ -276,6 +306,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         aggregate.removeTask(with: task.taskIdentifier)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
+          self.lastNotificationTime.removeValue(forKey: modelId)
           postDownloadsDidChange()
         } else {
           self.activeDownloads[modelId] = aggregate

@@ -22,9 +22,6 @@ enum DiskSpace {
 
   /// Formats a byte count in decimal GB for concise UI.
   static func formatGB(_ bytes: Int64) -> String {
-    let formatter = ByteCountFormatter()
-    formatter.allowedUnits = [.useGB]
-    formatter.countStyle = .decimal
-    return formatter.string(fromByteCount: bytes)
+    ByteFormatters.decimalGBString(bytes)
   }
 }

@@ -64,10 +64,7 @@ struct CatalogEntry: Identifiable, Codable {
 
   /// Total size including all model files
   var totalSize: String {
-    let formatter = ByteCountFormatter()
-    formatter.allowedUnits = [.useGB]
-    formatter.countStyle = .decimal
-    return formatter.string(fromByteCount: fileSize)
+    ByteFormatters.decimalGBString(fileSize)
   }
 
   /// Simplified quantization display (e.g., "Q4" from "Q4_K_M")
