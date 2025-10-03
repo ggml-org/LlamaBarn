@@ -93,7 +93,7 @@ enum CatalogModelPresenter {
 
     let memoryMB = Catalog.runtimeMemoryUsageMB(
       for: model,
-      contextLengthTokens: Catalog.compatibilityContextLengthTokens
+      contextLengthTokens: Double(recommendedContext ?? model.contextLength)
     )
 
     return DisplayData(
