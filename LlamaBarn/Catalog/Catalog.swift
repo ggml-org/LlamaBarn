@@ -13,6 +13,17 @@ enum Catalog {
   private static let highMemoryAvailableFraction: Double = 0.75
   private static let highMemoryThresholdMB: UInt64 = 128 * 1024  // binary units to match SystemMemory
 
+  /// Cache for compatibility checks since model properties and system memory are fixed at launch.
+  /// Lives for app lifetime, never invalidated. Cache keys include context length since we check
+  /// compatibility at different context windows (default 4k, max context, custom values).
+  private static var compatibilityCache: [String: Bool] = [:]
+  private static var incompatibilitySummaryCache: [String: String?] = [:]
+  private static var recommendedContextCache: [String: Int?] = [:]
+
+  private static func compatibilityCacheKey(_ model: CatalogEntry, _ tokens: Double) -> String {
+    "\(model.id)_\(tokens)"
+  }
+
   static func availableMemoryFraction(forSystemMemoryMB systemMemoryMB: UInt64) -> Double {
     guard systemMemoryMB >= highMemoryThresholdMB else { return defaultAvailableMemoryFraction }
     return highMemoryAvailableFraction
@@ -217,7 +228,12 @@ enum Catalog {
 
   /// Recommended context length to launch the model with, honoring memory constraints.
   static func recommendedContextLength(for model: CatalogEntry) -> Int? {
-    safeContextLength(for: model)
+    if let cached = recommendedContextCache[model.id] {
+      return cached
+    }
+    let result = safeContextLength(for: model)
+    recommendedContextCache[model.id] = result
+    return result
   }
 
   /// Checks if a model can fit within system memory constraints
@@ -225,18 +241,28 @@ enum Catalog {
     _ model: CatalogEntry,
     contextLengthTokens: Double = compatibilityContextLengthTokens
   ) -> Bool {
+    let cacheKey = compatibilityCacheKey(model, contextLengthTokens)
+    if let cached = compatibilityCache[cacheKey] { return cached }
+
+    func cache(_ value: Bool) -> Bool {
+      compatibilityCache[cacheKey] = value
+      return value
+    }
+
     let minimumTokens = minimumContextLengthTokens
-    if Double(model.contextLength) < minimumTokens { return false }
-    if contextLengthTokens > 0 && contextLengthTokens > Double(model.contextLength) { return false }
+    if Double(model.contextLength) < minimumTokens { return cache(false) }
+    if contextLengthTokens > 0 && contextLengthTokens > Double(model.contextLength) {
+      return cache(false)
+    }
 
     let systemMemoryMB = getSystemMemoryMB()
-    guard systemMemoryMB > 0 else { return false }
+    guard systemMemoryMB > 0 else { return cache(false) }
 
     let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
     let availableMemoryMB = Double(systemMemoryMB) * memoryFraction
     let estimatedMemoryUsageMB = Double(
       runtimeMemoryUsageMB(for: model, contextLengthTokens: contextLengthTokens))
-    return estimatedMemoryUsageMB <= availableMemoryMB
+    return cache(estimatedMemoryUsageMB <= availableMemoryMB)
   }
 
   /// If incompatible, returns a short human-readable reason showing
@@ -246,31 +272,37 @@ enum Catalog {
     _ model: CatalogEntry,
     contextLengthTokens: Double = compatibilityContextLengthTokens
   ) -> String? {
+    let cacheKey = compatibilityCacheKey(model, contextLengthTokens)
+    if let cached = incompatibilitySummaryCache[cacheKey] { return cached }
+
+    func cache(_ value: String?) -> String? {
+      incompatibilitySummaryCache[cacheKey] = value
+      return value
+    }
+
     if Double(model.contextLength) < minimumContextLengthTokens {
-      return "requires models with ≥4k context"
+      return cache("requires models with ≥4k context")
     }
 
     let systemMemoryMB = getSystemMemoryMB()
     let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
     let estimatedMemoryUsageMB = runtimeMemoryUsageMB(
       for: model, contextLengthTokens: contextLengthTokens)
-    // Compute total RAM required so that our available fraction would fit the model.
-    // Round up to avoid under‑specing.
     let requiredTotalMB = UInt64(ceil(Double(estimatedMemoryUsageMB) / memoryFraction))
+
     func gbStringCeilPlus(_ mb: UInt64) -> String {
       let gb = ceil(Double(mb) / 1024.0)
       return String(format: "%.0f GB+", gb)
     }
 
-    // If we can't detect system memory, still show the total needed spec.
     if systemMemoryMB == 0 {
-      return "requires \(gbStringCeilPlus(requiredTotalMB)) of memory"
+      return cache("requires \(gbStringCeilPlus(requiredTotalMB)) of memory")
     }
 
     let availableMemoryMB = UInt64(Double(systemMemoryMB) * memoryFraction)
-    if estimatedMemoryUsageMB <= availableMemoryMB { return nil }
+    if estimatedMemoryUsageMB <= availableMemoryMB { return cache(nil) }
 
-    return "requires \(gbStringCeilPlus(requiredTotalMB)) of memory"
+    return cache("requires \(gbStringCeilPlus(requiredTotalMB)) of memory")
   }
 
   static func runtimeMemoryUsageMB(

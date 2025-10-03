@@ -144,9 +144,10 @@ final class InstalledSection {
 
 }
 
-final class CatalogSection {
+final class CatalogSection: NSObject, NSMenuDelegate {
   private let modelManager: Manager
   private let onDownloadStatusChange: (CatalogEntry) -> Void
+  private var submenuData: [String: (models: [CatalogEntry], family: Catalog.ModelFamily)] = [:]
 
   init(
     modelManager: Manager,
@@ -165,13 +166,14 @@ final class CatalogSection {
     menu.addItem(.separator())
     menu.addItem(makeSectionHeaderItem("Available"))
 
-    for family in families {
-      // Filter cached entries to avoid rebuilding ~30 structs on every menu refresh.
-      let models = Catalog.allEntries().filter { entry in
-        entry.family == family.name && (showQuantized || entry.isFullPrecision)
-      }
+    // Filter and group all entries once, avoiding N×M work in the family loop
+    let allEntries = Catalog.allEntries().filter { showQuantized || $0.isFullPrecision }
+    let modelsByFamily = Dictionary(grouping: allEntries, by: \.family)
 
-      if models.isEmpty { continue }
+    submenuData.removeAll()
+
+    for family in families {
+      guard let models = modelsByFamily[family.name], !models.isEmpty else { continue }
 
       let sortedModels = models.sorted(by: CatalogEntry.familyDisplayOrder(_:_:))
 
@@ -184,30 +186,40 @@ final class CatalogSection {
       familyItem.isEnabled = true
       familyItem.representedObject = family.name as NSString
 
+      // Create empty submenu with delegate for lazy population
       let submenu = NSMenu(title: family.name)
-      // Disable auto-enabling so we control item state explicitly (e.g., incompatible models stay disabled)
       submenu.autoenablesItems = false
-      submenu.delegate = menu.delegate
-      let infoView = FamilyInfoView(
-        familyName: family.name,
-        iconName: family.iconName,
-        blurb: family.blurb
-      )
-      submenu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
-      submenu.addItem(.separator())
-
-      for model in sortedModels {
-        let view = CatalogModelItemView(model: model, modelManager: modelManager) {
-          [weak self] in
-          self?.onDownloadStatusChange(model)
-        }
-        let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
-        modelItem.representedObject = model.id as NSString
-        submenu.addItem(modelItem)
-      }
+      submenu.delegate = self
+      submenuData[family.name] = (sortedModels, family)
 
       familyItem.submenu = submenu
       menu.addItem(familyItem)
+    }
+  }
+
+  // MARK: - NSMenuDelegate (lazy submenu population)
+
+  func menuNeedsUpdate(_ menu: NSMenu) {
+    // Only populate if submenu is empty (first open)
+    guard menu.items.isEmpty else { return }
+    guard let (sortedModels, family) = submenuData[menu.title] else { return }
+
+    let infoView = FamilyInfoView(
+      familyName: family.name,
+      iconName: family.iconName,
+      blurb: family.blurb
+    )
+    menu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
+    menu.addItem(.separator())
+
+    for model in sortedModels {
+      let view = CatalogModelItemView(model: model, modelManager: modelManager) {
+        [weak self] in
+        self?.onDownloadStatusChange(model)
+      }
+      let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
+      modelItem.representedObject = model.id as NSString
+      menu.addItem(modelItem)
     }
   }
 }
