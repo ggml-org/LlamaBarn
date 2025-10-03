@@ -44,7 +44,10 @@ enum CatalogModelPresenter {
     let title: String = {
       var result = model.displayName
       if !model.isFullPrecision {
-        result += " \(model.quantization)"
+        let shortQuant = QuantizationFormatters.short(model.quantization)
+        if !shortQuant.isEmpty {
+          result += "-\(shortQuant)"
+        }
       }
       return result
     }()

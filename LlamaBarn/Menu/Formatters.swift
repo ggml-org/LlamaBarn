@@ -53,3 +53,17 @@ enum MemoryFormatters {
     return String(format: "%.1f GB", gb)
   }
 }
+
+enum QuantizationFormatters {
+  /// Extracts the first segment of a quantization label for compact display.
+  /// Examples: "Q4_K_M" → "Q4", "Q8_0" → "Q8", "F16" → "F16"
+  static func short(_ quantization: String) -> String {
+    let upper = quantization.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    guard !upper.isEmpty else { return upper }
+    if let idx = upper.firstIndex(where: { $0 == "_" || $0 == "-" }) {
+      let prefix = upper[..<idx]
+      if !prefix.isEmpty { return String(prefix) }
+    }
+    return upper
+  }
+}

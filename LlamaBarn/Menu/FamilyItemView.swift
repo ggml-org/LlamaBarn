@@ -137,16 +137,6 @@ final class FamilyItemView: ItemView {
     return line
   }
 
-  private func shortQuantizationLabel(_ quantization: String) -> String {
-    let upper = quantization.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-    guard !upper.isEmpty else { return upper }
-    if let idx = upper.firstIndex(where: { $0 == "_" || $0 == "-" }) {
-      let prefix = upper[..<idx]
-      if !prefix.isEmpty { return String(prefix) }
-    }
-    return upper
-  }
-
   /// Creates an attributed string for a model size label.
   /// Downloaded models show a green checkmark to indicate they're already installed.
   private func attributedSizeLabel(
@@ -178,11 +168,11 @@ final class FamilyItemView: ItemView {
     )
 
     if !model.isFullPrecision {
-      let quantLabel = shortQuantizationLabel(model.quantization)
+      let quantLabel = QuantizationFormatters.short(model.quantization)
       if !quantLabel.isEmpty {
         result.append(
           NSAttributedString(
-            string: quantLabel,
+            string: "-" + quantLabel,
             attributes: [
               .font: baseFont,
               .foregroundColor: color,

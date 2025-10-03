@@ -46,7 +46,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     wantsLayer = true
     circleIcon.setImage(NSImage(named: model.icon))
 
-    modelNameLabel.stringValue = model.displayName
+    modelNameLabel.stringValue = makeTitle()
     modelNameLabel.font = Typography.primary
     modelNameLabel.lineBreakMode = .byTruncatingTail
     modelNameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -301,6 +301,17 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     guard case .downloaded = status else { return }
     modelManager.deleteDownloadedModel(model)
     membershipChanged(model)
+  }
+
+  private func makeTitle() -> String {
+    var result = model.displayName
+    if !model.isFullPrecision {
+      let shortQuant = QuantizationFormatters.short(model.quantization)
+      if !shortQuant.isEmpty {
+        result += "-\(shortQuant)"
+      }
+    }
+    return result
   }
 
 }
