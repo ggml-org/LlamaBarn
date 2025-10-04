@@ -47,7 +47,7 @@ final class FamilyItemView: ItemView {
     familyLabel.font = Typography.primary
 
     // Configure metadata label (second line showing all available model sizes)
-    // Contains all size entries in a single attributed string (e.g., "✓ 270M · 1B · ✓ 4B · 12B")
+    // Contains all size entries in a single attributed string (e.g., "✓ 270M • 1B • ✓ 4B • 12B")
     metadataLabel.font = Typography.secondary
 
     // Configure chevron indicator

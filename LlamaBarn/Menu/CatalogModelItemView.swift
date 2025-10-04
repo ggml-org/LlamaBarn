@@ -45,7 +45,7 @@ final class CatalogModelItemView: ItemView {
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
     // Configure metadata label (second line showing size, context, warnings)
-    // Contains all metadata fields in a single attributed string (e.g., "📦 4.28 GB · 🧠 84k")
+    // Contains all metadata fields in a single attributed string (e.g., "📦 4.28 GB • 🧠 84k")
     metadataLabel.font = Typography.secondary
 
     progressLabel.font = Typography.secondary

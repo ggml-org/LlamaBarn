@@ -49,7 +49,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     modelNameLabel.font = Typography.primary
 
     // Configure metadata label (second line showing size, context, memory)
-    // Contains all metadata fields in a single attributed string (e.g., "📦 2.53 GB · 🧠 84k")
+    // Contains all metadata fields in a single attributed string (e.g., "📦 2.53 GB • 🧠 84k")
     metadataLabel.font = Typography.secondary
 
     progressLabel.font = Typography.secondary
