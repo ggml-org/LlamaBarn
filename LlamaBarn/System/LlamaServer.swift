@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 import os.log
 
 /// Essential errors that can occur during llama-server operations
@@ -21,7 +20,6 @@ enum LlamaServerError: Error, LocalizedError {
 }
 
 /// Manages the llama-server binary process lifecycle and health monitoring
-@Observable
 class LlamaServer {
   /// Singleton instance for app-wide server management
   static let shared = LlamaServer()
@@ -35,6 +33,8 @@ class LlamaServer {
   private var activeProcess: Process?
   private var healthCheckTask: Task<Void, Error>?
   private let logger = Logger(subsystem: Logging.subsystem, category: "LlamaServer")
+  private let stateLock = NSLock()
+  private var expectedTermination = false
 
   enum ServerState: Equatable {
     case idle
@@ -139,8 +139,11 @@ class LlamaServer {
     }
 
     state = .loading
+
+    stateLock.lock()
     activeModelPath = modelPath
     activeContextLength = appliedContextLength
+    stateLock.unlock()
 
     let llamaServerPath = libFolderPath + "/llama-server"
 
@@ -181,25 +184,25 @@ class LlamaServer {
     process.standardError = Pipe()
 
     // Set up termination handler for proper state management
-    let currentModelPath = activeModelPath
     process.terminationHandler = { [weak self] proc in
       guard let self = self else { return }
 
-      // Only update state if this termination is for the model we still think is active.
-      // If activeModelPath is nil, we called stop() intentionally and shouldn't update state.
-      guard let activePath = self.activeModelPath, currentModelPath == activePath else { return }
+      self.stateLock.lock()
+      let wasExpected = self.expectedTermination
+      let currentPath = self.activeModelPath
+      self.stateLock.unlock()
+
+      // Only update state if termination was unexpected
+      guard !wasExpected, currentPath != nil else { return }
 
       if self.activeProcess == proc {
         self.cleanUpResources()
       }
       DispatchQueue.main.async {
-        // Double-check model is still active before updating state
-        if self.activeModelPath == currentModelPath {
-          if proc.terminationStatus == 0 {
-            self.state = .idle
-          } else {
-            self.state = .error(.launchFailed("Process crashed"))
-          }
+        if proc.terminationStatus == 0 {
+          self.state = .idle
+        } else {
+          self.state = .error(.launchFailed("Process crashed"))
         }
       }
     }
@@ -207,6 +210,7 @@ class LlamaServer {
     do {
       try process.run()
       self.activeProcess = process
+      attachOutputHandlers(for: process)
     } catch {
       let errorMessage = "Process launch failed: \(error.localizedDescription)"
       logger.error("Failed to launch process: \(error)")
@@ -217,28 +221,24 @@ class LlamaServer {
       }
       return
     }
-
-    guard let process = activeProcess else {
-      DispatchQueue.main.async {
-        self.state = .error(.launchFailed("Process creation failed"))
-        self.activeModelPath = nil
-        self.activeContextLength = nil
-      }
-      return
-    }
-
-    attachOutputHandlers(for: process)
     startHealthCheck(port: port)
   }
 
   /// Terminates the currently running llama-server process and resets state
   func stop() {
-    // Clear model path first to signal we're stopping intentionally
+    stateLock.lock()
+    expectedTermination = true
     activeModelPath = nil
     activeContextLength = nil
+    stateLock.unlock()
+
     memoryUsageMB = 0
     state = .idle
     cleanUpResources()
+
+    stateLock.lock()
+    expectedTermination = false
+    stateLock.unlock()
   }
 
   /// Cleans up all background resources tied to the server process
@@ -272,17 +272,20 @@ class LlamaServer {
 
   /// Checks if the server is currently running
   var isRunning: Bool {
-    return state == .running
+    state == .running
   }
 
   /// Checks if the server is currently loading
   var isLoading: Bool {
-    return state == .loading
+    state == .loading
   }
 
   /// Checks if the specified model is currently active
   func isActive(model: CatalogEntry) -> Bool {
-    return activeModelPath == model.modelFilePath
+    stateLock.lock()
+    let path = activeModelPath
+    stateLock.unlock()
+    return path == model.modelFilePath
   }
 
   /// Convenience method to start server using a CatalogEntry

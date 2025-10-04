@@ -36,6 +36,11 @@ final class Controller: NSObject, NSMenuDelegate {
     configureStatusItem()
   }
 
+  deinit {
+    refreshWorkItem?.cancel()
+    removeObservers()
+  }
+
   private func configureStatusItem() {
     if let button = statusItem.button {
       button.image =

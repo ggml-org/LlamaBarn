@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 import os.log
 
 /// Represents the current status of a model
@@ -23,7 +22,6 @@ enum ModelStatus: Equatable {
 }
 
 /// Manages the high-level state of available and downloaded models.
-@Observable
 class Manager: NSObject {
   static let shared = Manager()
 
@@ -67,7 +65,7 @@ class Manager: NSObject {
 
   /// Checks if a model has been completely downloaded.
   func isModelDownloaded(_ model: CatalogEntry) -> Bool {
-    return downloadedModelIds.contains(model.id)
+    downloadedModelIds.contains(model.id)
   }
 
   /// Safely deletes a downloaded model and its associated files.
@@ -78,30 +76,20 @@ class Manager: NSObject {
     }
     downloader.cancelModelDownload(model)
 
-    // Capture state before modification for potential rollback
-    let wasTracked = downloadedModelIds.contains(model.id)
-    let modelEntry = downloadedModels.first { $0.id == model.id }
-
-    downloadedModelIds.remove(model.id)
-    downloadedModels.removeAll { $0.id == model.id }
-
     Task { @MainActor in
       do {
+        // Delete files first, before modifying state
         for path in model.allLocalModelPaths {
           if FileManager.default.fileExists(atPath: path) {
             try FileManager.default.removeItem(atPath: path)
           }
         }
+
+        // Only update state after successful deletion
+        downloadedModelIds.remove(model.id)
+        downloadedModels.removeAll { $0.id == model.id }
         NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
       } catch {
-        // Rollback state changes on failure
-        if wasTracked {
-          downloadedModelIds.insert(model.id)
-        }
-        if let modelEntry, !downloadedModels.contains(where: { $0.id == model.id }) {
-          downloadedModels.append(modelEntry)
-        }
-        NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
         logger.error("Failed to delete model: \(error.localizedDescription)")
       }
     }

@@ -1,10 +1,8 @@
 import AppKit
 import Foundation
-import Observation
 import os.log
 
 /// Manages the low-level details of downloading model files using URLSession.
-@Observable
 class Downloader: NSObject, URLSessionDownloadDelegate {
   static let shared = Downloader()
 
@@ -221,32 +219,35 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
       }
 
       downloadsLock.lock()
+      let shouldNotifyFinished: Bool
       if self.activeDownloads[modelId] != nil {
         var aggregate = self.activeDownloads[modelId]!
         aggregate.markTaskFinished(downloadTask, fileSize: fileSize)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
           self.lastNotificationTime.removeValue(forKey: modelId)
-          downloadsLock.unlock()
-          self.logger.info("All downloads completed for model: \(model.displayName)")
-          NotificationCenter.default.post(
-            name: .LBModelDownloadFinished,
-            object: self,
-            userInfo: ["model": model]
-          )
-          self.postDownloadsDidChange()
+          shouldNotifyFinished = true
         } else {
           self.activeDownloads[modelId] = aggregate
-          downloadsLock.unlock()
-          self.postDownloadsDidChange()
+          shouldNotifyFinished = false
         }
       } else {
-        downloadsLock.unlock()
         // This case should not be hit if the download is tracked properly,
         // but if it is, ensure we notify for a refresh.
-        NotificationCenter.default.post(
-          name: .LBModelDownloadFinished, object: self, userInfo: ["model": model])
+        shouldNotifyFinished = true
       }
+      downloadsLock.unlock()
+
+      // Post notifications after releasing lock to prevent potential deadlocks
+      if shouldNotifyFinished {
+        self.logger.info("All downloads completed for model: \(model.displayName)")
+        NotificationCenter.default.post(
+          name: .LBModelDownloadFinished,
+          object: self,
+          userInfo: ["model": model]
+        )
+      }
+      self.postDownloadsDidChange()
     } catch {
       logger.error("Error moving downloaded file: \(error.localizedDescription)")
       downloadsLock.lock()
@@ -254,12 +255,13 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         aggregate.removeTask(with: downloadTask.taskIdentifier)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
+          self.lastNotificationTime.removeValue(forKey: modelId)
         } else {
           self.activeDownloads[modelId] = aggregate
         }
       }
       downloadsLock.unlock()
-      NotificationCenter.default.post(name: .LBModelDownloadsDidChange, object: self)
+      postDownloadsDidChange()
     }
   }
 
@@ -323,20 +325,24 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     if let error = error {
       logger.error("Model download failed: \(error.localizedDescription)")
       downloadsLock.lock()
+      let shouldNotify: Bool
       if var aggregate = self.activeDownloads[modelId] {
         aggregate.removeTask(with: task.taskIdentifier)
         if aggregate.isEmpty {
           self.activeDownloads.removeValue(forKey: modelId)
           self.lastNotificationTime.removeValue(forKey: modelId)
-          downloadsLock.unlock()
-          postDownloadsDidChange()
+          shouldNotify = true
         } else {
           self.activeDownloads[modelId] = aggregate
-          downloadsLock.unlock()
-          postDownloadsDidChange()
+          shouldNotify = true
         }
       } else {
-        downloadsLock.unlock()
+        shouldNotify = false
+      }
+      downloadsLock.unlock()
+
+      if shouldNotify {
+        postDownloadsDidChange()
       }
     }
   }
