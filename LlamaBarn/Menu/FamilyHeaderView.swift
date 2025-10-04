@@ -7,7 +7,6 @@ final class FamilyHeaderView: NSView {
   private let iconView = IconBadgeView(cornerStyle: .rounded)
   private let titleLabel = Typography.makePrimaryLabel()
   private let descriptionLabel = Typography.makeSecondaryLabel()
-  private let container = NSView()
 
   init(familyName: String, iconName: String, blurb: String) {
     super.init(frame: .zero)
@@ -21,21 +20,13 @@ final class FamilyHeaderView: NSView {
   override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 70) }
 
   private func setup(familyName: String, iconName: String, blurb: String) {
-    // Accessibility
     setAccessibilityElement(true)
     setAccessibilityRole(.group)
     setAccessibilityLabel("\(familyName) info")
 
-    container.translatesAutoresizingMaskIntoConstraints = false
-
-    iconView.translatesAutoresizingMaskIntoConstraints = false
     iconView.setImage(NSImage(named: iconName))
-
-    titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.stringValue = familyName
     titleLabel.lineBreakMode = .byTruncatingTail
-
-    descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
     descriptionLabel.stringValue = blurb
     descriptionLabel.lineBreakMode = .byWordWrapping
 
@@ -43,7 +34,6 @@ final class FamilyHeaderView: NSView {
     textStack.orientation = .vertical
     textStack.spacing = 2
     textStack.alignment = .leading
-    textStack.translatesAutoresizingMaskIntoConstraints = false
 
     let hStack = NSStackView(views: [iconView, textStack])
     hStack.orientation = .horizontal
@@ -51,26 +41,20 @@ final class FamilyHeaderView: NSView {
     hStack.alignment = .top
     hStack.translatesAutoresizingMaskIntoConstraints = false
 
-    addSubview(container)
-    container.addSubview(hStack)
+    addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      container.leadingAnchor.constraint(
-        equalTo: leadingAnchor, constant: Metrics.outerHorizontalPadding),
-      container.trailingAnchor.constraint(
-        equalTo: trailingAnchor, constant: -Metrics.outerHorizontalPadding),
-      container.topAnchor.constraint(equalTo: topAnchor),
-      container.bottomAnchor.constraint(equalTo: bottomAnchor),
+      hStack.leadingAnchor.constraint(
+        equalTo: leadingAnchor,
+        constant: Metrics.outerHorizontalPadding + Metrics.innerHorizontalPadding),
+      hStack.trailingAnchor.constraint(
+        equalTo: trailingAnchor,
+        constant: -(Metrics.outerHorizontalPadding + Metrics.innerHorizontalPadding)),
+      hStack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+      hStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
 
       iconView.widthAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
       iconView.heightAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-
-      hStack.leadingAnchor.constraint(
-        equalTo: container.leadingAnchor, constant: Metrics.innerHorizontalPadding),
-      hStack.trailingAnchor.constraint(
-        equalTo: container.trailingAnchor, constant: -Metrics.innerHorizontalPadding),
-      hStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
-      hStack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6),
     ])
   }
 }
