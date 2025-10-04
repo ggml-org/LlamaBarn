@@ -24,6 +24,7 @@ final class SectionHeaderView: NSView {
     container.translatesAutoresizingMaskIntoConstraints = false
     label.translatesAutoresizingMaskIntoConstraints = false
     label.font = Typography.secondary
+    label.textColor = .controlTextColor
     label.stringValue = title
 
     addSubview(container)

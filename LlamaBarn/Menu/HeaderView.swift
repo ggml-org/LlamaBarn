@@ -30,6 +30,7 @@ final class HeaderView: NSView {
     backgroundView.wantsLayer = true
 
     appNameLabel.font = Typography.primary
+    appNameLabel.textColor = .controlTextColor
     appNameLabel.stringValue = "LlamaBarn"
 
     serverStatusLabel.font = Typography.secondary
@@ -95,7 +96,7 @@ final class HeaderView: NSView {
         string: full,
         attributes: [
           .font: Typography.secondary,
-          .foregroundColor: NSColor.labelColor,
+          .foregroundColor: NSColor.controlTextColor,
         ])
       // Use .link attribute so NSTextField handles clicks automatically.
       if let range = full.range(of: linkText) {
@@ -114,7 +115,7 @@ final class HeaderView: NSView {
         string: "Server not running",
         attributes: [
           .font: Typography.secondary,
-          .foregroundColor: NSColor.labelColor,
+          .foregroundColor: NSColor.controlTextColor,
         ]
       )
       serverStatusLabel.toolTip = nil

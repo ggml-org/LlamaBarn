@@ -45,10 +45,12 @@ final class FamilyItemView: ItemView {
     // Configure family name label
     familyLabel.stringValue = family
     familyLabel.font = Typography.primary
+    familyLabel.textColor = .controlTextColor
 
     // Configure metadata label (second line showing all available model sizes)
     // Contains all size entries in a single attributed string (e.g., "✓ 270M • 1B • ✓ 4B • 12B")
     metadataLabel.font = Typography.secondary
+    metadataLabel.textColor = .controlTextColor
 
     // Configure chevron indicator
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)

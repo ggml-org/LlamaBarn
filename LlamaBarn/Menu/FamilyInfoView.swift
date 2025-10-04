@@ -33,12 +33,13 @@ final class FamilyInfoView: NSView {
 
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.font = Typography.primary
+    titleLabel.textColor = .controlTextColor
     titleLabel.stringValue = familyName
     titleLabel.lineBreakMode = .byTruncatingTail
 
     descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
     descriptionLabel.font = Typography.secondary
-    descriptionLabel.textColor = .labelColor
+    descriptionLabel.textColor = .controlTextColor
     descriptionLabel.stringValue = blurb
     descriptionLabel.lineBreakMode = .byWordWrapping
 

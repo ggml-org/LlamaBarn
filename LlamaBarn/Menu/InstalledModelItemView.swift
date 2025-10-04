@@ -47,10 +47,12 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     circleIcon.setImage(NSImage(named: model.icon))
 
     modelNameLabel.font = Typography.primary
+    modelNameLabel.textColor = .controlTextColor
 
     // Configure metadata label (second line showing size, context, memory)
     // Contains all metadata fields in a single attributed string (e.g., "📦 2.53 GB • 🧠 84k")
     metadataLabel.font = Typography.secondary
+    metadataLabel.textColor = .controlTextColor
 
     progressLabel.font = Typography.secondary
     progressLabel.alignment = .right

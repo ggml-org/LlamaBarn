@@ -42,11 +42,13 @@ final class CatalogModelItemView: ItemView {
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
     labelField.font = Typography.primary
+    labelField.textColor = .controlTextColor
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
     // Configure metadata label (second line showing size, context, warnings)
     // Contains all metadata fields in a single attributed string (e.g., "📦 4.28 GB • 🧠 84k")
     metadataLabel.font = Typography.secondary
+    metadataLabel.textColor = .controlTextColor
 
     progressLabel.font = Typography.secondary
     progressLabel.alignment = .right
@@ -134,7 +136,6 @@ final class CatalogModelItemView: ItemView {
     let display = CatalogModelPresenter.makeDisplay(for: model, status: status)
 
     labelField.stringValue = display.title
-    labelField.textColor = .labelColor
 
     metadataLabel.attributedStringValue = makeMetadataLine(from: display)
     metadataLabel.toolTip = combinedTooltip(
