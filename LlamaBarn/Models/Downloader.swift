@@ -3,8 +3,8 @@ import Foundation
 import os.log
 
 /// Manages the low-level details of downloading model files using URLSession.
-class Downloader: NSObject, URLSessionDownloadDelegate {
-  static let shared = Downloader()
+class ModelDownloader: NSObject, URLSessionDownloadDelegate {
+  static let shared = ModelDownloader()
 
   // Track multi-file downloads per model id
   struct ActiveDownload {
@@ -61,7 +61,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
   var activeDownloads: [String: ActiveDownload] = [:]
 
   private var urlSession: URLSession!
-  private let logger = Logger(subsystem: Logging.subsystem, category: "Downloader")
+  private let logger = Logger(subsystem: Logging.subsystem, category: "ModelDownloader")
 
   // Throttle progress notifications to prevent excessive UI refreshes.
   // URLSession's didWriteData can fire hundreds of times per second during fast downloads,
@@ -76,7 +76,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
   }
 
-  func getDownloadStatus(for model: CatalogEntry) -> ModelStatus {
+  func status(for model: CatalogEntry) -> ModelStatus {
     if let download = activeDownloads[model.id] {
       return .downloading(download.progress)
     }

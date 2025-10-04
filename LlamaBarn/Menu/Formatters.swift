@@ -21,7 +21,7 @@ enum ByteFormatters {
 
   /// Formats byte count as decimal GB using cached formatter (e.g., "3.14 GB").
   /// Uses 1 GB = 1,000,000,000 bytes to match network/download UI conventions.
-  static func decimalGBString(_ bytes: Int64) -> String {
+  static func decimalGB(_ bytes: Int64) -> String {
     decimalGB.string(fromByteCount: bytes)
   }
 }
@@ -42,9 +42,9 @@ enum DateFormatters {
     return df
   }()
 
-  static func mediumString(_ date: Date) -> String { medium.string(from: date) }
+  static func medium(_ date: Date) -> String { medium.string(from: date) }
 
-  static func monthAndYearString(_ date: Date) -> String { monthAndYear.string(from: date) }
+  static func monthAndYear(_ date: Date) -> String { monthAndYear.string(from: date) }
 }
 
 enum TokenFormatters {

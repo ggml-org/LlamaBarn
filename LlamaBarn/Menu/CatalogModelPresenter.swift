@@ -1,9 +1,9 @@
 import AppKit
 
 enum CatalogModelPresenter {
-  struct DisplayData {
+  struct Display {
     enum StatusIcon {
-      case downloaded
+      case installed
       case downloading(percent: Int)
       case available(compatible: Bool)
     }
@@ -20,7 +20,7 @@ enum CatalogModelPresenter {
     let progressText: String?
     let rowTooltip: String?
     let isActionable: Bool
-    let compatible: Bool
+    let isCompatible: Bool
   }
 
   static func isActionable(model: CatalogEntry, status: ModelStatus) -> Bool {
@@ -29,12 +29,12 @@ enum CatalogModelPresenter {
       return Catalog.isModelCompatible(model)
     case .downloading:
       return true
-    case .downloaded:
+    case .installed:
       return false
     }
   }
 
-  static func makeDisplay(for model: CatalogEntry, status: ModelStatus) -> DisplayData {
+  static func makeDisplay(for model: CatalogEntry, status: ModelStatus) -> Display {
     let compatible = Catalog.isModelCompatible(model)
     let actionable = isActionable(model: model, status: status)
     let titleColor: NSColor = .labelColor
@@ -50,18 +50,18 @@ enum CatalogModelPresenter {
       return result
     }()
 
-    let recommendedContext = Catalog.recommendedContextLength(for: model)
+    let recommendedCtx = Catalog.recommendedCtxWindow(for: model)
 
     let contextString: String
 
     if compatible {
       contextString = {
-        if let usable = recommendedContext, usable < model.contextLength {
-          let max = model.contextLength
+        if let usable = recommendedCtx, usable < model.ctxWindow {
+          let max = model.ctxWindow
           return "\(TokenFormatters.shortTokens(usable)) of \(TokenFormatters.shortTokens(max))"
         }
-        guard model.contextLength > 0 else { return "—" }
-        return TokenFormatters.shortTokens(model.contextLength)
+        guard model.ctxWindow > 0 else { return "—" }
+        return TokenFormatters.shortTokens(model.ctxWindow)
       }()
     } else {
       contextString = "Won't run on this device."
@@ -74,12 +74,12 @@ enum CatalogModelPresenter {
 
     let (showsWarning, warningTooltip) = makeMaxContextWarning(for: model, compatible: compatible)
 
-    let statusIcon: DisplayData.StatusIcon
+    let statusIcon: Display.StatusIcon
     let progressText: String?
     let rowTooltip: String?
     switch status {
-    case .downloaded:
-      statusIcon = .downloaded
+    case .installed:
+      statusIcon = .installed
       progressText = nil
       rowTooltip = "Already installed"
     case .downloading(let progress):
@@ -94,10 +94,10 @@ enum CatalogModelPresenter {
 
     let memoryMB = Catalog.runtimeMemoryUsageMB(
       for: model,
-      contextLengthTokens: Double(recommendedContext ?? model.contextLength)
+      ctxWindowTokens: Double(recommendedCtx ?? model.ctxWindow)
     )
 
-    return DisplayData(
+    return Display(
       title: title,
       titleColor: titleColor,
       sizeText: model.totalSize,
@@ -110,7 +110,7 @@ enum CatalogModelPresenter {
       progressText: progressText,
       rowTooltip: rowTooltip,
       isActionable: actionable,
-      compatible: compatible
+      isCompatible: compatible
     )
   }
 
@@ -118,14 +118,14 @@ enum CatalogModelPresenter {
     for model: CatalogEntry,
     compatible: Bool
   ) -> (Bool, String?) {
-    guard compatible, model.contextLength > 0 else { return (false, nil) }
-    let maxTokens = Double(model.contextLength)
-    if maxTokens <= Catalog.compatibilityContextLengthTokens {
+    guard compatible, model.ctxWindow > 0 else { return (false, nil) }
+    let maxTokens = Double(model.ctxWindow)
+    if maxTokens <= Catalog.compatibilityCtxWindowTokens {
       return (false, nil)
     }
     let stillFits = Catalog.isModelCompatible(
       model,
-      contextLengthTokens: maxTokens
+      ctxWindowTokens: maxTokens
     )
     guard !stillFits else { return (false, nil) }
     return (true, "Can run at reduced context window")

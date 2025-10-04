@@ -35,7 +35,7 @@ class LlamaServer {
   private let logger = Logger(subsystem: Logging.subsystem, category: "LlamaServer")
 
   // Lock protects shared state accessed from background threads (process termination handler).
-  // Unlike Manager and Downloader (main-thread-only), LlamaServer needs synchronization because
+  // Unlike ModelManager and ModelDownloader (main-thread-only), LlamaServer needs synchronization because
   // Process.terminationHandler runs on a background thread and accesses activeModelPath and
   // isIntentionalShutdown. State updates still dispatch to main for UI consistency.
   private let stateLock = NSLock()
@@ -67,7 +67,7 @@ class LlamaServer {
     didSet { NotificationCenter.default.post(name: .LBServerStateDidChange, object: self) }
   }
   var activeModelPath: String?
-  private(set) var activeContextLength: Int?
+  private(set) var activeCtxWindow: Int?
   var memoryUsageMB: Double = 0 {
     didSet { NotificationCenter.default.post(name: .LBServerMemoryDidChange, object: self) }
   }
@@ -126,7 +126,7 @@ class LlamaServer {
   func start(
     modelName: String,
     modelPath: String,
-    appliedContextLength: Int,
+    appliedCtxWindow: Int,
     extraArgs: [String] = []
   ) {
     let port = Self.defaultPort
@@ -151,7 +151,7 @@ class LlamaServer {
 
     stateLock.lock()
     activeModelPath = modelPath
-    activeContextLength = appliedContextLength
+    activeCtxWindow = appliedCtxWindow
     stateLock.unlock()
 
     let llamaServerPath = libFolderPath + "/llama-server"
@@ -168,7 +168,7 @@ class LlamaServer {
 
     // Enable larger batch size (-ub 2048) for better model performance on high-memory devices.
     // This improves throughput but increases memory usage, so we only enable it on Macs with ≥32 GB RAM.
-    let systemMemoryGB = Double(SystemMemory.getMemoryMB()) / 1024.0
+    let systemMemoryGB = Double(SystemMemory.memoryMB) / 1024.0
     if systemMemoryGB >= 32.0 {
       arguments.append(contentsOf: ["-ub", "2048"])
     }
@@ -226,7 +226,7 @@ class LlamaServer {
       DispatchQueue.main.async {
         self.state = .error(.launchFailed(errorMessage))
         self.activeModelPath = nil
-        self.activeContextLength = nil
+        self.activeCtxWindow = nil
       }
       return
     }
@@ -238,7 +238,7 @@ class LlamaServer {
     stateLock.lock()
     isIntentionalShutdown = true
     activeModelPath = nil
-    activeContextLength = nil
+    activeCtxWindow = nil
     stateLock.unlock()
 
     memoryUsageMB = 0
@@ -299,7 +299,7 @@ class LlamaServer {
 
   /// Convenience method to start server using a CatalogEntry
   func start(model: CatalogEntry) {
-    guard let launch = makeLaunchConfiguration(for: model, requestedContext: nil) else {
+    guard let launch = makeLaunchConfiguration(for: model, requestedCtx: nil) else {
       let reason =
         Catalog.incompatibilitySummary(model)
         ?? "insufficient memory for required context"
@@ -312,18 +312,18 @@ class LlamaServer {
     start(
       modelName: model.displayName,
       modelPath: model.modelFilePath,
-      appliedContextLength: launch.applied,
+      appliedCtxWindow: launch.applied,
       extraArgs: launch.args
     )
   }
 
-  /// Convenience method to start server using a CatalogEntry and a specific context length
-  func start(model: CatalogEntry, contextLength: Int) {
-    let desired = contextLength <= 0 ? model.contextLength : contextLength
-    guard let launch = makeLaunchConfiguration(for: model, requestedContext: desired) else {
+  /// Convenience method to start server using a CatalogEntry and a specific context window
+  func start(model: CatalogEntry, ctxWindow: Int) {
+    let desired = ctxWindow <= 0 ? model.ctxWindow : ctxWindow
+    guard let launch = makeLaunchConfiguration(for: model, requestedCtx: desired) else {
       let reason =
         Catalog.incompatibilitySummary(
-          model, contextLengthTokens: Double(model.contextLength))
+          model, ctxWindowTokens: Double(model.ctxWindow))
         ?? "insufficient memory for requested context"
       DispatchQueue.main.async {
         self.state = .error(.launchFailed(reason))
@@ -334,25 +334,25 @@ class LlamaServer {
     start(
       modelName: model.displayName,
       modelPath: model.modelFilePath,
-      appliedContextLength: launch.applied,
+      appliedCtxWindow: launch.applied,
       extraArgs: launch.args
     )
   }
 
   private func makeLaunchConfiguration(
     for model: CatalogEntry,
-    requestedContext: Int?
+    requestedCtx: Int?
   ) -> (applied: Int, args: [String])? {
     let sanitizedArgs = Self.removeContextArguments(from: model.serverArgs)
     guard
-      let safeContext = Catalog.safeContextLength(
-        for: model, desiredTokens: requestedContext)
+      let safeCtx = Catalog.safeCtxWindow(
+        for: model, desiredTokens: requestedCtx)
     else {
-      logger.error("No safe context length for model \(model.displayName, privacy: .public)")
+      logger.error("No safe context window for model \(model.displayName, privacy: .public)")
       return nil
     }
-    let args = ["-c", String(safeContext)] + sanitizedArgs
-    return (safeContext, args)
+    let args = ["-c", String(safeCtx)] + sanitizedArgs
+    return (safeCtx, args)
   }
 
   private static func removeContextArguments(from args: [String]) -> [String] {
@@ -428,7 +428,7 @@ class LlamaServer {
       let (_, response) = try await URLSession.shared.data(for: request)
 
       if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-        let memoryValue = getMemoryUsageMB()
+        let memoryValue = measureMemoryUsageMB()
         _ = await MainActor.run {
           if self.state != .idle {
             self.state = .running
@@ -454,7 +454,7 @@ class LlamaServer {
           break
         }
 
-        let memoryValue = self.getMemoryUsageMB()
+        let memoryValue = self.measureMemoryUsageMB()
         _ = await MainActor.run {
           self.memoryUsageMB = memoryValue
         }
@@ -470,7 +470,7 @@ class LlamaServer {
   }
 
   /// Measures the current memory footprint of the llama-server process
-  func getMemoryUsageMB() -> Double {
+  func measureMemoryUsageMB() -> Double {
     guard let process = activeProcess, process.isRunning else { return 0 }
 
     let task = Process()
@@ -505,7 +505,7 @@ class LlamaServer {
     }
   }
 
-  // Removed: getLlamaCppVersion() — Controller reads version directly.
+  // Removed: getLlamaCppVersion() — MenuController reads version directly.
 
   deinit {
     stop()

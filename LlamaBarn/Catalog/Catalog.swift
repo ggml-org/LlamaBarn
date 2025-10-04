@@ -35,10 +35,10 @@ enum Catalog {
 
   /// We evaluate compatibility assuming a 4k-token context, which is the
   /// default llama.cpp launches with when no explicit value is provided.
-  static let compatibilityContextLengthTokens: Double = 4_096
+  static let compatibilityCtxWindowTokens: Double = 4_096
 
-  /// Models must support at least this context length to launch.
-  static let minimumContextLengthTokens: Double = compatibilityContextLengthTokens
+  /// Models must support at least this context window to launch.
+  static let minimumCtxWindowTokens: Double = compatibilityCtxWindowTokens
 
   // MARK: - New hierarchical catalog
 
@@ -61,10 +61,10 @@ enum Catalog {
         family: family.name,
         size: model.label,
         releaseDate: model.releaseDate,
-        contextLength: model.contextLength,
+        ctxWindow: model.ctxWindow,
         fileSize: fileSize,
         ctxFootprint: ctxFootprint,
-        overhead: family.overhead,
+        overheadMultiplier: family.overheadMultiplier,
         downloadUrl: downloadUrl,
         additionalParts: additionalParts,
         serverArgs: effectiveArgs,
@@ -78,7 +78,7 @@ enum Catalog {
   struct Model {
     let label: String  // e.g. "4B", "30B"
     let releaseDate: Date
-    let contextLength: Int
+    let ctxWindow: Int
     let serverArgs: [String]?  // optional defaults for all builds
     let build: ModelBuild
     let quantizedBuilds: [ModelBuild]
@@ -89,7 +89,7 @@ enum Catalog {
     let series: String  // e.g. "qwen"
     let blurb: String  // short one- or two-sentence description
     let serverArgs: [String]?  // optional defaults for all models/builds
-    let overhead: Double  // overhead multiplier for file size
+    let overheadMultiplier: Double  // overhead multiplier for file size
     let models: [Model]
 
     init(
@@ -97,14 +97,14 @@ enum Catalog {
       series: String,
       blurb: String,
       serverArgs: [String]? = nil,
-      overhead: Double = 1.05,
+      overheadMultiplier: Double = 1.05,
       models: [Model]
     ) {
       self.name = name
       self.series = series
       self.blurb = blurb
       self.serverArgs = serverArgs
-      self.overhead = overhead
+      self.overheadMultiplier = overheadMultiplier
       self.models = models
     }
 
@@ -180,39 +180,39 @@ enum Catalog {
   }
 
   /// Gets system memory in MB using shared system memory utility
-  static func getSystemMemoryMB() -> UInt64 {
-    return SystemMemory.getMemoryMB()
+  static var systemMemoryMB: UInt64 {
+    return SystemMemory.memoryMB
   }
 
-  /// Computes the maximum context length (in tokens) that fits within the allowed memory budget.
+  /// Computes the maximum context window (in tokens) that fits within the allowed memory budget.
   /// - Parameters:
   ///   - model: Catalog entry under evaluation.
   ///   - desiredTokens: Upper bound requested by the caller. When nil, defaults to the model's max.
-  /// - Returns: Rounded context length (multiple of 1024) or nil when the model cannot satisfy the
+  /// - Returns: Rounded context window (multiple of 1024) or nil when the model cannot satisfy the
   ///            minimum requirements.
-  static func safeContextLength(
+  static func safeCtxWindow(
     for model: CatalogEntry,
     desiredTokens: Int? = nil
   ) -> Int? {
-    let minimumTokens = Int(minimumContextLengthTokens)
-    guard model.contextLength >= minimumTokens else { return nil }
+    let minimumTokens = Int(minimumCtxWindowTokens)
+    guard model.ctxWindow >= minimumTokens else { return nil }
 
-    let systemMemoryMB = getSystemMemoryMB()
+    let systemMemoryMB = systemMemoryMB
     guard systemMemoryMB > 0 else { return nil }
 
     let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
     let availableMemoryMB = Double(systemMemoryMB) * memoryFraction
     let fileSizeMB = Double(model.fileSize) / 1_048_576.0
-    let fileSizeWithOverheadMB = fileSizeMB * model.overhead
+    let fileSizeWithOverheadMB = fileSizeMB * model.overheadMultiplier
     if fileSizeWithOverheadMB > availableMemoryMB { return nil }
 
-    let effectiveDesired = desiredTokens.flatMap { $0 > 0 ? $0 : nil } ?? model.contextLength
+    let effectiveDesired = desiredTokens.flatMap { $0 > 0 ? $0 : nil } ?? model.ctxWindow
     let desiredTokensDouble = Double(effectiveDesired)
 
     let ctxBytesPerToken = Double(model.ctxFootprint) / 1_000.0
     let maxTokensFromMemory: Double = {
       if ctxBytesPerToken <= 0 {
-        return Double(model.contextLength)
+        return Double(model.ctxWindow)
       }
       let remainingMB = availableMemoryMB - fileSizeWithOverheadMB
       if remainingMB <= 0 { return 0 }
@@ -220,22 +220,22 @@ enum Catalog {
       return remainingBytes / ctxBytesPerToken
     }()
 
-    let cappedTokens = min(Double(model.contextLength), desiredTokensDouble, maxTokensFromMemory)
-    if cappedTokens < minimumContextLengthTokens { return nil }
+    let cappedTokens = min(Double(model.ctxWindow), desiredTokensDouble, maxTokensFromMemory)
+    if cappedTokens < minimumCtxWindowTokens { return nil }
 
     let floored = Int(cappedTokens)
     var rounded = (floored / 1_024) * 1_024
     if rounded < minimumTokens { rounded = minimumTokens }
-    if rounded > model.contextLength { rounded = model.contextLength }
+    if rounded > model.ctxWindow { rounded = model.ctxWindow }
     return rounded
   }
 
-  /// Recommended context length to launch the model with, honoring memory constraints.
-  static func recommendedContextLength(for model: CatalogEntry) -> Int? {
+  /// Recommended context window to launch the model with, honoring memory constraints.
+  static func recommendedCtxWindow(for model: CatalogEntry) -> Int? {
     if let cached = recommendedContextCache[model.id] {
       return cached
     }
-    let result = safeContextLength(for: model)
+    let result = safeCtxWindow(for: model)
     recommendedContextCache[model.id] = result
     return result
   }
@@ -243,9 +243,9 @@ enum Catalog {
   /// Computes compatibility info for a model and caches the result
   private static func getCompatibilityInfo(
     _ model: CatalogEntry,
-    contextLengthTokens: Double = compatibilityContextLengthTokens
+    ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> CompatibilityInfo {
-    let cacheKey = compatibilityCacheKey(model, contextLengthTokens)
+    let cacheKey = compatibilityCacheKey(model, ctxWindowTokens)
     if let cached = compatibilityCache[cacheKey] { return cached }
 
     func cache(_ info: CompatibilityInfo) -> CompatibilityInfo {
@@ -253,10 +253,10 @@ enum Catalog {
       return info
     }
 
-    let minimumTokens = minimumContextLengthTokens
+    let minimumTokens = minimumCtxWindowTokens
 
-    // Check context length requirements
-    if Double(model.contextLength) < minimumTokens {
+    // Check context window requirements
+    if Double(model.ctxWindow) < minimumTokens {
       return cache(
         CompatibilityInfo(
           isCompatible: false,
@@ -264,15 +264,15 @@ enum Catalog {
         ))
     }
 
-    if contextLengthTokens > 0 && contextLengthTokens > Double(model.contextLength) {
+    if ctxWindowTokens > 0 && ctxWindowTokens > Double(model.ctxWindow) {
       return cache(CompatibilityInfo(isCompatible: false, incompatibilitySummary: nil))
     }
 
     // Check memory requirements
-    let systemMemoryMB = getSystemMemoryMB()
+    let systemMemoryMB = systemMemoryMB
     let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
     let estimatedMemoryUsageMB = runtimeMemoryUsageMB(
-      for: model, contextLengthTokens: contextLengthTokens)
+      for: model, ctxWindowTokens: ctxWindowTokens)
 
     func memoryRequirementSummary() -> String {
       let requiredTotalMB = UInt64(ceil(Double(estimatedMemoryUsageMB) / memoryFraction))
@@ -299,9 +299,9 @@ enum Catalog {
   /// Checks if a model can fit within system memory constraints
   static func isModelCompatible(
     _ model: CatalogEntry,
-    contextLengthTokens: Double = compatibilityContextLengthTokens
+    ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> Bool {
-    getCompatibilityInfo(model, contextLengthTokens: contextLengthTokens).isCompatible
+    getCompatibilityInfo(model, ctxWindowTokens: ctxWindowTokens).isCompatible
   }
 
   /// If incompatible, returns a short human-readable reason showing
@@ -309,20 +309,20 @@ enum Catalog {
   /// Example: "needs ~12 GB of mem". Returns nil if compatible.
   static func incompatibilitySummary(
     _ model: CatalogEntry,
-    contextLengthTokens: Double = compatibilityContextLengthTokens
+    ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> String? {
-    getCompatibilityInfo(model, contextLengthTokens: contextLengthTokens).incompatibilitySummary
+    getCompatibilityInfo(model, ctxWindowTokens: ctxWindowTokens).incompatibilitySummary
   }
 
   static func runtimeMemoryUsageMB(
     for model: CatalogEntry,
-    contextLengthTokens: Double = compatibilityContextLengthTokens
+    ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> UInt64 {
     // Memory calculations use binary units so they line up with Activity Monitor.
     let fileSizeMB = Double(model.fileSize) / 1_048_576.0
-    let fileSizeWithOverheadMB = fileSizeMB * model.overhead
-    let contextMultiplier = contextLengthTokens / 1_000.0
-    let ctxBytes = Double(model.ctxFootprint) * contextMultiplier
+    let fileSizeWithOverheadMB = fileSizeMB * model.overheadMultiplier
+    let ctxMultiplier = ctxWindowTokens / 1_000.0
+    let ctxBytes = Double(model.ctxFootprint) * ctxMultiplier
     let ctxMB = ctxBytes / 1_048_576.0
     let totalMB = fileSizeWithOverheadMB + ctxMB
     return UInt64(ceil(totalMB))
@@ -347,7 +347,7 @@ enum CatalogFamilies {
         Model(
           label: "8B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 5, day: 29))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "deepseek-r1-0528-qwen3-8b-q8",
@@ -392,7 +392,7 @@ enum CatalogFamilies {
         Model(
           label: "20B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "gpt-oss-20b-mxfp4",
@@ -412,7 +412,7 @@ enum CatalogFamilies {
         Model(
           label: "120B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 2))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "gpt-oss-120b-mxfp4",
@@ -447,12 +447,12 @@ enum CatalogFamilies {
       blurb:
         "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
       serverArgs: nil,
-      overhead: 1.3,
+      overheadMultiplier: 1.3,
       models: [
         Model(
           label: "27B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 24))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3-qat-27b",
@@ -472,7 +472,7 @@ enum CatalogFamilies {
         Model(
           label: "12B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 21))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3-qat-12b",
@@ -492,7 +492,7 @@ enum CatalogFamilies {
         Model(
           label: "4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 4, day: 22))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3-qat-4b",
@@ -512,7 +512,7 @@ enum CatalogFamilies {
         Model(
           label: "1B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 27))!,
-          contextLength: 131_072,
+          ctxWindow: 131_072,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3-qat-1b",
@@ -532,7 +532,7 @@ enum CatalogFamilies {
         Model(
           label: "270M",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 8, day: 14))!,
-          contextLength: 32_768,
+          ctxWindow: 32_768,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3-qat-270m",
@@ -563,7 +563,7 @@ enum CatalogFamilies {
         Model(
           label: "E4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 15))!,
-          contextLength: 32_768,
+          ctxWindow: 32_768,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3n-e4b-q8",
@@ -597,7 +597,7 @@ enum CatalogFamilies {
         Model(
           label: "E2B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 1))!,
-          contextLength: 32_768,
+          ctxWindow: 32_768,
           serverArgs: nil,
           build: ModelBuild(
             id: "gemma-3n-e2b-q8",
@@ -637,12 +637,12 @@ enum CatalogFamilies {
       blurb:
         "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
       serverArgs: nil,
-      overhead: 1.1,
+      overheadMultiplier: 1.1,
       models: [
         Model(
           label: "30B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 31))!,
-          contextLength: 262_144,
+          ctxWindow: 262_144,
           serverArgs: nil,
           build: ModelBuild(
             id: "qwen3-coder-30b-q8",
@@ -682,12 +682,12 @@ enum CatalogFamilies {
       blurb:
         "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
       serverArgs: nil,
-      overhead: 1.1,
+      overheadMultiplier: 1.1,
       models: [
         Model(
           label: "30B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
-          contextLength: 262_144,
+          ctxWindow: 262_144,
           serverArgs: nil,
           build: ModelBuild(
             id: "qwen3-2507-30b-q8",
@@ -721,7 +721,7 @@ enum CatalogFamilies {
         Model(
           label: "4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
-          contextLength: 262_144,
+          ctxWindow: 262_144,
           serverArgs: nil,
           build: ModelBuild(
             id: "qwen3-2507-4b-q8",
@@ -761,12 +761,12 @@ enum CatalogFamilies {
       blurb:
         "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
       serverArgs: nil,
-      overhead: 1.1,
+      overheadMultiplier: 1.1,
       models: [
         Model(
           label: "30B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
-          contextLength: 262_144,
+          ctxWindow: 262_144,
           serverArgs: nil,
           build: ModelBuild(
             id: "qwen3-2507-thinking-30b-q8",
@@ -800,7 +800,7 @@ enum CatalogFamilies {
         Model(
           label: "4B",
           releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 7, day: 1))!,
-          contextLength: 262_144,
+          ctxWindow: 262_144,
           serverArgs: nil,
           build: ModelBuild(
             id: "qwen3-2507-thinking-4b-q8",

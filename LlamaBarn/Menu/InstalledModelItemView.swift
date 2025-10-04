@@ -9,7 +9,7 @@ import Foundation
 final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let model: CatalogEntry
   private unowned let server: LlamaServer
-  private unowned let modelManager: Manager
+  private unowned let modelManager: ModelManager
   private let membershipChanged: (CatalogEntry) -> Void
 
   // Subviews
@@ -25,7 +25,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private var deleteClickRecognizer: NSClickGestureRecognizer?
 
   init(
-    model: CatalogEntry, server: LlamaServer, modelManager: Manager,
+    model: CatalogEntry, server: LlamaServer, modelManager: ModelManager,
     membershipChanged: @escaping (CatalogEntry) -> Void
   ) {
     self.model = model
@@ -150,9 +150,9 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   private func toggle() {
-    let status = modelManager.getModelStatus(model)
+    let status = modelManager.status(for: model)
     switch status {
-    case .downloaded:
+    case .installed:
       if server.isActive(model: model) { server.stop() } else { server.start(model: model) }
     case .downloading:
       modelManager.cancelModelDownload(model)
@@ -164,12 +164,12 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   override func hoverHighlightDidChange(_ highlighted: Bool) {
-    let status = modelManager.getModelStatus(model)
-    deleteImageView.isHidden = !(highlighted && status == .downloaded)
+    let status = modelManager.status(for: model)
+    deleteImageView.isHidden = !(highlighted && status == .installed)
   }
 
   func refresh() {
-    let status = modelManager.getModelStatus(model)
+    let status = modelManager.status(for: model)
 
     // Get display data from presenter
     let display = InstalledModelPresenter.makeDisplay(
@@ -198,8 +198,8 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   @objc private func performDelete() {
-    let status = modelManager.getModelStatus(model)
-    guard case .downloaded = status else { return }
+    let status = modelManager.status(for: model)
+    guard case .installed = status else { return }
     modelManager.deleteDownloadedModel(model)
     membershipChanged(model)
   }

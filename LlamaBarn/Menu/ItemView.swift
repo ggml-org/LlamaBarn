@@ -80,7 +80,7 @@ class ItemView: NSView {
     let effectiveHighlight = highlighted && hoverHighlightEnabled
     guard effectiveHighlight != isHoverHighlighted else { return }
     isHoverHighlighted = effectiveHighlight
-    backgroundView.lbSetHoverHighlighted(effectiveHighlight, cornerRadius: Metrics.cornerRadius)
+    backgroundView.setHoverHighlight(effectiveHighlight, cornerRadius: Metrics.cornerRadius)
     hoverHighlightDidChange(effectiveHighlight)
   }
 

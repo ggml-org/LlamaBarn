@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 
 /// Shared helpers that build individual sections of the status bar menu.
-/// Breaks the large Controller into focused collaborators so each
+/// Breaks the large MenuController into focused collaborators so each
 /// section owns its layout and mutation logic.
 
 /// Typed identifiers for menu items to avoid string-based tag collisions
@@ -73,12 +73,12 @@ final class InstalledSection {
     static let placeholderTitle = "No installed models"
   }
 
-  private let modelManager: Manager
+  private let modelManager: ModelManager
   private let server: LlamaServer
   private let onMembershipChanged: (CatalogEntry) -> Void
 
   init(
-    modelManager: Manager,
+    modelManager: ModelManager,
     server: LlamaServer,
     onMembershipChanged: @escaping (CatalogEntry) -> Void
   ) {
@@ -138,7 +138,7 @@ final class InstalledSection {
 
   private func getInstalledModels() -> [CatalogEntry] {
     let downloading = Catalog.allEntries().filter {
-      if case .downloading = modelManager.getModelStatus($0) { return true }
+      if case .downloading = modelManager.status(for: $0) { return true }
       return false
     }
     return (modelManager.downloadedModels + downloading)
@@ -186,12 +186,12 @@ final class InstalledSection {
 
 @MainActor
 final class CatalogSection: NSObject, NSMenuDelegate {
-  private let modelManager: Manager
+  private let modelManager: ModelManager
   private let onDownloadStatusChange: (CatalogEntry) -> Void
   private var submenuData: [String: (models: [CatalogEntry], family: Catalog.ModelFamily)] = [:]
 
   init(
-    modelManager: Manager,
+    modelManager: ModelManager,
     onDownloadStatusChange: @escaping (CatalogEntry) -> Void
   ) {
     self.modelManager = modelManager

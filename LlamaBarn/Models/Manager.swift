@@ -5,11 +5,11 @@ import os.log
 enum ModelStatus: Equatable {
   case available
   case downloading(Progress)
-  case downloaded
+  case installed
 
   static func == (lhs: ModelStatus, rhs: ModelStatus) -> Bool {
     switch (lhs, rhs) {
-    case (.available, .available), (.downloaded, .downloaded):
+    case (.available, .available), (.installed, .installed):
       return true
     case (.downloading(let lhsProgress), .downloading(let rhsProgress)):
       // Custom equality: compare Progress by value, not reference identity.
@@ -27,14 +27,14 @@ enum ModelStatus: Equatable {
 
 /// Manages the high-level state of available and downloaded models.
 @MainActor
-class Manager: NSObject {
-  static let shared = Manager()
+class ModelManager: NSObject {
+  static let shared = ModelManager()
 
   var downloadedModels: [CatalogEntry] = []
   private var downloadedModelIds: Set<String> = []
 
-  private let downloader = Downloader.shared
-  private let logger = Logger(subsystem: Logging.subsystem, category: "Manager")
+  private let downloader = ModelDownloader.shared
+  private let logger = Logger(subsystem: Logging.subsystem, category: "ModelManager")
   private var observers: [NSObjectProtocol] = []
 
   override init() {
@@ -53,11 +53,11 @@ class Manager: NSObject {
   }
 
   /// Gets the current status of a model.
-  func getModelStatus(_ model: CatalogEntry) -> ModelStatus {
+  func status(for model: CatalogEntry) -> ModelStatus {
     if downloadedModelIds.contains(model.id) {
-      return .downloaded
+      return .installed
     }
-    let downloadStatus = downloader.getDownloadStatus(for: model)
+    let downloadStatus = downloader.status(for: model)
     if case .downloading = downloadStatus {
       return downloadStatus
     }

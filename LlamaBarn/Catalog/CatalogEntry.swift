@@ -6,14 +6,14 @@ struct CatalogEntry: Identifiable, Codable {
   let family: String  // Model family name (e.g., "Qwen 3", "Gemma 3n")
   let size: String  // Model size (e.g., "8B", "E4B")
   let releaseDate: Date  // Model release date
-  let contextLength: Int  // Maximum context length in tokens
+  let ctxWindow: Int  // Maximum context window in tokens
   let fileSize: Int64  // File size in bytes for progress tracking and display
   /// Estimated KV-cache footprint for a 1k-token context, in bytes.
   /// This helps us preflight memory requirements before launching llama-server.
   let ctxFootprint: Int
   /// Overhead multiplier for the model file size (e.g., 1.3 = 30% overhead).
   /// Applied during memory calculations to account for loading overhead.
-  let overhead: Double
+  let overheadMultiplier: Double
   let downloadUrl: URL  // Remote download URL
   /// Optional additional model shards. When present, the first shard in `downloadUrl`
   /// should be passed to `--model` and llama-server will discover the rest in the same directory.
@@ -28,10 +28,10 @@ struct CatalogEntry: Identifiable, Codable {
     family: String,
     size: String,
     releaseDate: Date,
-    contextLength: Int,
+    ctxWindow: Int,
     fileSize: Int64,
     ctxFootprint: Int,
-    overhead: Double = 1.05,
+    overheadMultiplier: Double = 1.05,
     downloadUrl: URL,
     additionalParts: [URL]? = nil,
     serverArgs: [String],
@@ -43,10 +43,10 @@ struct CatalogEntry: Identifiable, Codable {
     self.family = family
     self.size = size
     self.releaseDate = releaseDate
-    self.contextLength = contextLength
+    self.ctxWindow = ctxWindow
     self.fileSize = fileSize
     self.ctxFootprint = ctxFootprint
-    self.overhead = overhead
+    self.overheadMultiplier = overheadMultiplier
     self.downloadUrl = downloadUrl
     self.additionalParts = additionalParts
     self.serverArgs = serverArgs
@@ -64,7 +64,7 @@ struct CatalogEntry: Identifiable, Codable {
 
   /// Total size including all model files
   var totalSize: String {
-    ByteFormatters.decimalGBString(fileSize)
+    ByteFormatters.decimalGB(fileSize)
   }
 
   /// Simplified quantization display (e.g., "Q4" from "Q4_K_M")
@@ -72,14 +72,14 @@ struct CatalogEntry: Identifiable, Codable {
     String(quantization.prefix(2))
   }
 
-  /// Estimated runtime memory (in MB) when running at the model's maximum context length.
-  var estimatedRuntimeMemoryMBAtMaxContext: UInt64 {
+  /// Estimated runtime memory (in MB) when running at the model's maximum context window.
+  var estimatedRuntimeMemoryMbAtMaxContext: UInt64 {
     let maxTokens =
-      contextLength > 0
-      ? Double(contextLength)
-      : Catalog.compatibilityContextLengthTokens
+      ctxWindow > 0
+      ? Double(ctxWindow)
+      : Catalog.compatibilityCtxWindowTokens
     return Catalog.runtimeMemoryUsageMB(
-      for: self, contextLengthTokens: maxTokens)
+      for: self, ctxWindowTokens: maxTokens)
   }
 
   /// The local file system path where the model file will be stored

@@ -4,9 +4,9 @@ import Foundation
 /// Controls the status bar item and its AppKit menu.
 /// Breaks menu construction into section helpers so each concern stays focused.
 @MainActor
-final class Controller: NSObject, NSMenuDelegate {
+final class MenuController: NSObject, NSMenuDelegate {
   private let statusItem: NSStatusItem
-  private let modelManager: Manager
+  private let modelManager: ModelManager
   private let server: LlamaServer
 
   private lazy var headerSection = MenuHeaderSection(server: server)
@@ -29,7 +29,7 @@ final class Controller: NSObject, NSMenuDelegate {
   private var observers: [NSObjectProtocol] = []
   private var refreshWorkItem: DispatchWorkItem?
 
-  init(modelManager: Manager = .shared, server: LlamaServer = .shared) {
+  init(modelManager: ModelManager = .shared, server: LlamaServer = .shared) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.modelManager = modelManager
     self.server = server

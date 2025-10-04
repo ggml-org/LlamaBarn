@@ -19,16 +19,16 @@ enum SystemMemory {
   }()
 
   /// Returns cached system memory in bytes for this process lifetime.
-  static func getMemoryBytes() -> UInt64 { cachedMemoryBytes }
+  static var memoryBytes: UInt64 { cachedMemoryBytes }
 
   /// Gets system memory in MB
-  static func getMemoryMB() -> UInt64 {
-    return getMemoryBytes() / (1024 * 1024)
+  static var memoryMB: UInt64 {
+    return memoryBytes / (1024 * 1024)
   }
 
   /// Formats system memory for display
   static func formatMemory() -> String {
-    let memsize = getMemoryBytes()
+    let memsize = memoryBytes
     let isSimulated = ProcessInfo.processInfo.environment["BARN_SIMULATE_MEM_GB"] != nil
 
     if memsize > 0 {

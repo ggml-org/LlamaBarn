@@ -10,7 +10,7 @@ final class FamilyItemView: ItemView {
 
   private let family: String
   private let sortedModels: [CatalogEntry]
-  private unowned let modelManager: Manager
+  private unowned let modelManager: ModelManager
 
   private let iconView = IconBadgeView(cornerStyle: .rounded)
   private let familyLabel = NSTextField(labelWithString: "")
@@ -19,7 +19,7 @@ final class FamilyItemView: ItemView {
 
   // MARK: - Initialization
 
-  init(family: String, sortedModels: [CatalogEntry], modelManager: Manager) {
+  init(family: String, sortedModels: [CatalogEntry], modelManager: ModelManager) {
     self.family = family
     self.sortedModels = sortedModels
     self.modelManager = modelManager
@@ -109,8 +109,8 @@ final class FamilyItemView: ItemView {
     for model in sortedModels {
       guard used.insert(model.id).inserted else { continue }
 
-      let status = modelManager.getModelStatus(model)
-      let downloaded = (status == .downloaded)
+      let status = modelManager.status(for: model)
+      let downloaded = (status == .installed)
 
       // Add separator between entries
       if line.length > 0 {

@@ -4,7 +4,7 @@ import Foundation
 /// Interactive menu item for a downloadable model build inside a family submenu.
 final class CatalogModelItemView: ItemView {
   private let model: CatalogEntry
-  private unowned let modelManager: Manager
+  private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
 
   private let statusIndicator = NSImageView()
@@ -17,7 +17,7 @@ final class CatalogModelItemView: ItemView {
   // Hover handling provided by MenuItemView
 
   init(
-    model: CatalogEntry, modelManager: Manager, membershipChanged: @escaping () -> Void
+    model: CatalogEntry, modelManager: ModelManager, membershipChanged: @escaping () -> Void
   ) {
     self.model = model
     self.modelManager = modelManager
@@ -34,7 +34,7 @@ final class CatalogModelItemView: ItemView {
 
   // Only allow hover highlight for actionable rows (available/compatible or downloading).
   override var hoverHighlightEnabled: Bool {
-    CatalogModelPresenter.isActionable(model: model, status: modelManager.getModelStatus(model))
+    CatalogModelPresenter.isActionable(model: model, status: modelManager.status(for: model))
   }
 
   private func setup() {
@@ -102,7 +102,7 @@ final class CatalogModelItemView: ItemView {
   }
 
   private func handleAction() {
-    let status = modelManager.getModelStatus(model)
+    let status = modelManager.status(for: model)
     switch status {
     case .available:
       // The `hoverHighlightEnabled` check already covers compatibility, but we could also check here.
@@ -122,7 +122,7 @@ final class CatalogModelItemView: ItemView {
     case .downloading:
       modelManager.cancelModelDownload(model)
       membershipChanged()
-    case .downloaded:
+    case .installed:
       break
     }
   }
@@ -130,7 +130,7 @@ final class CatalogModelItemView: ItemView {
   // Hover highlight handled by base class
 
   func refresh() {
-    let status = modelManager.getModelStatus(model)
+    let status = modelManager.status(for: model)
     let display = CatalogModelPresenter.makeDisplay(for: model, status: status)
 
     labelField.stringValue = display.title
@@ -143,7 +143,7 @@ final class CatalogModelItemView: ItemView {
     // Update status indicator icon
     let symbolName =
       switch display.status {
-      case .downloaded: "checkmark.circle"
+      case .installed: "checkmark.circle"
       case .downloading: "arrow.down.circle"
       case .available(let compatible): compatible ? "arrow.down.circle" : "nosign"
       }
@@ -158,7 +158,7 @@ final class CatalogModelItemView: ItemView {
     needsDisplay = true
   }
 
-  private func makeMetadataLine(from display: CatalogModelPresenter.DisplayData)
+  private func makeMetadataLine(from display: CatalogModelPresenter.Display)
     -> NSAttributedString
   {
     let line = NSMutableAttributedString()

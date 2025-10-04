@@ -1,7 +1,7 @@
 import AppKit
 
 enum InstalledModelPresenter {
-  struct DisplayData {
+  struct Display {
     let title: String
     let metadataText: NSAttributedString
     let progressText: String?
@@ -14,7 +14,7 @@ enum InstalledModelPresenter {
     for model: CatalogEntry,
     status: ModelStatus,
     server: LlamaServer
-  ) -> DisplayData {
+  ) -> Display {
     let title = makeTitle(for: model)
     let isActive = server.isActive(model: model)
     let isLoading = isActive && server.isLoading
@@ -36,7 +36,7 @@ enum InstalledModelPresenter {
         text: "\(completedSizeText) / \(totalSizeText)"
       )
 
-      return DisplayData(
+      return Display(
         title: title,
         metadataText: metadataText,
         progressText: "\(percent)%",
@@ -45,14 +45,14 @@ enum InstalledModelPresenter {
         isActive: isRunning
       )
 
-    case .downloaded, .available:
+    case .installed, .available:
       let metadataText = makeMetadataText(
         for: model,
         isRunning: isRunning,
         memoryUsageMB: server.memoryUsageMB
       )
 
-      return DisplayData(
+      return Display(
         title: title,
         metadataText: metadataText,
         progressText: nil,
@@ -82,12 +82,12 @@ enum InstalledModelPresenter {
 
     result.append(MetadataLabel.make(icon: MetadataLabel.sizeSymbol, text: model.totalSize))
 
-    if let recommendedContext = Catalog.recommendedContextLength(for: model) {
+    if let recommendedCtx = Catalog.recommendedCtxWindow(for: model) {
       result.append(MetadataLabel.makeSeparator())
       result.append(
         MetadataLabel.make(
           icon: MetadataLabel.contextSymbol,
-          text: TokenFormatters.shortTokens(recommendedContext)
+          text: TokenFormatters.shortTokens(recommendedCtx)
         ))
     }
 

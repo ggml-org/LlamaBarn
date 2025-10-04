@@ -17,7 +17,7 @@ enum Metrics {
 extension NSView {
   /// Applies or clears the standard hover highlight background on a container view.
   /// Uses dynamic colors resolved for the view's effective appearance and sets a rounded corner.
-  func lbSetHoverHighlighted(_ highlighted: Bool, cornerRadius: CGFloat = Metrics.cornerRadius) {
+  func setHoverHighlight(_ highlighted: Bool, cornerRadius: CGFloat = Metrics.cornerRadius) {
     wantsLayer = true
     let color: NSColor = highlighted ? .lbHoverBackground : .clear
     layer?.setBackgroundColor(color, in: self)
