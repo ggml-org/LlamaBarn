@@ -132,7 +132,7 @@ final class CatalogModelItemView: ItemView {
 
     labelField.stringValue = display.title
 
-    metadataLabel.attributedStringValue = makeMetadataLine(from: display)
+    metadataLabel.attributedStringValue = display.metadataText
     metadataLabel.toolTip = combinedTooltip(
       info: display.infoTooltip, warning: display.warningTooltip)
 
@@ -152,25 +152,6 @@ final class CatalogModelItemView: ItemView {
     // If the item is no longer actionable, clear any lingering hover highlight.
     if !display.isActionable { setHoverHighlight(false) }
     needsDisplay = true
-  }
-
-  private func makeMetadataLine(from display: CatalogModelPresenter.Display)
-    -> NSAttributedString
-  {
-    let line = NSMutableAttributedString()
-
-    line.append(MetadataLabel.make(icon: MetadataLabel.sizeSymbol, text: display.sizeText))
-    line.append(MetadataLabel.makeSeparator())
-    line.append(MetadataLabel.make(icon: MetadataLabel.memorySymbol, text: display.memoryText))
-    line.append(MetadataLabel.makeSeparator())
-    line.append(MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: display.contextText))
-
-    if display.showsWarning {
-      line.append(MetadataLabel.makeSeparator())
-      line.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.warningSymbol))
-    }
-
-    return line
   }
 
   private func combinedTooltip(info: String?, warning: String?) -> String? {

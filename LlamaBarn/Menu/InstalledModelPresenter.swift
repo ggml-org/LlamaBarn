@@ -15,18 +15,12 @@ enum InstalledModelPresenter {
     status: ModelStatus,
     server: LlamaServer
   ) -> Display {
-    let title = makeTitle(for: model)
     let isActive = server.isActive(model: model)
     let isLoading = isActive && server.isLoading
     let isRunning = isActive && server.isRunning
 
     switch status {
     case .downloading(let progress):
-      let percent =
-        progress.totalUnitCount > 0
-        ? Int(Double(progress.completedUnitCount) / Double(progress.totalUnitCount) * 100)
-        : 0
-
       let completedSizeText = ByteFormatters.gbTwoDecimals(progress.completedUnitCount)
       let totalBytes = progress.totalUnitCount > 0 ? progress.totalUnitCount : model.fileSize
       let totalSizeText = ByteFormatters.gbTwoDecimals(totalBytes)
@@ -37,9 +31,9 @@ enum InstalledModelPresenter {
       )
 
       return Display(
-        title: title,
+        title: model.menuTitle,
         metadataText: metadataText,
-        progressText: "\(percent)%",
+        progressText: ProgressFormatters.percentText(progress),
         showsCancelButton: true,
         isLoading: isLoading,
         isActive: isRunning
@@ -53,7 +47,7 @@ enum InstalledModelPresenter {
       )
 
       return Display(
-        title: title,
+        title: model.menuTitle,
         metadataText: metadataText,
         progressText: nil,
         showsCancelButton: false,
@@ -61,16 +55,6 @@ enum InstalledModelPresenter {
         isActive: isRunning
       )
     }
-  }
-
-  private static func makeTitle(for model: CatalogEntry) -> String {
-    var title = model.displayName
-    if !model.isFullPrecision,
-      let quantLabel = QuantizationFormatters.short(model.quantization).nilIfEmpty
-    {
-      title += "-\(quantLabel)"
-    }
-    return title
   }
 
   private static func makeMetadataText(

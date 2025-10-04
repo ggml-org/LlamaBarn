@@ -60,6 +60,17 @@ struct CatalogEntry: Identifiable, Codable {
     "\(family) \(size)"
   }
 
+  /// Menu title including quantization suffix when applicable
+  var menuTitle: String {
+    var title = displayName
+    if !isFullPrecision,
+      let quantLabel = QuantizationFormatters.short(quantization).nilIfEmpty
+    {
+      title += "-\(quantLabel)"
+    }
+    return title
+  }
+
   // Removed: isSlidingWindowFamily; models that should run with max context include "-c 0" in serverArgs.
 
   /// Total size including all model files

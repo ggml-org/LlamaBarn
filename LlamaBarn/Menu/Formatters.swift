@@ -96,3 +96,18 @@ enum QuantizationFormatters {
     return upper
   }
 }
+
+enum ProgressFormatters {
+  /// Calculates download progress percentage from a Progress object.
+  /// Returns 0 if totalUnitCount is 0 or invalid, otherwise percentage 0-100.
+  static func percent(_ progress: Progress) -> Int {
+    guard progress.totalUnitCount > 0 else { return 0 }
+    let fraction = Double(progress.completedUnitCount) / Double(progress.totalUnitCount)
+    return max(0, min(100, Int(fraction * 100)))
+  }
+
+  /// Formats progress percentage as a string (e.g., "42%").
+  static func percentText(_ progress: Progress) -> String {
+    "\(percent(progress))%"
+  }
+}
