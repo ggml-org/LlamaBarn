@@ -12,7 +12,11 @@ enum ModelStatus: Equatable {
     case (.available, .available), (.downloaded, .downloaded):
       return true
     case (.downloading(let lhsProgress), .downloading(let rhsProgress)):
-      // Compare progress values instead of object identity to catch actual changes
+      // Custom equality: compare Progress by value, not reference identity.
+      // Progress is a reference type (NSObject subclass), so default equality would compare
+      // object identity (===), which would always return false when the same download's
+      // Progress instance gets wrapped in new ModelStatus values during refresh cycles.
+      // We need value-based comparison to detect actual progress changes for UI updates.
       return lhsProgress.completedUnitCount == rhsProgress.completedUnitCount
         && lhsProgress.totalUnitCount == rhsProgress.totalUnitCount
     default:
@@ -27,10 +31,6 @@ class Manager: NSObject {
 
   var downloadedModels: [CatalogEntry] = []
   private var downloadedModelIds: Set<String> = []
-
-  var hasActiveDownloads: Bool {
-    !downloader.activeDownloads.isEmpty
-  }
 
   private let downloader = Downloader.shared
   private let logger = Logger(subsystem: Logging.subsystem, category: "Manager")

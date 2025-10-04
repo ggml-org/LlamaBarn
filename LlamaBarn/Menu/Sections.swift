@@ -6,6 +6,23 @@ import SwiftUI
 /// Breaks the large Controller into focused collaborators so each
 /// section owns its layout and mutation logic.
 
+/// Typed identifiers for menu items to avoid string-based tag collisions
+private enum MenuItemTag {
+  case installedHeader
+  case installedPlaceholder
+  case installedModel(String)  // model id
+  case catalogFamily(String)  // family name
+  case catalogModel(String)  // model id
+}
+
+/// NSObject wrapper for MenuItemTag to store in NSMenuItem.representedObject
+private final class MenuItemTagBox: NSObject {
+  let tag: MenuItemTag
+  init(_ tag: MenuItemTag) {
+    self.tag = tag
+  }
+}
+
 private func makeSectionHeaderItem(_ title: String) -> NSMenuItem {
   let view = SectionHeaderView(title: title)
   let item = NSMenuItem.viewItem(with: view, minHeight: 18)
@@ -50,7 +67,6 @@ final class MenuSettingsSection {
 
 final class InstalledSection {
   private enum Constants {
-    static let headerIdentifier = "installed-header"
     static let placeholderTitle = "No installed models"
   }
 
@@ -70,14 +86,15 @@ final class InstalledSection {
 
   func add(to menu: NSMenu) {
     let header = makeSectionHeaderItem("Installed")
-    header.representedObject = Constants.headerIdentifier
+    header.representedObject = MenuItemTagBox(.installedHeader)
     menu.addItem(header)
     populateSection(in: menu)
   }
 
-  /// Rebuilds the installed section to reflect current model state.
-  /// Called during live refresh to keep the UI in sync while menu stays open.
-  func refresh(in menu: NSMenu) {
+  /// Rebuilds the installed section if model membership changed (models added/removed).
+  /// Called during live updates to keep the UI in sync while menu stays open.
+  /// Does nothing if only model state changed (e.g., download progress).
+  func rebuildIfNeeded(in menu: NSMenu) {
     guard let range = installedSectionRange(in: menu) else { return }
     let currentModels = getInstalledModels()
     let currentIds = Set(currentModels.map { $0.id })
@@ -85,8 +102,9 @@ final class InstalledSection {
     // Get existing model IDs in the section
     let existingIds = Set(
       range.compactMap { index -> String? in
-        guard let id = menu.items[index].representedObject as? String else { return nil }
-        return id == "placeholder" ? nil : id
+        guard let box = menu.items[index].representedObject as? MenuItemTagBox else { return nil }
+        if case .installedModel(let id) = box.tag { return id }
+        return nil
       })
 
     // Only rebuild if membership changed (models added/removed)
@@ -128,7 +146,7 @@ final class InstalledSection {
     let item = NSMenuItem()
     item.title = Constants.placeholderTitle
     item.isEnabled = false
-    item.representedObject = "placeholder" as NSString
+    item.representedObject = MenuItemTagBox(.installedPlaceholder)
     return item
   }
 
@@ -141,7 +159,7 @@ final class InstalledSection {
       self?.onMembershipChanged(entry)
     }
     let item = NSMenuItem.viewItem(with: view, minHeight: 28)
-    item.representedObject = model.id as NSString
+    item.representedObject = MenuItemTagBox(.installedModel(model.id))
     return item
   }
 
@@ -150,7 +168,9 @@ final class InstalledSection {
   private func installedSectionRange(in menu: NSMenu) -> Range<Int>? {
     guard
       let headerIndex = menu.items.firstIndex(where: {
-        ($0.representedObject as? String) == Constants.headerIdentifier
+        guard let box = $0.representedObject as? MenuItemTagBox else { return false }
+        if case .installedHeader = box.tag { return true }
+        return false
       })
     else { return nil }
 
@@ -201,7 +221,7 @@ final class CatalogSection: NSObject, NSMenuDelegate {
       )
       let familyItem = NSMenuItem.viewItem(with: familyView)
       familyItem.isEnabled = true
-      familyItem.representedObject = family.name as NSString
+      familyItem.representedObject = MenuItemTagBox(.catalogFamily(family.name))
 
       // Create empty submenu with delegate for lazy population
       let submenu = NSMenu(title: family.name)
@@ -235,7 +255,7 @@ final class CatalogSection: NSObject, NSMenuDelegate {
         self?.onDownloadStatusChange(model)
       }
       let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
-      modelItem.representedObject = model.id as NSString
+      modelItem.representedObject = MenuItemTagBox(.catalogModel(model.id))
       menu.addItem(modelItem)
     }
   }

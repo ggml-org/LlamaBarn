@@ -34,7 +34,11 @@ class LlamaServer {
   private var healthCheckTask: Task<Void, Error>?
   private let logger = Logger(subsystem: Logging.subsystem, category: "LlamaServer")
   private let stateLock = NSLock()
-  private var expectedTermination = false
+
+  // Tracks whether we're intentionally stopping the process to suppress the termination handler.
+  // Without this flag, the async termination handler would fire when we call stop() and incorrectly
+  // treat our intentional shutdown as a crash, updating state when we've already cleaned up.
+  private var isIntentionalShutdown = false
 
   enum ServerState: Equatable {
     case idle
@@ -188,12 +192,12 @@ class LlamaServer {
       guard let self = self else { return }
 
       self.stateLock.lock()
-      let wasExpected = self.expectedTermination
-      let currentPath = self.activeModelPath
+      let isIntentional = self.isIntentionalShutdown
+      let hadActiveModel = self.activeModelPath != nil
       self.stateLock.unlock()
 
-      // Only update state if termination was unexpected
-      guard !wasExpected, currentPath != nil else { return }
+      // Skip handler if this was an intentional shutdown or no model was running
+      guard !isIntentional, hadActiveModel else { return }
 
       if self.activeProcess == proc {
         self.cleanUpResources()
@@ -227,7 +231,7 @@ class LlamaServer {
   /// Terminates the currently running llama-server process and resets state
   func stop() {
     stateLock.lock()
-    expectedTermination = true
+    isIntentionalShutdown = true
     activeModelPath = nil
     activeContextLength = nil
     stateLock.unlock()
@@ -237,7 +241,7 @@ class LlamaServer {
     cleanUpResources()
 
     stateLock.lock()
-    expectedTermination = false
+    isIntentionalShutdown = false
     stateLock.unlock()
   }
 

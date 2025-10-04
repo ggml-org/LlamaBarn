@@ -114,7 +114,7 @@ final class Controller: NSObject, NSMenuDelegate {
   /// Rebuilds the installed section to reflect membership changes while keeping submenus open.
   private func didChangeDownloadStatus(for _: CatalogEntry) {
     if let menu = statusItem.menu {
-      installedSection.refresh(in: menu)
+      installedSection.rebuildIfNeeded(in: menu)
     }
     performRefresh()
   }
@@ -143,7 +143,7 @@ final class Controller: NSObject, NSMenuDelegate {
         [weak self] _ in
         // Installed list changed (download completed or model deleted) - rebuild section
         if let menu = self?.statusItem.menu {
-          self?.installedSection.refresh(in: menu)
+          self?.installedSection.rebuildIfNeeded(in: menu)
         }
         self?.performRefresh()
       })
