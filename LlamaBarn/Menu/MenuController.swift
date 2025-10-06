@@ -194,16 +194,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     headerSection.refresh()
-
-    // Refresh existing views in place for progress updates without rebuilding section structure
-    statusItem.menu?.items.forEach { menuItem in
-      if let view = menuItem.view as? InstalledModelItemView { view.refresh() }
-      if let submenu = menuItem.submenu {
-        submenu.items.forEach { subItem in
-          if let view = subItem.view as? CatalogModelItemView { view.refresh() }
-        }
-      }
-      if let famView = menuItem.view as? FamilyItemView { famView.refresh() }
-    }
+    installedSection.refresh()
+    catalogSection.refresh()
   }
 }

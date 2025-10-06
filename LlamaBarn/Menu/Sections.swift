@@ -6,23 +6,6 @@ import SwiftUI
 /// Breaks the large MenuController into focused collaborators so each
 /// section owns its layout and mutation logic.
 
-/// Typed identifiers for menu items to avoid string-based tag collisions
-private enum MenuItemTag {
-  case installedHeader
-  case installedPlaceholder
-  case installedModel(String)  // model id
-  case catalogFamily(String)  // family name
-  case catalogModel(String)  // model id
-}
-
-/// NSObject wrapper for MenuItemTag to store in NSMenuItem.representedObject
-private final class MenuItemTagBox: NSObject {
-  let tag: MenuItemTag
-  init(_ tag: MenuItemTag) {
-    self.tag = tag
-  }
-}
-
 private func makeSectionHeaderItem(_ title: String) -> NSMenuItem {
   let view = SectionHeaderView(title: title)
   let item = NSMenuItem.viewItem(with: view, minHeight: 18)
@@ -77,6 +60,11 @@ final class InstalledSection {
   private let server: LlamaServer
   private let onMembershipChanged: (CatalogEntry) -> Void
 
+  // Track current state to detect membership changes
+  private var currentModelIds: Set<String> = []
+  private var installedViews: [InstalledModelItemView] = []
+  private weak var headerItem: NSMenuItem?
+
   init(
     modelManager: ModelManager,
     server: LlamaServer,
@@ -89,7 +77,7 @@ final class InstalledSection {
 
   func add(to menu: NSMenu) {
     let header = makeSectionHeaderItem("Installed")
-    header.representedObject = MenuItemTagBox(.installedHeader)
+    headerItem = header
     menu.addItem(header)
     populateSection(in: menu)
   }
@@ -98,45 +86,43 @@ final class InstalledSection {
   /// Called during live updates to keep the UI in sync while menu stays open.
   /// Does nothing if only model state changed (e.g., download progress).
   func rebuildIfNeeded(in menu: NSMenu) {
-    guard let range = installedSectionRange(in: menu) else { return }
-    let currentModels = getInstalledModels()
-    let currentIds = Set(currentModels.map { $0.id })
+    let models = installedModels()
+    let newIds = Set(models.map { $0.id })
 
-    // Get existing model IDs in the section
-    let existingIds = Set(
-      range.compactMap { index -> String? in
-        guard let box = menu.items[index].representedObject as? MenuItemTagBox else { return nil }
-        if case .installedModel(let id) = box.tag { return id }
-        return nil
-      })
-
-    // Only rebuild if membership changed (models added/removed)
-    if currentIds == existingIds {
-      return
-    }
+    guard newIds != currentModelIds else { return }
 
     // Membership changed, rebuild the section
+    guard let range = sectionRange(in: menu) else { return }
     for index in range.reversed() {
       menu.removeItem(at: index)
     }
     populateSection(in: menu)
   }
 
-  private func populateSection(in menu: NSMenu) {
-    guard let range = installedSectionRange(in: menu) else { return }
-    let installed = getInstalledModels()
+  func refresh() {
+    installedViews.forEach { $0.refresh() }
+  }
 
-    guard !installed.isEmpty else {
+  private func populateSection(in menu: NSMenu) {
+    guard let range = sectionRange(in: menu) else { return }
+    let models = installedModels()
+
+    currentModelIds = Set(models.map { $0.id })
+    installedViews.removeAll()
+
+    guard !models.isEmpty else {
       menu.insertItem(makePlaceholderItem(), at: range.startIndex)
       return
     }
 
-    installed.enumerated().forEach { offset, model in
-      menu.insertItem(makeInstalledRow(for: model), at: range.startIndex + offset)
+    models.enumerated().forEach { offset, model in
+      let (item, view) = makeInstalledRow(for: model)
+      installedViews.append(view)
+      menu.insertItem(item, at: range.startIndex + offset)
     }
   }
 
-  private func getInstalledModels() -> [CatalogEntry] {
+  private func installedModels() -> [CatalogEntry] {
     let downloading = Catalog.allEntries().filter {
       if case .downloading = modelManager.status(for: $0) { return true }
       return false
@@ -149,11 +135,10 @@ final class InstalledSection {
     let item = NSMenuItem()
     item.title = Constants.placeholderTitle
     item.isEnabled = false
-    item.representedObject = MenuItemTagBox(.installedPlaceholder)
     return item
   }
 
-  private func makeInstalledRow(for model: CatalogEntry) -> NSMenuItem {
+  private func makeInstalledRow(for model: CatalogEntry) -> (NSMenuItem, InstalledModelItemView) {
     let view = InstalledModelItemView(
       model: model,
       server: server,
@@ -162,26 +147,17 @@ final class InstalledSection {
       self?.onMembershipChanged(entry)
     }
     let item = NSMenuItem.viewItem(with: view, minHeight: 28)
-    item.representedObject = MenuItemTagBox(.installedModel(model.id))
-    return item
+    return (item, view)
   }
 
-  /// Locates the installed section boundaries. The section starts after the header
-  /// and ends at the next separator or menu end.
-  private func installedSectionRange(in menu: NSMenu) -> Range<Int>? {
-    guard
-      let headerIndex = menu.items.firstIndex(where: {
-        guard let box = $0.representedObject as? MenuItemTagBox else { return false }
-        if case .installedHeader = box.tag { return true }
-        return false
-      })
-    else { return nil }
-
+  private func sectionRange(in menu: NSMenu) -> Range<Int>? {
+    guard let headerItem, let headerIndex = menu.items.firstIndex(of: headerItem) else {
+      return nil
+    }
     let start = headerIndex + 1
     let end = menu.items[start...].firstIndex(where: \.isSeparatorItem) ?? menu.items.endIndex
     return start..<end
   }
-
 }
 
 @MainActor
@@ -189,6 +165,8 @@ final class CatalogSection: NSObject, NSMenuDelegate {
   private let modelManager: ModelManager
   private let onDownloadStatusChange: (CatalogEntry) -> Void
   private var submenuData: [String: (models: [CatalogEntry], family: Catalog.ModelFamily)] = [:]
+  private var familyViews: [FamilyItemView] = []
+  private var catalogViews: [CatalogModelItemView] = []
 
   init(
     modelManager: ModelManager,
@@ -212,6 +190,8 @@ final class CatalogSection: NSObject, NSMenuDelegate {
     let modelsByFamily = Dictionary(grouping: allEntries, by: \.family)
 
     submenuData.removeAll()
+    familyViews.removeAll()
+    catalogViews.removeAll()
 
     for family in families {
       guard let models = modelsByFamily[family.name], !models.isEmpty else { continue }
@@ -223,9 +203,10 @@ final class CatalogSection: NSObject, NSMenuDelegate {
         sortedModels: sortedModels,
         modelManager: modelManager
       )
+      familyViews.append(familyView)
+
       let familyItem = NSMenuItem.viewItem(with: familyView)
       familyItem.isEnabled = true
-      familyItem.representedObject = MenuItemTagBox(.catalogFamily(family.name))
 
       // Create empty submenu with delegate for lazy population
       let submenu = NSMenu(title: family.name)
@@ -236,6 +217,11 @@ final class CatalogSection: NSObject, NSMenuDelegate {
       familyItem.submenu = submenu
       menu.addItem(familyItem)
     }
+  }
+
+  func refresh() {
+    familyViews.forEach { $0.refresh() }
+    catalogViews.forEach { $0.refresh() }
   }
 
   // MARK: - NSMenuDelegate (lazy submenu population)
@@ -258,8 +244,8 @@ final class CatalogSection: NSObject, NSMenuDelegate {
         [weak self] in
         self?.onDownloadStatusChange(model)
       }
+      catalogViews.append(view)
       let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
-      modelItem.representedObject = MenuItemTagBox(.catalogModel(model.id))
       menu.addItem(modelItem)
     }
   }
