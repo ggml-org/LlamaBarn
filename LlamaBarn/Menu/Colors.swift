@@ -9,18 +9,11 @@ extension NSColor {
       : NSColor(srgbRed: 0.12, green: 0.50, blue: 0.23, alpha: 1.0)  // #1F7F3A
   }
 
-  /// Hover background for interactive menu rows.
-  static let lbHoverBackground = NSColor(name: nil) { appearance in
+  /// Subtle background for hover states and inactive badges.
+  static let lbSubtleBackground = NSColor(name: nil) { appearance in
     appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
       ? NSColor.white.withAlphaComponent(0.11)
       : NSColor.black.withAlphaComponent(0.06)
-  }
-
-  /// Background for inactive icon badges.
-  static let lbBadgeBackground = NSColor(name: nil) { appearance in
-    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-      ? NSColor.white.withAlphaComponent(0.10)
-      : NSColor.black.withAlphaComponent(0.05)
   }
 }
 

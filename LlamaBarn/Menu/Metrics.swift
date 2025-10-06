@@ -19,7 +19,7 @@ extension NSView {
   /// Uses dynamic colors resolved for the view's effective appearance and sets a rounded corner.
   func setHoverHighlight(_ highlighted: Bool, cornerRadius: CGFloat = Metrics.cornerRadius) {
     wantsLayer = true
-    let color: NSColor = highlighted ? .lbHoverBackground : .clear
+    let color: NSColor = highlighted ? .lbSubtleBackground : .clear
     layer?.setBackgroundColor(color, in: self)
     layer?.cornerRadius = cornerRadius
   }
