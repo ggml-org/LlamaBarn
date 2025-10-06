@@ -29,6 +29,14 @@ enum Typography {
     return label
   }
 
+  /// Creates a label text field with secondary font and tertiary menu text color.
+  static func makeTertiaryLabel(_ text: String = "") -> NSTextField {
+    let label = NSTextField(labelWithString: text)
+    label.font = secondary
+    label.textColor = tertiaryColor
+    return label
+  }
+
   // MARK: - Attributed String Helpers
   /// Common attributes for secondary text (metadata)
   static let secondaryAttributes: [NSAttributedString.Key: Any] = [

@@ -1,7 +1,7 @@
 import AppKit
 
 final class SectionHeaderView: NSView {
-  private let label = Typography.makeSecondaryLabel()
+  private let label = Typography.makeTertiaryLabel()
   private let container = NSView()
 
   init(title: String) {
