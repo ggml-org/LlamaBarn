@@ -154,6 +154,9 @@ final class InstalledSection {
     guard let headerItem, let headerIndex = menu.items.firstIndex(of: headerItem) else {
       return nil
     }
+    // Find the range of items between the section header and the next separator.
+    // The section starts immediately after the header (headerIndex + 1).
+    // It ends at the first separator found, or at the end of the menu if this is the last section.
     let start = headerIndex + 1
     let end = menu.items[start...].firstIndex(where: \.isSeparatorItem) ?? menu.items.endIndex
     return start..<end

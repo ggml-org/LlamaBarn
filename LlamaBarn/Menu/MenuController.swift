@@ -124,30 +124,39 @@ final class MenuController: NSObject, NSMenuDelegate {
   private func addObservers() {
     removeObservers()
     let center = NotificationCenter.default
+
+    // Server started/stopped - update icon and views
     observers.append(
       center.addObserver(forName: .LBServerStateDidChange, object: nil, queue: .main) {
         [weak self] _ in
         self?.performRefresh()
       })
+
+    // Server memory usage changed - update running model stats
     observers.append(
       center.addObserver(forName: .LBServerMemoryDidChange, object: nil, queue: .main) {
         [weak self] _ in
         self?.performRefresh()
       })
+
+    // Download progress updated - refresh progress indicators
     observers.append(
       center.addObserver(forName: .LBModelDownloadsDidChange, object: nil, queue: .main) {
         [weak self] _ in
         self?.performRefresh()
       })
+
+    // Model downloaded or deleted - rebuild installed section
     observers.append(
       center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        // Installed list changed (download completed or model deleted) - rebuild section
         if let menu = self?.statusItem.menu {
           self?.installedSection.rebuildIfNeeded(in: menu)
         }
         self?.performRefresh()
       })
+
+    // Settings visibility toggled - rebuild menu
     observers.append(
       center.addObserver(forName: .LBToggleSettingsVisibility, object: nil, queue: .main) {
         [weak self] _ in
@@ -156,6 +165,8 @@ final class MenuController: NSObject, NSMenuDelegate {
           self?.rebuildMenu(menu)
         }
       })
+
+    // User settings changed (e.g., show quantized models) - rebuild menu
     observers.append(
       center.addObserver(forName: .LBUserSettingsDidChange, object: nil, queue: .main) {
         [weak self] _ in
@@ -163,6 +174,7 @@ final class MenuController: NSObject, NSMenuDelegate {
           self?.rebuildMenu(menu)
         }
       })
+
     performRefresh()
   }
 
