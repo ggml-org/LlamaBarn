@@ -90,9 +90,11 @@ enum CatalogModelPresenter {
   ) -> NSAttributedString {
     let line = NSMutableAttributedString()
 
-    // Incompatible models show only error message
+    // Incompatible models show only error message in tertiaryColor
     guard compatible else {
-      line.append(MetadataLabel.make(icon: nil, text: "Won't run on this device."))
+      line.append(
+        NSAttributedString(
+          string: "Won't run on this device.", attributes: Typography.tertiaryAttributes))
       return line
     }
 

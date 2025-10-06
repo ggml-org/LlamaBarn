@@ -144,8 +144,17 @@ final class CatalogModelItemView: ItemView {
       case .available(let compatible): compatible ? "arrow.down.circle" : "nosign"
       }
     statusIndicator.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+
+    // Use tertiaryColor for incompatible models (can't be interacted with)
+    labelField.textColor = display.isCompatible ? Typography.primaryColor : Typography.tertiaryColor
     statusIndicator.contentTintColor =
-      if case .installed = display.status { .llamaGreen } else { Typography.primaryColor }
+      if case .installed = display.status {
+        .llamaGreen
+      } else if display.isCompatible {
+        Typography.primaryColor
+      } else {
+        Typography.tertiaryColor
+      }
 
     progressLabel.stringValue = display.progressText ?? ""
     toolTip = display.rowTooltip
