@@ -36,27 +36,15 @@ enum CatalogModelPresenter {
 
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
-    let contextString: String
-
-    if compatible {
-      contextString = {
-        if let usable = usableCtx, usable < model.ctxWindow {
-          let max = model.ctxWindow
-          return "\(TokenFormatters.shortTokens(usable)) of \(TokenFormatters.shortTokens(max))"
-        }
-        guard model.ctxWindow > 0 else { return "—" }
-        return TokenFormatters.shortTokens(model.ctxWindow)
-      }()
-    } else {
-      contextString = "Won't run on this device."
-    }
-
     let infoTooltip: String? =
       compatible
       ? nil
       : (Catalog.incompatibilitySummary(model) ?? "not compatible")
 
-    let (showsWarning, warningTooltip) = makeMaxContextWarning(for: model, compatible: compatible)
+    let warningTooltip: String? =
+      compatible && usableCtx != nil && usableCtx! < model.ctxWindow
+      ? "Can run at reduced context window"
+      : nil
 
     let statusIcon: Display.StatusIcon
     let progressText: String?
@@ -84,8 +72,8 @@ enum CatalogModelPresenter {
     let metadataText = makeMetadataText(
       model: model,
       memoryMb: memoryMb,
-      contextString: contextString,
-      showsWarning: showsWarning
+      usableCtx: usableCtx,
+      compatible: compatible
     )
 
     return Display(
@@ -104,8 +92,8 @@ enum CatalogModelPresenter {
   private static func makeMetadataText(
     model: CatalogEntry,
     memoryMb: UInt64,
-    contextString: String,
-    showsWarning: Bool
+    usableCtx: Int?,
+    compatible: Bool
   ) -> NSAttributedString {
     let line = NSMutableAttributedString()
 
@@ -115,31 +103,31 @@ enum CatalogModelPresenter {
       MetadataLabel.make(
         icon: MetadataLabel.memorySymbol, text: MemoryFormatters.gbOneDecimal(memoryMb)))
     line.append(MetadataLabel.makeSeparator())
-    line.append(MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: contextString))
 
-    if showsWarning {
+    // Context window
+    if !compatible {
+      line.append(
+        MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: "Won't run on this device."))
+    } else if let usable = usableCtx, usable < model.ctxWindow {
+      // Show strikethrough max with usable value, plus warning icon
+      line.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.contextSymbol))
+      line.append(NSAttributedString(string: " "))
+      var attrs = Typography.secondaryAttributes
+      attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+      line.append(
+        NSAttributedString(string: TokenFormatters.shortTokens(model.ctxWindow), attributes: attrs))
+      line.append(NSAttributedString(string: " ", attributes: Typography.secondaryAttributes))
+      line.append(
+        NSAttributedString(
+          string: TokenFormatters.shortTokens(usable), attributes: Typography.secondaryAttributes))
       line.append(MetadataLabel.makeSeparator())
       line.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.warningSymbol))
+    } else {
+      let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) : "—"
+      line.append(MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: text))
     }
 
     return line
-  }
-
-  private static func makeMaxContextWarning(
-    for model: CatalogEntry,
-    compatible: Bool
-  ) -> (Bool, String?) {
-    guard compatible, model.ctxWindow > 0 else { return (false, nil) }
-    let maxTokens = Double(model.ctxWindow)
-    if maxTokens <= Catalog.compatibilityCtxWindowTokens {
-      return (false, nil)
-    }
-    let stillFits = Catalog.isModelCompatible(
-      model,
-      ctxWindowTokens: maxTokens
-    )
-    guard !stillFits else { return (false, nil) }
-    return (true, "Can run at reduced context window")
   }
 
 }
