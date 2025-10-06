@@ -123,6 +123,7 @@ final class FamilyItemView: ItemView {
 
   /// Creates an attributed string for a model size label.
   /// Downloaded models show a checkmark to indicate they're already installed.
+  /// Unsupported models use a dimmed tertiary label color.
   private func attributedSizeLabel(
     for model: CatalogEntry,
     downloaded: Bool
@@ -144,7 +145,18 @@ final class FamilyItemView: ItemView {
       }
     }
 
-    result.append(NSAttributedString(string: sizeText, attributes: [.font: Typography.secondary]))
+    // Use tertiary color for unsupported models
+    let isSupported = Catalog.isModelCompatible(model)
+    let textColor: NSColor = isSupported ? Typography.secondaryColor : Typography.tertiaryColor
+
+    result.append(
+      NSAttributedString(
+        string: sizeText,
+        attributes: [
+          .font: Typography.secondary,
+          .foregroundColor: textColor,
+        ]
+      ))
     return result
   }
 }

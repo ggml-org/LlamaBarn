@@ -250,6 +250,7 @@ final class FooterSection {
     }
 
     let versionLabel = Typography.makePrimaryLabel(versionText)
+    versionLabel.textColor = .tertiaryLabelColor
     versionLabel.lineBreakMode = .byTruncatingMiddle
     versionLabel.translatesAutoresizingMaskIntoConstraints = false
 

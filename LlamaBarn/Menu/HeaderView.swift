@@ -93,10 +93,8 @@ final class HeaderView: NSView {
 
       let attributed = NSMutableAttributedString(
         string: full,
-        attributes: [
-          .font: Typography.secondary,
-          .foregroundColor: NSColor.controlTextColor,
-        ])
+        attributes: Typography.secondaryAttributes
+      )
       // Use .link attribute so NSTextField handles clicks automatically.
       if let range = full.range(of: linkText) {
         let nsRange = NSRange(range, in: full)
@@ -112,10 +110,7 @@ final class HeaderView: NSView {
     } else {
       serverStatusLabel.attributedStringValue = NSAttributedString(
         string: "Server not running",
-        attributes: [
-          .font: Typography.secondary,
-          .foregroundColor: NSColor.controlTextColor,
-        ]
+        attributes: Typography.secondaryAttributes
       )
       serverStatusLabel.toolTip = nil
     }
