@@ -27,7 +27,6 @@ final class MenuController: NSObject, NSMenuDelegate {
   private var isSettingsVisible = false
   private var menuWidth: CGFloat = 260
   private var observers: [NSObjectProtocol] = []
-  private var refreshWorkItem: DispatchWorkItem?
 
   init(modelManager: ModelManager = .shared, server: LlamaServer = .shared) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -38,7 +37,6 @@ final class MenuController: NSObject, NSMenuDelegate {
   }
 
   deinit {
-    refreshWorkItem?.cancel()
     observers.forEach { NotificationCenter.default.removeObserver($0) }
   }
 
@@ -74,8 +72,6 @@ final class MenuController: NSObject, NSMenuDelegate {
       (item.view as? ItemView)?.setHoverHighlight(false)
     }
     guard menu === statusItem.menu else { return }
-    refreshWorkItem?.cancel()
-    refreshWorkItem = nil
     removeObservers()
     isSettingsVisible = false
   }
@@ -112,12 +108,12 @@ final class MenuController: NSObject, NSMenuDelegate {
   // MARK: - Live updates without closing submenus
 
   /// Called from model rows when a user starts/cancels a download.
-  /// Rebuilds the installed section to reflect membership changes while keeping submenus open.
+  /// Rebuilds the installed section to reflect changes while keeping submenus open.
   private func didChangeDownloadStatus(for _: CatalogEntry) {
     if let menu = statusItem.menu {
-      installedSection.rebuildIfNeeded(in: menu)
+      installedSection.rebuild(in: menu)
     }
-    performRefresh()
+    refresh()
   }
 
   // Observe server and download changes while the menu is open.
@@ -129,21 +125,21 @@ final class MenuController: NSObject, NSMenuDelegate {
     observers.append(
       center.addObserver(forName: .LBServerStateDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        self?.performRefresh()
+        self?.refresh()
       })
 
     // Server memory usage changed - update running model stats
     observers.append(
       center.addObserver(forName: .LBServerMemoryDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        self?.performRefresh()
+        self?.refresh()
       })
 
     // Download progress updated - refresh progress indicators
     observers.append(
       center.addObserver(forName: .LBModelDownloadsDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        self?.performRefresh()
+        self?.refresh()
       })
 
     // Model downloaded or deleted - rebuild installed section
@@ -151,9 +147,9 @@ final class MenuController: NSObject, NSMenuDelegate {
       center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) {
         [weak self] _ in
         if let menu = self?.statusItem.menu {
-          self?.installedSection.rebuildIfNeeded(in: menu)
+          self?.installedSection.rebuild(in: menu)
         }
-        self?.performRefresh()
+        self?.refresh()
       })
 
     // Settings visibility toggled - rebuild menu
@@ -175,7 +171,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
       })
 
-    performRefresh()
+    refresh()
   }
 
   private func removeObservers() {
@@ -183,19 +179,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     observers.removeAll()
   }
 
-  private func performRefresh() {
-    // Debounce rapid refresh calls to prevent excessive UI updates.
-    // Cancel any pending refresh and schedule a new one after 50ms.
-    // This coalesces multiple notifications within a single run loop cycle.
-    refreshWorkItem?.cancel()
-    let workItem = DispatchWorkItem { [weak self] in
-      self?.executeRefresh()
-    }
-    refreshWorkItem = workItem
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: workItem)
-  }
-
-  private func executeRefresh() {
+  private func refresh() {
     if let button = statusItem.button {
       let running = server.isRunning
       let imageName = running ? "MenuIconOn" : "MenuIconOff"

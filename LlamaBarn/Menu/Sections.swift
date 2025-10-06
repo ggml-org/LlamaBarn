@@ -60,8 +60,6 @@ final class InstalledSection {
   private let server: LlamaServer
   private let onMembershipChanged: (CatalogEntry) -> Void
 
-  // Track current state to detect membership changes
-  private var currentModelIds: Set<String> = []
   private var installedViews: [InstalledModelItemView] = []
   private weak var headerItem: NSMenuItem?
 
@@ -82,16 +80,9 @@ final class InstalledSection {
     populateSection(in: menu)
   }
 
-  /// Rebuilds the installed section if model membership changed (models added/removed).
+  /// Rebuilds the installed section.
   /// Called during live updates to keep the UI in sync while menu stays open.
-  /// Does nothing if only model state changed (e.g., download progress).
-  func rebuildIfNeeded(in menu: NSMenu) {
-    let models = installedModels()
-    let newIds = Set(models.map { $0.id })
-
-    guard newIds != currentModelIds else { return }
-
-    // Membership changed, rebuild the section
+  func rebuild(in menu: NSMenu) {
     guard let range = sectionRange(in: menu) else { return }
     for index in range.reversed() {
       menu.removeItem(at: index)
@@ -107,7 +98,6 @@ final class InstalledSection {
     guard let range = sectionRange(in: menu) else { return }
     let models = installedModels()
 
-    currentModelIds = Set(models.map { $0.id })
     installedViews.removeAll()
 
     guard !models.isEmpty else {
@@ -164,10 +154,9 @@ final class InstalledSection {
 }
 
 @MainActor
-final class CatalogSection: NSObject, NSMenuDelegate {
+final class CatalogSection {
   private let modelManager: ModelManager
   private let onDownloadStatusChange: (CatalogEntry) -> Void
-  private var submenuData: [String: (models: [CatalogEntry], family: Catalog.ModelFamily)] = [:]
   private var familyViews: [FamilyItemView] = []
   private var catalogViews: [CatalogModelItemView] = []
 
@@ -192,7 +181,6 @@ final class CatalogSection: NSObject, NSMenuDelegate {
     let allEntries = Catalog.allEntries().filter { showQuantized || $0.isFullPrecision }
     let modelsByFamily = Dictionary(grouping: allEntries, by: \.family)
 
-    submenuData.removeAll()
     familyViews.removeAll()
     catalogViews.removeAll()
 
@@ -211,11 +199,27 @@ final class CatalogSection: NSObject, NSMenuDelegate {
       let familyItem = NSMenuItem.viewItem(with: familyView)
       familyItem.isEnabled = true
 
-      // Create empty submenu with delegate for lazy population
+      // Build submenu immediately
       let submenu = NSMenu(title: family.name)
       submenu.autoenablesItems = false
-      submenu.delegate = self
-      submenuData[family.name] = (sortedModels, family)
+
+      let infoView = FamilyHeaderView(
+        familyName: family.name,
+        iconName: family.iconName,
+        blurb: family.blurb
+      )
+      submenu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
+      submenu.addItem(.separator())
+
+      for model in sortedModels {
+        let view = CatalogModelItemView(model: model, modelManager: modelManager) {
+          [weak self] in
+          self?.onDownloadStatusChange(model)
+        }
+        catalogViews.append(view)
+        let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
+        submenu.addItem(modelItem)
+      }
 
       familyItem.submenu = submenu
       menu.addItem(familyItem)
@@ -225,32 +229,6 @@ final class CatalogSection: NSObject, NSMenuDelegate {
   func refresh() {
     familyViews.forEach { $0.refresh() }
     catalogViews.forEach { $0.refresh() }
-  }
-
-  // MARK: - NSMenuDelegate (lazy submenu population)
-
-  func menuNeedsUpdate(_ menu: NSMenu) {
-    // Only populate if submenu is empty (first open)
-    guard menu.items.isEmpty else { return }
-    guard let (sortedModels, family) = submenuData[menu.title] else { return }
-
-    let infoView = FamilyHeaderView(
-      familyName: family.name,
-      iconName: family.iconName,
-      blurb: family.blurb
-    )
-    menu.addItem(NSMenuItem.viewItem(with: infoView, minHeight: 56))
-    menu.addItem(.separator())
-
-    for model in sortedModels {
-      let view = CatalogModelItemView(model: model, modelManager: modelManager) {
-        [weak self] in
-        self?.onDownloadStatusChange(model)
-      }
-      catalogViews.append(view)
-      let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
-      menu.addItem(modelItem)
-    }
   }
 }
 
