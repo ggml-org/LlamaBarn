@@ -75,7 +75,7 @@ struct CatalogEntry: Identifiable, Codable {
 
   /// Total size including all model files
   var totalSize: String {
-    ByteFormatters.decimalGB(fileSize)
+    ByteFormatters.gbOneDecimal(fileSize)
   }
 
   /// Simplified quantization display (e.g., "Q4" from "Q4_K_M")
