@@ -89,16 +89,16 @@ final class MenuController: NSObject, NSMenuDelegate {
   private func rebuildMenu(_ menu: NSMenu) {
     menu.removeAllItems()
 
-    headerSection.add(to: menu, isSettingsVisible: isSettingsVisible)
-
-    if isSettingsVisible {
-      settingsSection.add(to: menu, menuWidth: menuWidth)
-      menu.addItem(.separator())
-    }
+    headerSection.add(to: menu)
 
     installedSection.add(to: menu)
     catalogSection.add(to: menu)
-    footerSection.add(to: menu, menuWidth: menuWidth)
+    footerSection.add(to: menu, menuWidth: menuWidth, isSettingsVisible: isSettingsVisible)
+
+    if isSettingsVisible {
+      menu.addItem(.separator())
+      settingsSection.add(to: menu, menuWidth: menuWidth)
+    }
 
     if menu.size.width > 0 {
       menuWidth = menu.size.width

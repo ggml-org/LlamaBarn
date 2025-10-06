@@ -22,11 +22,8 @@ final class MenuHeaderSection {
     self.server = server
   }
 
-  func add(to menu: NSMenu, isSettingsVisible: Bool) {
-    let view = HeaderView(
-      server: server,
-      isSettingsVisible: isSettingsVisible
-    )
+  func add(to menu: NSMenu) {
+    let view = HeaderView(server: server)
     titleView = view
     menu.addItem(NSMenuItem.viewItem(with: view, minHeight: 40))
     menu.addItem(.separator())
@@ -234,7 +231,7 @@ final class CatalogSection {
 
 @MainActor
 final class FooterSection {
-  func add(to menu: NSMenu, menuWidth: CGFloat) {
+  func add(to menu: NSMenu, menuWidth: CGFloat, isSettingsVisible: Bool) {
     menu.addItem(.separator())
 
     let container = NSView()
@@ -254,12 +251,19 @@ final class FooterSection {
     versionLabel.lineBreakMode = .byTruncatingMiddle
     versionLabel.translatesAutoresizingMaskIntoConstraints = false
 
+    let settingsButton = NSButton(title: "Settings", target: nil, action: #selector(toggleSettings))
+    settingsButton.font = Typography.secondary
+    settingsButton.bezelStyle = .texturedRounded
+    settingsButton.translatesAutoresizingMaskIntoConstraints = false
+    settingsButton.keyEquivalent = ","
+
     let quitButton = NSButton(title: "Quit", target: nil, action: #selector(quitApp))
     quitButton.font = Typography.secondary
     quitButton.bezelStyle = .texturedRounded
     quitButton.translatesAutoresizingMaskIntoConstraints = false
 
     container.addSubview(versionLabel)
+    container.addSubview(settingsButton)
     container.addSubview(quitButton)
 
     let horizontalPadding = Layout.outerHorizontalPadding + Layout.innerHorizontalPadding
@@ -274,19 +278,29 @@ final class FooterSection {
         equalTo: container.leadingAnchor, constant: horizontalPadding),
       versionLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
+      settingsButton.trailingAnchor.constraint(
+        equalTo: quitButton.leadingAnchor, constant: -8),
+      settingsButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
       quitButton.trailingAnchor.constraint(
         equalTo: container.trailingAnchor, constant: -horizontalPadding),
       quitButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
       versionLabel.trailingAnchor.constraint(
-        lessThanOrEqualTo: quitButton.leadingAnchor, constant: -8),
+        lessThanOrEqualTo: settingsButton.leadingAnchor, constant: -8),
     ])
 
     let item = NSMenuItem.viewItem(with: container, minHeight: 30)
     item.isEnabled = true
+    settingsButton.target = self
+    settingsButton.action = #selector(toggleSettings)
     quitButton.target = self
     quitButton.action = #selector(quitApp)
     menu.addItem(item)
+  }
+
+  @objc private func toggleSettings() {
+    NotificationCenter.default.post(name: .LBToggleSettingsVisibility, object: nil)
   }
 
   @objc private func quitApp() {

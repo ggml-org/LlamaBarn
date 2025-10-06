@@ -8,12 +8,9 @@ final class HeaderView: NSView {
   private let appNameLabel = Typography.makePrimaryLabel()
   private let serverStatusLabel = Typography.makeSecondaryLabel()
   private let backgroundView = NSView()
-  private let settingsButton = NSButton()
-  private let isSettingsVisible: Bool
 
-  init(server: LlamaServer, isSettingsVisible: Bool) {
+  init(server: LlamaServer) {
     self.server = server
-    self.isSettingsVisible = isSettingsVisible
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
     setup()
@@ -38,34 +35,10 @@ final class HeaderView: NSView {
     stack.orientation = .vertical
     stack.alignment = .leading
     stack.spacing = 2
-
-    // Trailing Settings and Quit controls (header buttons)
-    settingsButton.title = ""
-    let gearImage = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "Settings")
-    let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-      .applying(.init(paletteColors: [isSettingsVisible ? .linkColor : .controlTextColor]))
-    settingsButton.image = gearImage?.withSymbolConfiguration(symbolConfig)
-    settingsButton.isBordered = false
-    settingsButton.bezelStyle = .rounded
-    settingsButton.target = self
-    settingsButton.action = #selector(toggleSettings)
-    settingsButton.keyEquivalent = ","
-
-    // Horizontal container: [stack][spacer][settings][quit]
-    let headerStackView = NSStackView()
-    headerStackView.translatesAutoresizingMaskIntoConstraints = false
-    headerStackView.orientation = .horizontal
-    headerStackView.alignment = .centerY
-    headerStackView.spacing = 8
-    headerStackView.addArrangedSubview(stack)
-    headerStackView.addArrangedSubview(NSView())  // flexible spacer
-    headerStackView.addArrangedSubview(settingsButton)
-    (headerStackView.arrangedSubviews[1]).setContentHuggingPriority(.defaultLow, for: .horizontal)
-    (headerStackView.arrangedSubviews[1]).setContentCompressionResistancePriority(
-      .defaultLow, for: .horizontal)
+    stack.translatesAutoresizingMaskIntoConstraints = false
 
     addSubview(backgroundView)
-    backgroundView.addSubview(headerStackView)
+    backgroundView.addSubview(stack)
 
     NSLayoutConstraint.activate([
       backgroundView.leadingAnchor.constraint(
@@ -74,13 +47,12 @@ final class HeaderView: NSView {
         equalTo: trailingAnchor, constant: -Layout.outerHorizontalPadding),
       backgroundView.topAnchor.constraint(equalTo: topAnchor),
       backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
-      headerStackView.leadingAnchor.constraint(
+      stack.leadingAnchor.constraint(
         equalTo: backgroundView.leadingAnchor, constant: Layout.innerHorizontalPadding),
-      headerStackView.trailingAnchor.constraint(
+      stack.trailingAnchor.constraint(
         equalTo: backgroundView.trailingAnchor, constant: -Layout.innerHorizontalPadding),
-      headerStackView.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
-      headerStackView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
-      settingsButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 22),
+      stack.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
+      stack.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
     ])
   }
 
@@ -122,10 +94,6 @@ final class HeaderView: NSView {
     }
 
     needsDisplay = true
-  }
-
-  @objc private func toggleSettings() {
-    NotificationCenter.default.post(name: .LBToggleSettingsVisibility, object: nil)
   }
 
 }
