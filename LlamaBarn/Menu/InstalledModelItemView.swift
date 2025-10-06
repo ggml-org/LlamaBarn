@@ -177,6 +177,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
     // Apply display data
     modelNameLabel.stringValue = display.title
+    modelNameLabel.textColor = display.titleColor
     metadataLabel.attributedStringValue = display.metadataText
     progressLabel.stringValue = display.progressText ?? ""
     cancelImageView.isHidden = !display.showsCancelButton
@@ -184,6 +185,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     // Update icon state
     circleIcon.setLoading(display.isLoading)
     circleIcon.isActive = display.isActive
+    circleIcon.inactiveTintColor = display.iconTintColor
 
     needsDisplay = true
   }

@@ -16,6 +16,7 @@ final class IconBadgeView: NSView {
 
   var isActive: Bool = false { didSet { refresh() } }
   private var isLoading: Bool = false { didSet { refresh() } }
+  var inactiveTintColor: NSColor = Typography.primaryColor { didSet { refresh() } }
 
   init(frame frameRect: NSRect = .zero, cornerStyle: CornerStyle = .circular) {
     self.cornerStyle = cornerStyle
@@ -90,8 +91,7 @@ final class IconBadgeView: NSView {
       imageView.contentTintColor = .white
     } else {
       layer.setBackgroundColor(.lbSubtleBackground, in: self)
-      // Default (may be overridden by caller for hover emphasis)
-      imageView.contentTintColor = Typography.primaryColor
+      imageView.contentTintColor = inactiveTintColor
     }
   }
 }

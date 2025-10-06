@@ -3,6 +3,8 @@ import AppKit
 enum InstalledModelPresenter {
   struct Display {
     let title: String
+    let titleColor: NSColor
+    let iconTintColor: NSColor
     let metadataText: NSAttributedString
     let progressText: String?
     let showsCancelButton: Bool
@@ -20,18 +22,11 @@ enum InstalledModelPresenter {
 
     switch status {
     case .downloading(let progress):
-      let completedSizeText = ByteFormatters.gbTwoDecimals(progress.completedUnitCount)
-      let totalBytes = progress.totalUnitCount > 0 ? progress.totalUnitCount : model.fileSize
-      let totalSizeText = ByteFormatters.gbTwoDecimals(totalBytes)
-
-      let metadataText = MetadataLabel.make(
-        icon: MetadataLabel.sizeSymbol,
-        text: "\(completedSizeText) / \(totalSizeText)"
-      )
-
       return Display(
         title: model.menuTitle,
-        metadataText: metadataText,
+        titleColor: Typography.secondaryColor,
+        iconTintColor: Typography.secondaryColor,
+        metadataText: ModelMetadataFormatters.makeMetadataText(for: model),
         progressText: ProgressFormatters.percentText(progress),
         showsCancelButton: true,
         isLoading: isLoading,
@@ -41,6 +36,8 @@ enum InstalledModelPresenter {
     case .installed, .available:
       return Display(
         title: model.menuTitle,
+        titleColor: .controlTextColor,
+        iconTintColor: Typography.primaryColor,
         metadataText: ModelMetadataFormatters.makeMetadataText(for: model),
         progressText: nil,
         showsCancelButton: false,
