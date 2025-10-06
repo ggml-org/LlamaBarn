@@ -64,14 +64,8 @@ enum CatalogModelPresenter {
       rowTooltip = nil
     }
 
-    let memoryMb = Catalog.runtimeMemoryUsageMb(
-      for: model,
-      ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
-    )
-
     let metadataText = makeMetadataText(
       model: model,
-      memoryMb: memoryMb,
       usableCtx: usableCtx,
       compatible: compatible
     )
@@ -91,12 +85,24 @@ enum CatalogModelPresenter {
 
   private static func makeMetadataText(
     model: CatalogEntry,
-    memoryMb: UInt64,
     usableCtx: Int?,
     compatible: Bool
   ) -> NSAttributedString {
     let line = NSMutableAttributedString()
 
+    // Incompatible models show only error message
+    guard compatible else {
+      line.append(MetadataLabel.make(icon: nil, text: "Won't run on this device."))
+      return line
+    }
+
+    // Calculate memory usage for compatible models only
+    let memoryMb = Catalog.runtimeMemoryUsageMb(
+      for: model,
+      ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
+    )
+
+    // All compatible models show size and memory
     line.append(MetadataLabel.make(icon: MetadataLabel.sizeSymbol, text: model.totalSize))
     line.append(MetadataLabel.makeSeparator())
     line.append(
@@ -104,12 +110,9 @@ enum CatalogModelPresenter {
         icon: MetadataLabel.memorySymbol, text: MemoryFormatters.gbOneDecimal(memoryMb)))
     line.append(MetadataLabel.makeSeparator())
 
-    // Context window
-    if !compatible {
-      line.append(
-        MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: "Won't run on this device."))
-    } else if let usable = usableCtx, usable < model.ctxWindow {
-      // Show strikethrough max with usable value, plus warning icon
+    // Context window display depends on whether it's capped
+    if let usable = usableCtx, usable < model.ctxWindow {
+      // Capped context: show strikethrough max with usable value, plus warning icon
       line.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.contextSymbol))
       line.append(NSAttributedString(string: " "))
       var attrs = Typography.secondaryAttributes
@@ -123,6 +126,7 @@ enum CatalogModelPresenter {
       line.append(MetadataLabel.makeSeparator())
       line.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.warningSymbol))
     } else {
+      // Full context: show normal context window
       let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) : "—"
       line.append(MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: text))
     }
