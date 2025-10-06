@@ -76,10 +76,10 @@ final class FamilyItemView: ItemView {
     contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      iconView.widthAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      iconView.heightAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      chevron.widthAnchor.constraint(equalToConstant: Metrics.iconSize),
-      chevron.heightAnchor.constraint(equalToConstant: Metrics.iconSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      chevron.widthAnchor.constraint(equalToConstant: Layout.iconSize),
+      chevron.heightAnchor.constraint(equalToConstant: Layout.iconSize),
       hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       hStack.topAnchor.constraint(equalTo: contentView.topAnchor),

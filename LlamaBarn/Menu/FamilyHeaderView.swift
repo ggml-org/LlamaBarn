@@ -46,15 +46,15 @@ final class FamilyHeaderView: NSView {
     NSLayoutConstraint.activate([
       hStack.leadingAnchor.constraint(
         equalTo: leadingAnchor,
-        constant: Metrics.outerHorizontalPadding + Metrics.innerHorizontalPadding),
+        constant: Layout.outerHorizontalPadding + Layout.innerHorizontalPadding),
       hStack.trailingAnchor.constraint(
         equalTo: trailingAnchor,
-        constant: -(Metrics.outerHorizontalPadding + Metrics.innerHorizontalPadding)),
+        constant: -(Layout.outerHorizontalPadding + Layout.innerHorizontalPadding)),
       hStack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
       hStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
 
-      iconView.widthAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      iconView.heightAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
     ])
   }
 }

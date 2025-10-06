@@ -35,20 +35,20 @@ class ItemView: NSView {
 
     NSLayoutConstraint.activate([
       backgroundView.leadingAnchor.constraint(
-        equalTo: leadingAnchor, constant: Metrics.outerHorizontalPadding),
+        equalTo: leadingAnchor, constant: Layout.outerHorizontalPadding),
       backgroundView.trailingAnchor.constraint(
-        equalTo: trailingAnchor, constant: -Metrics.outerHorizontalPadding),
+        equalTo: trailingAnchor, constant: -Layout.outerHorizontalPadding),
       backgroundView.topAnchor.constraint(equalTo: topAnchor),
       backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
       contentView.leadingAnchor.constraint(
-        equalTo: backgroundView.leadingAnchor, constant: Metrics.innerHorizontalPadding),
+        equalTo: backgroundView.leadingAnchor, constant: Layout.innerHorizontalPadding),
       contentView.trailingAnchor.constraint(
-        equalTo: backgroundView.trailingAnchor, constant: -Metrics.innerHorizontalPadding),
+        equalTo: backgroundView.trailingAnchor, constant: -Layout.innerHorizontalPadding),
       contentView.topAnchor.constraint(
-        equalTo: backgroundView.topAnchor, constant: Metrics.verticalPadding),
+        equalTo: backgroundView.topAnchor, constant: Layout.verticalPadding),
       contentView.bottomAnchor.constraint(
-        equalTo: backgroundView.bottomAnchor, constant: -Metrics.verticalPadding),
+        equalTo: backgroundView.bottomAnchor, constant: -Layout.verticalPadding),
     ])
   }
 
@@ -80,7 +80,7 @@ class ItemView: NSView {
     let effectiveHighlight = highlighted && hoverHighlightEnabled
     guard effectiveHighlight != isHoverHighlighted else { return }
     isHoverHighlighted = effectiveHighlight
-    backgroundView.setHoverHighlight(effectiveHighlight, cornerRadius: Metrics.cornerRadius)
+    backgroundView.setHoverHighlight(effectiveHighlight, cornerRadius: Layout.cornerRadius)
     hoverHighlightDidChange(effectiveHighlight)
   }
 

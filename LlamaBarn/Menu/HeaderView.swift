@@ -69,15 +69,15 @@ final class HeaderView: NSView {
 
     NSLayoutConstraint.activate([
       backgroundView.leadingAnchor.constraint(
-        equalTo: leadingAnchor, constant: Metrics.outerHorizontalPadding),
+        equalTo: leadingAnchor, constant: Layout.outerHorizontalPadding),
       backgroundView.trailingAnchor.constraint(
-        equalTo: trailingAnchor, constant: -Metrics.outerHorizontalPadding),
+        equalTo: trailingAnchor, constant: -Layout.outerHorizontalPadding),
       backgroundView.topAnchor.constraint(equalTo: topAnchor),
       backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
       headerStackView.leadingAnchor.constraint(
-        equalTo: backgroundView.leadingAnchor, constant: Metrics.innerHorizontalPadding),
+        equalTo: backgroundView.leadingAnchor, constant: Layout.innerHorizontalPadding),
       headerStackView.trailingAnchor.constraint(
-        equalTo: backgroundView.trailingAnchor, constant: -Metrics.innerHorizontalPadding),
+        equalTo: backgroundView.trailingAnchor, constant: -Layout.innerHorizontalPadding),
       headerStackView.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 6),
       headerStackView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -6),
       settingsButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 22),

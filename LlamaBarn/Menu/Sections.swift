@@ -283,7 +283,7 @@ final class FooterSection {
     container.addSubview(versionLabel)
     container.addSubview(quitButton)
 
-    let horizontalPadding = Metrics.outerHorizontalPadding + Metrics.innerHorizontalPadding
+    let horizontalPadding = Layout.outerHorizontalPadding + Layout.innerHorizontalPadding
 
     if menuWidth > 0 {
       container.widthAnchor.constraint(equalToConstant: menuWidth).isActive = true

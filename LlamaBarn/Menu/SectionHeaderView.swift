@@ -30,16 +30,16 @@ final class SectionHeaderView: NSView {
 
     NSLayoutConstraint.activate([
       container.leadingAnchor.constraint(
-        equalTo: leadingAnchor, constant: Metrics.outerHorizontalPadding),
+        equalTo: leadingAnchor, constant: Layout.outerHorizontalPadding),
       container.trailingAnchor.constraint(
-        equalTo: trailingAnchor, constant: -Metrics.outerHorizontalPadding),
+        equalTo: trailingAnchor, constant: -Layout.outerHorizontalPadding),
       container.topAnchor.constraint(equalTo: topAnchor),
       container.bottomAnchor.constraint(equalTo: bottomAnchor),
 
       label.leadingAnchor.constraint(
-        equalTo: container.leadingAnchor, constant: Metrics.innerHorizontalPadding),
+        equalTo: container.leadingAnchor, constant: Layout.innerHorizontalPadding),
       label.trailingAnchor.constraint(
-        equalTo: container.trailingAnchor, constant: -Metrics.innerHorizontalPadding),
+        equalTo: container.trailingAnchor, constant: -Layout.innerHorizontalPadding),
       label.topAnchor.constraint(equalTo: container.topAnchor, constant: 2),
       label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -2),
     ])

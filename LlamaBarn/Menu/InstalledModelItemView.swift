@@ -93,14 +93,14 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     contentView.addSubview(rootStack)
 
     NSLayoutConstraint.activate([
-      circleIcon.widthAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      circleIcon.heightAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Metrics.iconSize),
-      cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Metrics.iconSize),
-      deleteImageView.widthAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      deleteImageView.heightAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
+      circleIcon.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      circleIcon.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
+      cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
+      deleteImageView.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      deleteImageView.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
 
-      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Metrics.progressWidth),
+      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth),
       rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       // Pin trailing controls to the backgroundView’s edge (hover highlight),
       // not the contentView’s inner padding, so the trash icon visually

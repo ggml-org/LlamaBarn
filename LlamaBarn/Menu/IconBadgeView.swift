@@ -7,7 +7,7 @@ import AppKit
 final class IconBadgeView: NSView {
   enum CornerStyle {
     case circular  // corner radius = bounds.height / 2
-    case rounded  // corner radius = Metrics.cornerRadius
+    case rounded  // corner radius = Layout.cornerRadius
   }
 
   let imageView = NSImageView()
@@ -24,7 +24,7 @@ final class IconBadgeView: NSView {
     wantsLayer = true
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
-    imageView.symbolConfiguration = .init(pointSize: Metrics.smallIconSize, weight: .regular)
+    imageView.symbolConfiguration = .init(pointSize: Layout.smallIconSize, weight: .regular)
 
     // Configure spinner but keep it hidden until used.
     spinner.translatesAutoresizingMaskIntoConstraints = false
@@ -35,12 +35,12 @@ final class IconBadgeView: NSView {
     addSubview(imageView)
     addSubview(spinner)
     NSLayoutConstraint.activate([
-      widthAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
-      heightAnchor.constraint(equalToConstant: Metrics.iconBadgeSize),
+      widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
       imageView.centerXAnchor.constraint(equalTo: centerXAnchor),
       imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: Metrics.smallIconSize),
-      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: Metrics.smallIconSize),
+      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.smallIconSize),
+      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.smallIconSize),
       spinner.centerXAnchor.constraint(equalTo: centerXAnchor),
       spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
     ])
@@ -54,7 +54,7 @@ final class IconBadgeView: NSView {
     layer?.cornerRadius =
       switch cornerStyle {
       case .circular: bounds.height / 2
-      case .rounded: Metrics.cornerRadius
+      case .rounded: Layout.cornerRadius
       }
   }
 
