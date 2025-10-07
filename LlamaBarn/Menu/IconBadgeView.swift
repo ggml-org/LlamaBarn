@@ -89,6 +89,8 @@ final class IconBadgeView: NSView {
     if isActive {
       layer.setBackgroundColor(.controlAccentColor, in: self)
       imageView.contentTintColor = .white
+      // Spinner always white on blue background regardless of theme
+      spinner.appearance = NSAppearance(named: .darkAqua)
     } else {
       layer.setBackgroundColor(.lbSubtleBackground, in: self)
       imageView.contentTintColor = inactiveTintColor
