@@ -28,10 +28,10 @@ final class MenuController: NSObject, NSMenuDelegate {
   private var menuWidth: CGFloat = 260
   private var observers: [NSObjectProtocol] = []
 
-  init(modelManager: ModelManager = .shared, server: LlamaServer = .shared) {
+  init(modelManager: ModelManager? = nil, server: LlamaServer? = nil) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    self.modelManager = modelManager
-    self.server = server
+    self.modelManager = modelManager ?? .shared
+    self.server = server ?? .shared
     super.init()
     configureStatusItem()
   }
@@ -125,40 +125,50 @@ final class MenuController: NSObject, NSMenuDelegate {
     observers.append(
       center.addObserver(forName: .LBServerStateDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        self?.refresh()
+        MainActor.assumeIsolated {
+          self?.refresh()
+        }
       })
 
     // Server memory usage changed - update running model stats
     observers.append(
       center.addObserver(forName: .LBServerMemoryDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        self?.refresh()
+        MainActor.assumeIsolated {
+          self?.refresh()
+        }
       })
 
     // Download progress updated - refresh progress indicators
     observers.append(
       center.addObserver(forName: .LBModelDownloadsDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        self?.refresh()
+        MainActor.assumeIsolated {
+          self?.refresh()
+        }
       })
 
     // Model downloaded or deleted - rebuild installed section
     observers.append(
       center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        if let menu = self?.statusItem.menu {
-          self?.installedSection.rebuild(in: menu)
+        MainActor.assumeIsolated {
+          if let menu = self?.statusItem.menu {
+            self?.installedSection.rebuild(in: menu)
+          }
+          self?.refresh()
         }
-        self?.refresh()
       })
 
     // Settings visibility toggled - rebuild menu
     observers.append(
       center.addObserver(forName: .LBToggleSettingsVisibility, object: nil, queue: .main) {
         [weak self] _ in
-        self?.isSettingsVisible.toggle()
-        if let menu = self?.statusItem.menu {
-          self?.rebuildMenu(menu)
+        MainActor.assumeIsolated {
+          self?.isSettingsVisible.toggle()
+          if let menu = self?.statusItem.menu {
+            self?.rebuildMenu(menu)
+          }
         }
       })
 
@@ -166,8 +176,10 @@ final class MenuController: NSObject, NSMenuDelegate {
     observers.append(
       center.addObserver(forName: .LBUserSettingsDidChange, object: nil, queue: .main) {
         [weak self] _ in
-        if let menu = self?.statusItem.menu {
-          self?.rebuildMenu(menu)
+        MainActor.assumeIsolated {
+          if let menu = self?.statusItem.menu {
+            self?.rebuildMenu(menu)
+          }
         }
       })
 

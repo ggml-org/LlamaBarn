@@ -135,7 +135,9 @@ class ModelManager: NSObject {
     observers.append(
       center.addObserver(forName: .LBModelDownloadFinished, object: downloader, queue: .main) {
         [weak self] _ in
-        self?.refreshDownloadedModels()
+        MainActor.assumeIsolated {
+          self?.refreshDownloadedModels()
+        }
       }
     )
   }
