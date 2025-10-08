@@ -60,15 +60,15 @@ struct CatalogEntry: Identifiable, Codable {
     "\(family) \(size)"
   }
 
-  /// Menu title including quantization suffix when applicable
-  var menuTitle: String {
-    var title = displayName
+  /// Full name including quantization suffix (e.g., "Gemma 3 27B-Q4")
+  var fullName: String {
+    var name = displayName
     if !isFullPrecision,
       let quantLabel = QuantizationFormatters.short(quantization).nilIfEmpty
     {
-      title += "-\(quantLabel)"
+      name += "-\(quantLabel)"
     }
-    return title
+    return name
   }
 
   /// Size label with quantization suffix (e.g., "27B" or "27B-Q4")

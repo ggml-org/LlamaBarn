@@ -171,7 +171,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     let isActive = server.isActive(model: model)
     let isLoading = isActive && server.isLoading
 
-    modelNameLabel.stringValue = model.menuTitle
+    modelNameLabel.stringValue = model.fullName
     metadataLabel.attributedStringValue = ModelMetadataFormatters.makeMetadataText(for: model)
 
     // Progress and cancel button only for downloading

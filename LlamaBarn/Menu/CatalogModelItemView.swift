@@ -134,7 +134,7 @@ final class CatalogModelItemView: ItemView {
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
     // Title and basic display
-    labelField.stringValue = model.menuTitle
+    labelField.stringValue = model.fullName
 
     // Metadata text (second line)
     let metadataText: NSAttributedString
