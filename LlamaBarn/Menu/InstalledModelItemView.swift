@@ -170,24 +170,21 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     let status = modelManager.status(for: model)
     let isActive = server.isActive(model: model)
     let isLoading = isActive && server.isLoading
-    let isDownloading = if case .downloading = status { true } else { false }
 
-    // Compute colors once
-    let itemColor = isDownloading ? Typography.secondaryColor : Typography.primaryColor
-    let titleColor = isDownloading ? Typography.secondaryColor : .controlTextColor
-
-    // Apply values directly
     modelNameLabel.stringValue = model.menuTitle
-    modelNameLabel.textColor = titleColor
     metadataLabel.attributedStringValue = ModelMetadataFormatters.makeMetadataText(for: model)
 
     // Progress and cancel button only for downloading
     if case .downloading(let progress) = status {
+      modelNameLabel.textColor = Typography.secondaryColor
       progressLabel.stringValue = ProgressFormatters.percentText(progress)
       cancelImageView.isHidden = false
+      circleIcon.inactiveTintColor = Typography.secondaryColor
     } else {
+      modelNameLabel.textColor = .controlTextColor
       progressLabel.stringValue = ""
       cancelImageView.isHidden = true
+      circleIcon.inactiveTintColor = Typography.primaryColor
     }
 
     // Delete button only for installed models
@@ -196,7 +193,6 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     // Update icon state
     circleIcon.setLoading(isLoading)
     circleIcon.isActive = isActive
-    circleIcon.inactiveTintColor = itemColor
 
     needsDisplay = true
   }
