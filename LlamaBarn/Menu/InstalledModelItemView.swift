@@ -200,15 +200,10 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
     cancelImageView.contentTintColor = .systemRed
-    deleteLabel.attributedStringValue = makeDeleteButtonText()
   }
 
   private func makeDeleteButtonText() -> NSAttributedString {
-    let attachment = NSTextAttachment()
-    if let img = NSImage(systemSymbolName: "trash", accessibilityDescription: nil) {
-      attachment.image = img
-    }
-    return NSAttributedString(attachment: attachment)
+    MetadataLabel.makeIconOnly(icon: Symbols.trash)
   }
 
   @objc private func performDelete() {

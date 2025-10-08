@@ -132,7 +132,7 @@ final class FamilyItemView: ItemView {
 
     // Add checkmark for downloaded models
     if downloaded {
-      result.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.checkSymbol))
+      result.append(MetadataLabel.makeIconOnly(icon: Symbols.checkmark))
       result.append(NSAttributedString(string: " "))
     }
 

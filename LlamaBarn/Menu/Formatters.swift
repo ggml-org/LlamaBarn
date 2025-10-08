@@ -113,7 +113,7 @@ enum ModelMetadataFormatters {
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
     // Size
-    result.append(MetadataLabel.make(icon: MetadataLabel.sizeSymbol, text: model.totalSize))
+    result.append(MetadataLabel.make(icon: Symbols.internaldrive, text: model.totalSize))
     result.append(MetadataLabel.makeSeparator())
 
     // Memory (estimated)
@@ -123,12 +123,12 @@ enum ModelMetadataFormatters {
     )
     result.append(
       MetadataLabel.make(
-        icon: MetadataLabel.memorySymbol, text: MemoryFormatters.gbOneDecimal(memoryMb)))
+        icon: Symbols.memorychip, text: MemoryFormatters.gbOneDecimal(memoryMb)))
     result.append(MetadataLabel.makeSeparator())
 
     // Context window: strikethrough if capped, normal otherwise
     if let usable = usableCtx, usable < model.ctxWindow {
-      result.append(MetadataLabel.makeIconOnly(icon: MetadataLabel.contextSymbol))
+      result.append(MetadataLabel.makeIconOnly(icon: Symbols.textWordSpacing))
       result.append(NSAttributedString(string: " "))
       var attrs = Typography.secondaryAttributes
       attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
@@ -141,7 +141,7 @@ enum ModelMetadataFormatters {
           string: TokenFormatters.shortTokens(usable), attributes: Typography.secondaryAttributes))
     } else {
       let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) : "—"
-      result.append(MetadataLabel.make(icon: MetadataLabel.contextSymbol, text: text))
+      result.append(MetadataLabel.make(icon: Symbols.textWordSpacing, text: text))
     }
 
     return result

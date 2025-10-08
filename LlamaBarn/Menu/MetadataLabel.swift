@@ -3,30 +3,6 @@ import AppKit
 /// Helper for creating metadata labels with SF Symbol icons and text.
 /// Colors are set explicitly: text uses secondaryLabelColor, separators use tertiaryLabelColor.
 enum MetadataLabel {
-  // MARK: - Symbols
-
-  /// Creates a template SF Symbol with specified size and weight.
-  /// Size defaults to 11pt to match Typography.secondary.
-  /// Template images automatically adopt the text field's tint color.
-  private static func makeSymbol(
-    _ name: String, pointSize: CGFloat = 11, weight: NSFont.Weight = .regular
-  ) -> NSImage? {
-    guard
-      let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
-        .withSymbolConfiguration(.init(pointSize: pointSize, weight: weight))
-    else { return nil }
-    image.isTemplate = true
-    return image
-  }
-
-  // Metadata symbols (used with text)
-  static let sizeSymbol = makeSymbol("internaldrive")
-  static let contextSymbol = makeSymbol("text.word.spacing")
-  static let memorySymbol = makeSymbol("memorychip")
-
-  // Status symbols (used standalone)
-  static let checkSymbol = makeSymbol("checkmark")
-
   // MARK: - Attributed String Builders
 
   /// Creates an attributed string containing only an icon (no text).
