@@ -7,9 +7,11 @@ enum MetadataLabel {
 
   /// Creates an attributed string containing only an icon (no text).
   /// Used for status indicators like checkmarks.
-  static func makeIconOnly(icon: NSImage?) -> NSAttributedString {
+  static func makeIconOnly(icon: NSImage?, color: NSColor? = nil) -> NSAttributedString {
     guard let icon else { return NSAttributedString() }
-    return NSAttributedString(attachment: iconAttachment(for: icon))
+    let tintedIcon =
+      color.flatMap { icon.withSymbolConfiguration(.init(paletteColors: [$0])) } ?? icon
+    return NSAttributedString(attachment: iconAttachment(for: tintedIcon))
   }
 
   /// Creates an attributed string with an icon followed by text (e.g., "📦 2.5 GB").

@@ -202,7 +202,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   private func makeDeleteButtonText() -> NSAttributedString {
-    MetadataLabel.makeIconOnly(icon: Symbols.trash)
+    MetadataLabel.makeIconOnly(icon: Symbols.trash, color: Typography.tertiaryColor)
   }
 
   @objc private func performDelete() {
