@@ -18,7 +18,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let metadataLabel = Typography.makeSecondaryLabel()
   private let progressLabel = Typography.makeSecondaryLabel()
   private let cancelImageView = NSImageView()
-  private let deleteLabel = Typography.makeSecondaryLabel("delete")
+  private let deleteLabel = Typography.makeSecondaryLabel()
 
   // Hover handling is provided by MenuItemView
   private var rowClickRecognizer: NSClickGestureRecognizer?
@@ -57,7 +57,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     cancelImageView.contentTintColor = .systemRed
     cancelImageView.isHidden = true
 
-    deleteLabel.textColor = Typography.secondaryColor
+    deleteLabel.attributedStringValue = makeDeleteButtonText()
     deleteLabel.isHidden = true
 
     // Spacer expands so trailing visuals sit flush right.
@@ -166,11 +166,6 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     refresh()
   }
 
-  override func hoverHighlightDidChange(_ highlighted: Bool) {
-    let status = modelManager.status(for: model)
-    deleteLabel.isHidden = !(highlighted && status == .installed)
-  }
-
   func refresh() {
     let status = modelManager.status(for: model)
     let isActive = server.isActive(model: model)
@@ -195,6 +190,9 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
       cancelImageView.isHidden = true
     }
 
+    // Delete button only for installed models
+    deleteLabel.isHidden = status != .installed
+
     // Update icon state
     circleIcon.setLoading(isLoading)
     circleIcon.isActive = isActive
@@ -206,7 +204,15 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
     cancelImageView.contentTintColor = .systemRed
-    deleteLabel.textColor = Typography.secondaryColor
+    deleteLabel.attributedStringValue = makeDeleteButtonText()
+  }
+
+  private func makeDeleteButtonText() -> NSAttributedString {
+    let attachment = NSTextAttachment()
+    if let img = NSImage(systemSymbolName: "trash", accessibilityDescription: nil) {
+      attachment.image = img
+    }
+    return NSAttributedString(attachment: attachment)
   }
 
   @objc private func performDelete() {
