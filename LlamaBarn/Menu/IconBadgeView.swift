@@ -66,7 +66,6 @@ final class IconBadgeView: NSView {
 
   func setImage(_ image: NSImage?) {
     imageView.image = image
-    if let img = imageView.image { img.isTemplate = true }
     refresh()
   }
 

@@ -50,7 +50,6 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
     // Configure cancel button
     if let img = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil) {
-      img.isTemplate = true
       cancelImageView.image = img
     }
     cancelImageView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
