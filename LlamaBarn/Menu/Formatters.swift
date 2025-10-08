@@ -107,7 +107,7 @@ enum ProgressFormatters {
 
 enum ModelMetadataFormatters {
   /// Formats complete model metadata line showing size, memory, and context window.
-  /// Format: "􀥾 2.53 GB • 􀫦 3.1 GB • 􀵫 128k" (or "􀵫 ~~128k~~ 32k" if capped).
+  /// Format: "􀥾 2.53 GB • 􀫦 3.1 GB • 􀵫 128k" (or "􀵫 32k of 128k" if capped).
   static func makeMetadataText(for model: CatalogEntry) -> NSAttributedString {
     let result = NSMutableAttributedString()
     let usableCtx = Catalog.usableCtxWindow(for: model)
@@ -126,19 +126,11 @@ enum ModelMetadataFormatters {
         icon: Symbols.memorychip, text: MemoryFormatters.gbOneDecimal(memoryMb)))
     result.append(MetadataLabel.makeSeparator())
 
-    // Context window: strikethrough if capped, normal otherwise
+    // Context window: show "usable of max" if capped, otherwise show full value
     if let usable = usableCtx, usable < model.ctxWindow {
-      result.append(MetadataLabel.makeIconOnly(icon: Symbols.textWordSpacing))
-      result.append(NSAttributedString(string: " "))
-      var attrs = Typography.secondaryAttributes
-      attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
-      result.append(
-        NSAttributedString(
-          string: TokenFormatters.shortTokens(model.ctxWindow), attributes: attrs))
-      result.append(NSAttributedString(string: " ", attributes: Typography.secondaryAttributes))
-      result.append(
-        NSAttributedString(
-          string: TokenFormatters.shortTokens(usable), attributes: Typography.secondaryAttributes))
+      let text =
+        TokenFormatters.shortTokens(usable) + " of " + TokenFormatters.shortTokens(model.ctxWindow)
+      result.append(MetadataLabel.make(icon: Symbols.textWordSpacing, text: text))
     } else {
       let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) : "—"
       result.append(MetadataLabel.make(icon: Symbols.textWordSpacing, text: text))
