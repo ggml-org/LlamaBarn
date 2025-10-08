@@ -100,7 +100,7 @@ final class FamilyItemView: ItemView {
   /// Builds an attributed string showing each unique model build in this family,
   /// highlighting downloads with a checkmark.
   private func makeMetadataLine() -> NSAttributedString {
-    // Deduplicate by the underlying build so separate quantized entries remain visible once.
+    // Track seen model IDs to avoid showing duplicate entries in the size list.
     var used: Set<String> = []
     let line = NSMutableAttributedString()
 
@@ -136,18 +136,13 @@ final class FamilyItemView: ItemView {
       result.append(NSAttributedString(string: " "))
     }
 
-    // Build size text (e.g., "27B" or "27B-Q4")
-    let quantSuffix =
-      model.isFullPrecision ? "" : "-" + QuantizationFormatters.short(model.quantization)
-    let sizeText = "\(model.size)\(quantSuffix)"
-
-    // Use tertiary color for unsupported models
+    // Use sizeLabel property which includes quantization suffix (e.g., "27B" or "27B-Q4")
     let isSupported = Catalog.isModelCompatible(model)
     let textColor: NSColor = isSupported ? Typography.secondaryColor : Typography.tertiaryColor
 
     result.append(
       NSAttributedString(
-        string: sizeText,
+        string: model.sizeLabel,
         attributes: [
           .font: Typography.secondary,
           .foregroundColor: textColor,

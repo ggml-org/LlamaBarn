@@ -71,6 +71,16 @@ struct CatalogEntry: Identifiable, Codable {
     return title
   }
 
+  /// Size label with quantization suffix (e.g., "27B" or "27B-Q4")
+  var sizeLabel: String {
+    guard !isFullPrecision,
+      let quantLabel = QuantizationFormatters.short(quantization).nilIfEmpty
+    else {
+      return size
+    }
+    return "\(size)-\(quantLabel)"
+  }
+
   // Removed: isSlidingWindowFamily; models that should run with max context include "-c 0" in serverArgs.
 
   /// Total size including all model files
