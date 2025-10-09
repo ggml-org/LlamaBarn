@@ -32,8 +32,8 @@ final class CatalogModelItemView: ItemView {
 
   override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 40) }
 
-  // Only allow hover highlight for actionable rows (available/compatible or downloading).
-  override var hoverHighlightEnabled: Bool {
+  // Only allow highlight for actionable rows (available/compatible or downloading).
+  override var highlightEnabled: Bool {
     let status = modelManager.status(for: model)
     switch status {
     case .available:
@@ -97,7 +97,7 @@ final class CatalogModelItemView: ItemView {
     guard recognizer.state == .ended else { return }
     let location = recognizer.location(in: self)
     guard bounds.contains(location) else { return }
-    guard hoverHighlightEnabled else { return }
+    guard highlightEnabled else { return }
     handleAction()
     refresh()
   }
@@ -106,7 +106,7 @@ final class CatalogModelItemView: ItemView {
     let status = modelManager.status(for: model)
     switch status {
     case .available:
-      // The `hoverHighlightEnabled` check already covers compatibility, but we could also check here.
+      // The `highlightEnabled` check already covers compatibility, but we could also check here.
       do {
         try modelManager.downloadModel(model)
         membershipChanged()
@@ -205,8 +205,8 @@ final class CatalogModelItemView: ItemView {
     labelField.textColor = itemColor
     statusIndicator.contentTintColor = itemColor
 
-    // Clear hover highlight if no longer actionable
-    if !hoverHighlightEnabled { setHoverHighlight(false) }
+    // Clear highlight if no longer actionable
+    if !highlightEnabled { setHighlight(false) }
     needsDisplay = true
   }
 }

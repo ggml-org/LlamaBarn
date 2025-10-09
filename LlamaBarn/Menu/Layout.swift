@@ -15,9 +15,9 @@ enum Layout {
 }
 
 extension NSView {
-  /// Applies or clears the standard hover highlight background on a container view.
+  /// Applies or clears the standard selection highlight background on a container view.
   /// Uses dynamic colors resolved for the view's effective appearance and sets a rounded corner.
-  func setHoverHighlight(_ highlighted: Bool, cornerRadius: CGFloat = Layout.cornerRadius) {
+  func setHighlight(_ highlighted: Bool, cornerRadius: CGFloat = Layout.cornerRadius) {
     wantsLayer = true
     let color: NSColor = highlighted ? .lbSubtleBackground : .clear
     layer?.setBackgroundColor(color, in: self)

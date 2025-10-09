@@ -70,21 +70,22 @@ final class MenuController: NSObject, NSMenuDelegate {
 
   func menuDidClose(_ menu: NSMenu) {
     guard menu === statusItem.menu else { return }
-    currentlyHighlightedView?.setHoverHighlight(false)
+    currentlyHighlightedView?.setHighlight(false)
     currentlyHighlightedView = nil
     removeObservers()
     isSettingsVisible = false
   }
 
   func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
-    // Only manage highlights for enabled items in the root menu (family items, settings, footer)
-    // Model items in installed/catalog use their own tracking areas for hover
+    // Only manage highlights for enabled items in the root menu (family items, settings, footer).
+    // Submenu model items remain disabled and use their own tracking areas for hover.
+    // This optimization reduces highlight updates from O(n) to O(1) by tracking only the current view.
     guard menu === statusItem.menu else { return }
     let highlighted = item?.view as? ItemView
 
     if currentlyHighlightedView !== highlighted {
-      currentlyHighlightedView?.setHoverHighlight(false)
-      highlighted?.setHoverHighlight(true)
+      currentlyHighlightedView?.setHighlight(false)
+      highlighted?.setHighlight(true)
       currentlyHighlightedView = highlighted
     }
   }
