@@ -31,9 +31,9 @@ enum MetadataLabel {
     return composed
   }
 
-  /// Creates a bullet separator for metadata lines (e.g., "2.5 GB • 128k • 4 GB").
+  /// Creates a bullet separator for metadata lines (e.g., "2.5 GB · 128k · 4 GB").
   static func makeSeparator(font: NSFont = Typography.secondary) -> NSAttributedString {
-    NSAttributedString(string: " • ", attributes: Typography.tertiaryAttributes)
+    NSAttributedString(string: " · ", attributes: Typography.tertiaryAttributes)
   }
 
   // MARK: - Private Helpers

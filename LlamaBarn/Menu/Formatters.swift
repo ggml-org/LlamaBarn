@@ -107,7 +107,7 @@ enum ProgressFormatters {
 
 enum ModelMetadataFormatters {
   /// Formats complete model metadata line showing size, memory, and context window.
-  /// Format: "􀥾 2.53 GB • 􀫦 3.1 GB • 􀵫 128k" (or "􀵫 32k of 128k" if capped).
+  /// Format: "􀥾 2.53 GB · 􀫦 3.1 GB · 􀵫 128k" (or "􀵫 32k of 128k" if capped).
   static func makeMetadataText(for model: CatalogEntry) -> NSAttributedString {
     let result = NSMutableAttributedString()
     let usableCtx = Catalog.usableCtxWindow(for: model)

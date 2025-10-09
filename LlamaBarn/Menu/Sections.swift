@@ -241,9 +241,9 @@ final class FooterSection {
     // dev/test builds (0.0.0) show only build number
     let versionText: String
     if AppInfo.shortVersion == "0.0.0" {
-      versionText = "build \(AppInfo.buildNumber) • llama.cpp \(AppInfo.llamaCppVersion)"
+      versionText = "build \(AppInfo.buildNumber) · llama.cpp \(AppInfo.llamaCppVersion)"
     } else {
-      versionText = "\(AppInfo.shortVersion) • llama.cpp \(AppInfo.llamaCppVersion)"
+      versionText = "\(AppInfo.shortVersion) · llama.cpp \(AppInfo.llamaCppVersion)"
     }
 
     let versionLabel = Typography.makePrimaryLabel(versionText)

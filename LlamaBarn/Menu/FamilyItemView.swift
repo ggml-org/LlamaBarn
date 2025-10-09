@@ -46,7 +46,7 @@ final class FamilyItemView: ItemView {
     familyLabel.stringValue = family
 
     // Configure metadata label (second line showing all available model sizes)
-    // Contains all size entries in a single attributed string (e.g., "✓ 270M • 1B • ✓ 4B • 12B")
+    // Contains all size entries in a single attributed string (e.g., "✓ 270M · 1B · ✓ 4B · 12B")
 
     // Configure chevron indicator
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
