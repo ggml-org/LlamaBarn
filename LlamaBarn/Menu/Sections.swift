@@ -134,6 +134,7 @@ final class InstalledSection {
       self?.onMembershipChanged(entry)
     }
     let item = NSMenuItem.viewItem(with: view, minHeight: 28)
+    item.isEnabled = true
     return (item, view)
   }
 
@@ -156,12 +157,15 @@ final class CatalogSection {
   private let onDownloadStatusChange: (CatalogEntry) -> Void
   private var familyViews: [FamilyItemView] = []
   private var catalogViews: [CatalogModelItemView] = []
+  private weak var menuDelegate: NSMenuDelegate?
 
   init(
     modelManager: ModelManager,
+    menuDelegate: NSMenuDelegate?,
     onDownloadStatusChange: @escaping (CatalogEntry) -> Void
   ) {
     self.modelManager = modelManager
+    self.menuDelegate = menuDelegate
     self.onDownloadStatusChange = onDownloadStatusChange
   }
 
@@ -198,6 +202,7 @@ final class CatalogSection {
 
       // Build submenu immediately
       let submenu = NSMenu(title: family.name)
+      submenu.delegate = menuDelegate
       submenu.autoenablesItems = false
 
       let infoView = FamilyHeaderView(
@@ -215,6 +220,7 @@ final class CatalogSection {
         }
         catalogViews.append(view)
         let modelItem = NSMenuItem.viewItem(with: view, minHeight: 26)
+        modelItem.isEnabled = true
         submenu.addItem(modelItem)
       }
 

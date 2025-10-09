@@ -18,7 +18,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     self?.didChangeDownloadStatus(for: model)
   }
   private lazy var catalogSection = CatalogSection(
-    modelManager: modelManager
+    modelManager: modelManager,
+    menuDelegate: self
   ) { [weak self] model in
     self?.didChangeDownloadStatus(for: model)
   }
@@ -27,6 +28,7 @@ final class MenuController: NSObject, NSMenuDelegate {
   private var isSettingsVisible = false
   private var menuWidth: CGFloat = 260
   private var observers: [NSObjectProtocol] = []
+  private weak var currentlyHighlightedView: ItemView?
 
   init(modelManager: ModelManager? = nil, server: LlamaServer? = nil) {
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -68,9 +70,8 @@ final class MenuController: NSObject, NSMenuDelegate {
   }
 
   func menuDidClose(_ menu: NSMenu) {
-    menu.items.forEach { (item: NSMenuItem) in
-      (item.view as? ItemView)?.setHoverHighlight(false)
-    }
+    currentlyHighlightedView?.setHoverHighlight(false)
+    currentlyHighlightedView = nil
     guard menu === statusItem.menu else { return }
     removeObservers()
     isSettingsVisible = false
@@ -78,9 +79,12 @@ final class MenuController: NSObject, NSMenuDelegate {
 
   func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
     let highlighted = item?.view as? ItemView
-    menu.items.forEach { (entry: NSMenuItem) in
-      guard let row = entry.view as? ItemView else { return }
-      row.setHoverHighlight(row === highlighted)
+
+    // Only update the views that changed: clear old highlight, set new highlight
+    if currentlyHighlightedView !== highlighted {
+      currentlyHighlightedView?.setHoverHighlight(false)
+      highlighted?.setHoverHighlight(true)
+      currentlyHighlightedView = highlighted
     }
   }
 
