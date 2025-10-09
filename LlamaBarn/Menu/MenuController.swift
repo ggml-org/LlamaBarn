@@ -18,8 +18,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     self?.didChangeDownloadStatus(for: model)
   }
   private lazy var catalogSection = CatalogSection(
-    modelManager: modelManager,
-    menuDelegate: self
+    modelManager: modelManager
   ) { [weak self] model in
     self?.didChangeDownloadStatus(for: model)
   }
@@ -70,17 +69,19 @@ final class MenuController: NSObject, NSMenuDelegate {
   }
 
   func menuDidClose(_ menu: NSMenu) {
+    guard menu === statusItem.menu else { return }
     currentlyHighlightedView?.setHoverHighlight(false)
     currentlyHighlightedView = nil
-    guard menu === statusItem.menu else { return }
     removeObservers()
     isSettingsVisible = false
   }
 
   func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+    // Only manage highlights for enabled items in the root menu (family items, settings, footer)
+    // Model items in installed/catalog use their own tracking areas for hover
+    guard menu === statusItem.menu else { return }
     let highlighted = item?.view as? ItemView
 
-    // Only update the views that changed: clear old highlight, set new highlight
     if currentlyHighlightedView !== highlighted {
       currentlyHighlightedView?.setHoverHighlight(false)
       highlighted?.setHoverHighlight(true)
