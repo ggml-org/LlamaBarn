@@ -6,7 +6,7 @@ final class FamilyHeaderView: NSView {
   private static let menuWidth: CGFloat = 320
   private static let iconTextSpacing: CGFloat = 8
 
-  private let iconView = IconBadgeView(cornerStyle: .rounded)
+  private let iconView = IconBadgeView()
   private let titleLabel = Typography.makePrimaryLabel()
   private let descriptionLabel = Typography.makeSecondaryLabel()
 

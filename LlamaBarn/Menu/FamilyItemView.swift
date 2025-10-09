@@ -12,7 +12,7 @@ final class FamilyItemView: ItemView {
   private let sortedModels: [CatalogEntry]
   private unowned let modelManager: ModelManager
 
-  private let iconView = IconBadgeView(cornerStyle: .rounded)
+  private let iconView = IconBadgeView()
   private let familyLabel = Typography.makePrimaryLabel()
   private let metadataLabel = Typography.makeSecondaryLabel()
   private let chevron = NSImageView()

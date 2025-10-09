@@ -3,9 +3,9 @@ import Foundation
 
 /// Interactive menu item representing a single installed model.
 /// Visual states:
-/// - Idle: circular icon (inactive) + label
-/// - Loading: circular icon (active)
-/// - Running: circular icon (active)
+/// - Idle: rounded square icon (inactive) + label
+/// - Loading: rounded square icon (active)
+/// - Running: rounded square icon (active)
 final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let model: CatalogEntry
   private unowned let server: LlamaServer
@@ -13,7 +13,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let membershipChanged: (CatalogEntry) -> Void
 
   // Subviews
-  private let circleIcon = IconBadgeView()
+  private let iconView = IconBadgeView()
   private let modelNameLabel = Typography.makePrimaryLabel()
   private let metadataLabel = Typography.makeSecondaryLabel()
   private let progressLabel = Typography.makeSecondaryLabel()
@@ -44,7 +44,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
   private func setup() {
     wantsLayer = true
-    circleIcon.setImage(NSImage(named: model.icon))
+    iconView.setImage(NSImage(named: model.icon))
 
     progressLabel.alignment = .right
 
@@ -75,9 +75,9 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     nameStack.spacing = 1
     nameStack.alignment = .leading
 
-    let leading = NSStackView(views: [circleIcon, nameStack])
+    let leading = NSStackView(views: [iconView, nameStack])
     leading.orientation = .horizontal
-    // Vertically center the circular icon relative to the two-line text, like Wi‑Fi menu
+    // Vertically center the icon relative to the two-line text, like Wi‑Fi menu
     leading.alignment = .centerY
     leading.spacing = 6
 
@@ -102,8 +102,8 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     contentView.addSubview(deleteLabel)
 
     NSLayoutConstraint.activate([
-      circleIcon.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
-      circleIcon.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
       cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
       cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
 
@@ -178,20 +178,20 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
       modelNameLabel.textColor = Typography.secondaryColor
       progressLabel.stringValue = ProgressFormatters.percentText(progress)
       cancelImageView.isHidden = false
-      circleIcon.inactiveTintColor = Typography.secondaryColor
+      iconView.inactiveTintColor = Typography.secondaryColor
     } else {
       modelNameLabel.textColor = .controlTextColor
       progressLabel.stringValue = ""
       cancelImageView.isHidden = true
-      circleIcon.inactiveTintColor = Typography.primaryColor
+      iconView.inactiveTintColor = Typography.primaryColor
     }
 
     // Delete button only for installed models
     deleteLabel.isHidden = status != .installed
 
     // Update icon state
-    circleIcon.setLoading(isLoading)
-    circleIcon.isActive = isActive
+    iconView.setLoading(isLoading)
+    iconView.isActive = isActive
 
     needsDisplay = true
   }

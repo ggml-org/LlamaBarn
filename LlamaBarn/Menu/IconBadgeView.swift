@@ -1,25 +1,18 @@
 import AppKit
 
 /// Small badge that hosts a template image centered inside.
-/// Supports both circular and rounded-rectangle corner styles.
+/// Uses rounded corners matching Layout.cornerRadius.
 /// - Inactive: clear background, primary tint.
 /// - Active: filled with `controlAccentColor`, white glyph.
 final class IconBadgeView: NSView {
-  enum CornerStyle {
-    case circular  // corner radius = bounds.height / 2
-    case rounded  // corner radius = Layout.cornerRadius
-  }
-
   let imageView = NSImageView()
   private let spinner = NSProgressIndicator()
-  private let cornerStyle: CornerStyle
 
   var isActive: Bool = false { didSet { refresh() } }
   private var isLoading: Bool = false { didSet { refresh() } }
   var inactiveTintColor: NSColor = Typography.primaryColor { didSet { refresh() } }
 
-  init(frame frameRect: NSRect = .zero, cornerStyle: CornerStyle = .circular) {
-    self.cornerStyle = cornerStyle
+  override init(frame frameRect: NSRect = .zero) {
     super.init(frame: frameRect)
     translatesAutoresizingMaskIntoConstraints = false
     wantsLayer = true
@@ -52,11 +45,7 @@ final class IconBadgeView: NSView {
 
   override func layout() {
     super.layout()
-    layer?.cornerRadius =
-      switch cornerStyle {
-      case .circular: bounds.height / 2
-      case .rounded: Layout.cornerRadius
-      }
+    layer?.cornerRadius = Layout.cornerRadius
   }
 
   override func viewDidChangeEffectiveAppearance() {
@@ -69,7 +58,7 @@ final class IconBadgeView: NSView {
     refresh()
   }
 
-  /// Show or hide a spinner centered inside the circular badge.
+  /// Show or hide a spinner centered inside the badge.
   func setLoading(_ loading: Bool) {
     isLoading = loading
     if loading {
