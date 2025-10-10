@@ -105,7 +105,7 @@ struct CatalogEntry: Identifiable, Codable {
 
   /// The local file system path where the model file will be stored
   var modelFilePath: String {
-    Self.getModelStorageDirectory().appendingPathComponent(downloadUrl.lastPathComponent).path
+    Self.modelStorageDirectory.appendingPathComponent(downloadUrl.lastPathComponent).path
   }
 
   /// All local file paths this model requires (main file + shards if any)
@@ -122,8 +122,8 @@ struct CatalogEntry: Identifiable, Codable {
 
   // Removed: visionFile and related local path; multimodal files are not tracked.
 
-  /// Returns the directory where AI models are stored, creating it if necessary
-  static func getModelStorageDirectory() -> URL {
+  /// The directory where AI models are stored, creating it if necessary
+  static var modelStorageDirectory: URL {
     let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
     let modelsDirectory = homeDirectory.appendingPathComponent(".llamabarn", isDirectory: true)
 

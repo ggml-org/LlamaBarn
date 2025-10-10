@@ -96,7 +96,7 @@ class ModelManager: NSObject {
 
   /// Scans the local models directory and updates the list of downloaded models.
   func refreshDownloadedModels() {
-    let modelsDir = CatalogEntry.getModelStorageDirectory()
+    let modelsDir = CatalogEntry.modelStorageDirectory
     guard let files = try? FileManager.default.contentsOfDirectory(atPath: modelsDir.path) else {
       self.downloadedModels = []
       self.downloadedModelIds = []

@@ -11,7 +11,7 @@ enum Catalog {
   /// Macs with ≥128 GB of RAM can safely allocate 75% to the model since they retain ample headroom.
   private static let defaultAvailableMemoryFraction: Double = 0.5
   private static let highMemoryAvailableFraction: Double = 0.75
-  private static let highMemoryThresholdMB: UInt64 = 128 * 1024  // binary units to match SystemMemory
+  private static let highMemoryThresholdMb: UInt64 = 128 * 1024  // binary units to match SystemMemory
 
   /// Cache for compatibility checks since model properties and system memory are fixed at launch.
   /// Lives for app lifetime, never invalidated. Cache keys include context length since we check
@@ -34,8 +34,8 @@ enum Catalog {
   private static var compatibilityCache: [CompatibilityCacheKey: CompatibilityInfo] = [:]
   private static var usableContextCache: [UsableContextCacheKey: Int?] = [:]
 
-  static func availableMemoryFraction(forSystemMemoryMB systemMemoryMB: UInt64) -> Double {
-    guard systemMemoryMB >= highMemoryThresholdMB else { return defaultAvailableMemoryFraction }
+  static func availableMemoryFraction(forSystemMemoryMb systemMemoryMb: UInt64) -> Double {
+    guard systemMemoryMb >= highMemoryThresholdMb else { return defaultAvailableMemoryFraction }
     return highMemoryAvailableFraction
   }
 
@@ -185,9 +185,9 @@ enum Catalog {
     entriesById[id]
   }
 
-  /// Gets system memory in MB using shared system memory utility
-  static var systemMemoryMB: UInt64 {
-    return SystemMemory.memoryMB
+  /// Gets system memory in Mb using shared system memory utility
+  static var systemMemoryMb: UInt64 {
+    return SystemMemory.memoryMb
   }
 
   /// Computes the usable context window (in tokens) that fits within the allowed memory budget.
@@ -200,7 +200,6 @@ enum Catalog {
     for model: CatalogEntry,
     desiredTokens: Int? = nil
   ) -> Int? {
-    // Check cache
     let cacheKey = UsableContextCacheKey(modelId: model.id, desiredTokens: desiredTokens)
     if let cached = usableContextCache[cacheKey] {
       return cached
@@ -209,14 +208,14 @@ enum Catalog {
     let minimumTokens = Int(minimumCtxWindowTokens)
     guard model.ctxWindow >= minimumTokens else { return nil }
 
-    let systemMemoryMB = systemMemoryMB
-    guard systemMemoryMB > 0 else { return nil }
+    let systemMemoryMb = systemMemoryMb
+    guard systemMemoryMb > 0 else { return nil }
 
-    let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
-    let availableMemoryMB = Double(systemMemoryMB) * memoryFraction
-    let fileSizeMB = Double(model.fileSize) / 1_048_576.0
-    let fileSizeWithOverheadMB = fileSizeMB * model.overheadMultiplier
-    if fileSizeWithOverheadMB > availableMemoryMB { return nil }
+    let memoryFraction = availableMemoryFraction(forSystemMemoryMb: systemMemoryMb)
+    let availableMemoryMb = Double(systemMemoryMb) * memoryFraction
+    let fileSizeMb = Double(model.fileSize) / 1_048_576.0
+    let fileSizeWithOverheadMb = fileSizeMb * model.overheadMultiplier
+    if fileSizeWithOverheadMb > availableMemoryMb { return nil }
 
     let effectiveDesired = desiredTokens.flatMap { $0 > 0 ? $0 : nil } ?? model.ctxWindow
     let desiredTokensDouble = Double(effectiveDesired)
@@ -226,9 +225,9 @@ enum Catalog {
       if ctxBytesPerToken <= 0 {
         return Double(model.ctxWindow)
       }
-      let remainingMB = availableMemoryMB - fileSizeWithOverheadMB
-      if remainingMB <= 0 { return 0 }
-      let remainingBytes = remainingMB * 1_048_576.0
+      let remainingMb = availableMemoryMb - fileSizeWithOverheadMb
+      if remainingMb <= 0 { return 0 }
+      let remainingBytes = remainingMb * 1_048_576.0
       return remainingBytes / ctxBytesPerToken
     }()
 
@@ -240,15 +239,14 @@ enum Catalog {
     if rounded < minimumTokens { rounded = minimumTokens }
     if rounded > model.ctxWindow { rounded = model.ctxWindow }
 
-    // Cache the result
     usableContextCache[cacheKey] = rounded
 
     return rounded
   }
 
   /// Computes compatibility info for a model and caches the result
-  private static func getCompatibilityInfo(
-    _ model: CatalogEntry,
+  private static func compatibilityInfo(
+    for model: CatalogEntry,
     ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> CompatibilityInfo {
     let cacheKey = CompatibilityCacheKey(modelId: model.id, tokens: ctxWindowTokens)
@@ -261,7 +259,6 @@ enum Catalog {
 
     let minimumTokens = minimumCtxWindowTokens
 
-    // Check context window requirements
     if Double(model.ctxWindow) < minimumTokens {
       return cache(
         CompatibilityInfo(
@@ -274,26 +271,25 @@ enum Catalog {
       return cache(CompatibilityInfo(isCompatible: false, incompatibilitySummary: nil))
     }
 
-    // Check memory requirements
-    let systemMemoryMB = systemMemoryMB
-    let memoryFraction = availableMemoryFraction(forSystemMemoryMB: systemMemoryMB)
+    let systemMemoryMb = systemMemoryMb
+    let memoryFraction = availableMemoryFraction(forSystemMemoryMb: systemMemoryMb)
     let estimatedMemoryUsageMb = runtimeMemoryUsageMb(
       for: model, ctxWindowTokens: ctxWindowTokens)
 
     func memoryRequirementSummary() -> String {
-      let requiredTotalMB = UInt64(ceil(Double(estimatedMemoryUsageMb) / memoryFraction))
-      let gb = ceil(Double(requiredTotalMB) / 1024.0)
+      let requiredTotalMb = UInt64(ceil(Double(estimatedMemoryUsageMb) / memoryFraction))
+      let gb = ceil(Double(requiredTotalMb) / 1024.0)
       return String(format: "requires %.0f GB+ of memory", gb)
     }
 
-    guard systemMemoryMB > 0 else {
+    guard systemMemoryMb > 0 else {
       return cache(
         CompatibilityInfo(isCompatible: false, incompatibilitySummary: memoryRequirementSummary())
       )
     }
 
-    let availableMemoryMB = Double(systemMemoryMB) * memoryFraction
-    let isCompatible = estimatedMemoryUsageMb <= UInt64(availableMemoryMB)
+    let availableMemoryMb = Double(systemMemoryMb) * memoryFraction
+    let isCompatible = estimatedMemoryUsageMb <= UInt64(availableMemoryMb)
 
     return cache(
       CompatibilityInfo(
@@ -307,7 +303,7 @@ enum Catalog {
     _ model: CatalogEntry,
     ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> Bool {
-    getCompatibilityInfo(model, ctxWindowTokens: ctxWindowTokens).isCompatible
+    compatibilityInfo(for: model, ctxWindowTokens: ctxWindowTokens).isCompatible
   }
 
   /// If incompatible, returns a short human-readable reason showing
@@ -317,7 +313,7 @@ enum Catalog {
     _ model: CatalogEntry,
     ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> String? {
-    getCompatibilityInfo(model, ctxWindowTokens: ctxWindowTokens).incompatibilitySummary
+    compatibilityInfo(for: model, ctxWindowTokens: ctxWindowTokens).incompatibilitySummary
   }
 
   static func runtimeMemoryUsageMb(
@@ -325,13 +321,13 @@ enum Catalog {
     ctxWindowTokens: Double = compatibilityCtxWindowTokens
   ) -> UInt64 {
     // Memory calculations use binary units so they line up with Activity Monitor.
-    let fileSizeMB = Double(model.fileSize) / 1_048_576.0
-    let fileSizeWithOverheadMB = fileSizeMB * model.overheadMultiplier
+    let fileSizeMb = Double(model.fileSize) / 1_048_576.0
+    let fileSizeWithOverheadMb = fileSizeMb * model.overheadMultiplier
     let ctxMultiplier = ctxWindowTokens / 1_000.0
     let ctxBytes = Double(model.ctxBytesPer1kTokens) * ctxMultiplier
-    let ctxMB = ctxBytes / 1_048_576.0
-    let totalMB = fileSizeWithOverheadMB + ctxMB
-    return UInt64(ceil(totalMB))
+    let ctxMb = ctxBytes / 1_048_576.0
+    let totalMb = fileSizeWithOverheadMb + ctxMb
+    return UInt64(ceil(totalMb))
   }
 
 }

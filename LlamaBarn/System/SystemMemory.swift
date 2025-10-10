@@ -6,7 +6,6 @@ enum SystemMemory {
   // Cache physical memory for the session; RAM doesn't change at runtime.
   // Still honors BARN_SIMULATE_MEM_GB if set at launch.
   private static let cachedMemoryBytes: UInt64 = {
-    // Check for simulated memory override (for testing different memory configurations)
     if let simulatedGB = ProcessInfo.processInfo.environment["BARN_SIMULATE_MEM_GB"],
       let gb = Double(simulatedGB), gb > 0
     {
@@ -21,8 +20,8 @@ enum SystemMemory {
   /// Returns cached system memory in bytes for this process lifetime.
   static var memoryBytes: UInt64 { cachedMemoryBytes }
 
-  /// Gets system memory in MB
-  static var memoryMB: UInt64 {
+  /// Gets system memory in Mb
+  static var memoryMb: UInt64 {
     return memoryBytes / (1024 * 1024)
   }
 
@@ -32,10 +31,10 @@ enum SystemMemory {
     let isSimulated = ProcessInfo.processInfo.environment["BARN_SIMULATE_MEM_GB"] != nil
 
     if memsize > 0 {
-      let ramMB = memsize / (1024 * 1024)
-      let ramGB = Double(ramMB) / 1024.0
+      let ramMb = memsize / (1024 * 1024)
+      let ramGb = Double(ramMb) / 1024.0
       let suffix = isSimulated ? " (simulated)" : ""
-      return String(format: "Memory: %.0f GB%@", ramGB, suffix)
+      return String(format: "Memory: %.0f GB%@", ramGb, suffix)
     } else {
       return "Memory: Unknown"
     }

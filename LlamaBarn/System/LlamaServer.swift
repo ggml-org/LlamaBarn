@@ -163,8 +163,8 @@ class LlamaServer {
 
     // Enable larger batch size (-ub 2048) for better model performance on high-memory devices.
     // This improves throughput but increases memory usage, so we only enable it on Macs with ≥32 GB RAM.
-    let systemMemoryGB = Double(SystemMemory.memoryMB) / 1024.0
-    if systemMemoryGB >= 32.0 {
+    let systemMemoryGb = Double(SystemMemory.memoryMb) / 1024.0
+    if systemMemoryGb >= 32.0 {
       arguments.append(contentsOf: ["-ub", "2048"])
     }
 
@@ -174,7 +174,6 @@ class LlamaServer {
 
     let workingDirectory = URL(fileURLWithPath: llamaServerPath).deletingLastPathComponent().path
 
-    // Create and configure the new process
     let process = Process()
     process.executableURL = URL(fileURLWithPath: llamaServerPath)
     process.arguments = arguments
@@ -230,7 +229,7 @@ class LlamaServer {
 
   /// Terminates the currently running llama-server process and resets state
   func stop() {
-    // Set state to .idle first so termination handler knows this is intentional
+    // Set to .idle before terminating so the handler knows this is intentional
     memoryUsageMb = 0
     state = .idle
 
