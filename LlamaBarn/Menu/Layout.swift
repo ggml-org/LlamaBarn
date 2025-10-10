@@ -10,7 +10,7 @@ enum Layout {
   static let iconSize: CGFloat = 16
   // Circular badge container size for leading model icon (closer to Wi‑Fi menu).
   static let iconBadgeSize: CGFloat = 28
-  static let smallIconSize: CGFloat = 18
+  static let smallIconSize: CGFloat = 16
   static let progressWidth: CGFloat = 48
 }
 
