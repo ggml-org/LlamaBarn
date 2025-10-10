@@ -41,14 +41,16 @@ enum DateFormatters {
 }
 
 enum TokenFormatters {
-  /// Formats token counts like 262_144 as "262k" or "32k" for UI chips.
+  /// Formats token counts using binary units (1k = 1024).
+  /// Examples: 131_072 → "128k", 262_144 → "256k", 32_768 → "32k"
+  /// Uses binary units since context windows represent memory allocation.
   static func shortTokens(_ tokens: Int) -> String {
-    if tokens >= 1_000_000 {
-      return String(format: "%.0fm", Double(tokens) / 1_000_000.0)
-    } else if tokens >= 10_000 {
-      return String(format: "%.0fk", Double(tokens) / 1_000.0)
-    } else if tokens >= 1_000 {
-      return String(format: "%.1fk", Double(tokens) / 1_000.0)
+    if tokens >= 1_048_576 {
+      return String(format: "%.0fm", Double(tokens) / 1_048_576.0)
+    } else if tokens >= 10_240 {
+      return String(format: "%.0fk", Double(tokens) / 1_024.0)
+    } else if tokens >= 1_024 {
+      return String(format: "%.1fk", Double(tokens) / 1_024.0)
     } else {
       return "\(tokens)"
     }
