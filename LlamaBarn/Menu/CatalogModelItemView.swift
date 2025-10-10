@@ -137,16 +137,14 @@ final class CatalogModelItemView: ItemView {
     labelField.stringValue = model.fullName
 
     // Metadata text (second line)
-    let metadataText: NSAttributedString
     if compatible {
-      metadataText = ModelMetadataFormatters.makeMetadataText(for: model)
+      metadataLabel.attributedStringValue = ModelMetadataFormatters.makeMetadataText(for: model)
     } else {
-      metadataText = NSAttributedString(
+      metadataLabel.attributedStringValue = NSAttributedString(
         string: "Won't run on this device.",
         attributes: Typography.tertiaryAttributes
       )
     }
-    metadataLabel.attributedStringValue = metadataText
 
     // Tooltips
     let infoTooltip: String? =
@@ -193,17 +191,24 @@ final class CatalogModelItemView: ItemView {
     toolTip = rowTooltip
     progressLabel.stringValue = progressText ?? ""
 
-    // Colors: tertiary for incompatible, secondary for installed, primary otherwise
+    // Colors: tertiary for non-selectable items (incompatible/installed), primary otherwise
     let itemColor: NSColor =
-      if case .installed = status {
-        Typography.secondaryColor
-      } else if compatible {
+      if compatible && status != .installed {
         Typography.primaryColor
       } else {
         Typography.tertiaryColor
       }
     labelField.textColor = itemColor
     statusIndicator.contentTintColor = itemColor
+
+    // Override attributed text colors for installed models
+    if case .installed = status,
+      let current = metadataLabel.attributedStringValue.mutableCopy() as? NSMutableAttributedString
+    {
+      current.addAttribute(
+        .foregroundColor, value: itemColor, range: NSRange(location: 0, length: current.length))
+      metadataLabel.attributedStringValue = current
+    }
 
     // Clear highlight if no longer actionable
     if !highlightEnabled { setHighlight(false) }
