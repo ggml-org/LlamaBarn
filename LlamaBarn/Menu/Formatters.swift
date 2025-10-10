@@ -126,10 +126,9 @@ enum ModelMetadataFormatters {
         icon: Symbols.memorychip, text: MemoryFormatters.gbOneDecimal(memoryMb)))
     result.append(MetadataLabel.makeSeparator())
 
-    // Context window: show "usable of max" if capped, otherwise show full value
+    // Context window: show "usable capped" if limited by memory, otherwise show full value
     if let usable = usableCtx, usable < model.ctxWindow {
-      let text =
-        TokenFormatters.shortTokens(usable) + " of " + TokenFormatters.shortTokens(model.ctxWindow)
+      let text = TokenFormatters.shortTokens(usable) + " capped"
       result.append(MetadataLabel.make(icon: Symbols.textWordSpacing, text: text))
     } else {
       let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) : "—"
