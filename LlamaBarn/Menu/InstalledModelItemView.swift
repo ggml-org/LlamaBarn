@@ -102,8 +102,8 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     contentView.addSubview(deleteLabel)
 
     NSLayoutConstraint.activate([
-      iconView.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
-      iconView.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconViewSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconViewSize),
       cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
       cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
 

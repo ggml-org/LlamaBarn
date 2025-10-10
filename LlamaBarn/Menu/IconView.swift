@@ -1,6 +1,6 @@
 import AppKit
 
-/// Small badge that hosts a template image centered inside.
+/// Circular container that hosts a template image centered inside.
 /// Uses rounded corners matching Layout.cornerRadius.
 /// - Inactive: clear background, primary tint.
 /// - Active: filled with `controlAccentColor`, white glyph.
@@ -18,7 +18,7 @@ final class IconView: NSView {
     wantsLayer = true
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
-    imageView.symbolConfiguration = .init(pointSize: Layout.smallIconSize, weight: .regular)
+    imageView.symbolConfiguration = .init(pointSize: Layout.iconSize, weight: .regular)
 
     // Configure spinner but keep it hidden until used.
     spinner.translatesAutoresizingMaskIntoConstraints = false
@@ -29,12 +29,12 @@ final class IconView: NSView {
     addSubview(imageView)
     addSubview(spinner)
     NSLayoutConstraint.activate([
-      widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
-      heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      widthAnchor.constraint(equalToConstant: Layout.iconViewSize),
+      heightAnchor.constraint(equalToConstant: Layout.iconViewSize),
       imageView.centerXAnchor.constraint(equalTo: centerXAnchor),
       imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.smallIconSize),
-      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.smallIconSize),
+      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
+      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
       spinner.centerXAnchor.constraint(equalTo: centerXAnchor),
       spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
     ])
@@ -58,7 +58,7 @@ final class IconView: NSView {
     refresh()
   }
 
-  /// Show or hide a spinner centered inside the badge.
+  /// Show or hide a spinner centered inside the container.
   func setLoading(_ loading: Bool) {
     isLoading = loading
     if loading {

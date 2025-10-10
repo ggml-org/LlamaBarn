@@ -2,15 +2,19 @@ import AppKit
 
 /// Shared UI layout constants and helpers for NSMenu custom rows.
 enum Layout {
+  /// Distance from menu edge to background view (used in all menu items and headers).
   static let outerHorizontalPadding: CGFloat = 5
+  /// Distance from background edge to content (used in all menu items and headers).
   static let innerHorizontalPadding: CGFloat = 8
+  /// Vertical spacing between content and background edge (used in ItemView).
   static let verticalPadding: CGFloat = 4
+  /// Rounded corner radius for highlights and icon containers.
   static let cornerRadius: CGFloat = 6
-  // Visual size for small inline glyphs.
+  /// Size for small icons (status indicators, chevrons, cancel buttons).
   static let iconSize: CGFloat = 16
-  // Circular badge container size for leading model icon (closer to Wi‑Fi menu).
-  static let iconBadgeSize: CGFloat = 28
-  static let smallIconSize: CGFloat = 16
+  /// Size for IconView containers (circular backgrounds that hold model icons).
+  static let iconViewSize: CGFloat = 28
+  /// Maximum width for download progress labels.
   static let progressWidth: CGFloat = 48
 }
 

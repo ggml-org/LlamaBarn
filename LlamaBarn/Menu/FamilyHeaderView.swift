@@ -29,7 +29,7 @@ final class FamilyHeaderView: NSView {
     // Calculate available width for text wrapping
     let horizontalPadding = (Layout.outerHorizontalPadding + Layout.innerHorizontalPadding) * 2
     let availableWidth =
-      Self.menuWidth - horizontalPadding - Layout.iconBadgeSize - Self.iconTextSpacing
+      Self.menuWidth - horizontalPadding - Layout.iconViewSize - Self.iconTextSpacing
     descriptionLabel.preferredMaxLayoutWidth = availableWidth
 
     let textStack = NSStackView(views: [familyNameLabel, descriptionLabel])
@@ -55,8 +55,8 @@ final class FamilyHeaderView: NSView {
       hStack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
       hStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
 
-      iconView.widthAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
-      iconView.heightAnchor.constraint(equalToConstant: Layout.iconBadgeSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconViewSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconViewSize),
     ])
   }
 
