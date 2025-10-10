@@ -84,7 +84,7 @@ final class HeaderView: NSView {
       serverStatusLabel.toolTip = "Open llama-server"
     } else {
       serverStatusLabel.attributedStringValue = NSAttributedString(
-        string: "Server not running",
+        string: "Select a model to run",
         attributes: [
           .font: Typography.secondary,
           .foregroundColor: Typography.secondaryColor,
