@@ -182,7 +182,7 @@ final class CatalogModelItemView: ItemView {
       progressText = ProgressFormatters.percentText(progress)
 
     case .available:
-      symbolName = compatible ? "arrow.down.circle" : "nosign"
+      symbolName = compatible ? "arrow.down.circle" : "slash.circle"
       rowTooltip = nil
       progressText = nil
     }
