@@ -22,6 +22,7 @@ Get it from [Releases ↗](https://github.com/ggml-org/LlamaBarn/releases)
 - Automatic model configuration based on your Mac's hardware
 - Simple web UI that lets you chat with the running models
 - Familiar REST API that lets you use the running models from other apps
+- No side effects -- installed models live in `~/.llamabarn` and nothing is installed system-wide
 
 ## Quick start
 
