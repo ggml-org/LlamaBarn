@@ -8,9 +8,7 @@ import SwiftUI
 
 private func makeSectionHeaderItem(_ title: String) -> NSMenuItem {
   let view = SectionHeaderView(title: title)
-  let item = NSMenuItem.viewItem(with: view)
-  item.isEnabled = false
-  return item
+  return NSMenuItem.viewItem(with: view)
 }
 
 @MainActor
@@ -42,7 +40,6 @@ final class MenuSettingsSection {
     let height = view.fittingSize.height
     view.frame = NSRect(x: 0, y: 0, width: menuWidth, height: height)
     let item = NSMenuItem.viewItem(with: view)
-    item.isEnabled = true
     menu.addItem(item)
   }
 }
@@ -231,7 +228,7 @@ final class CatalogSection {
 
 @MainActor
 final class FooterSection {
-  func add(to menu: NSMenu, menuWidth: CGFloat, isSettingsVisible: Bool) {
+  func add(to menu: NSMenu, menuWidth: CGFloat) {
     menu.addItem(.separator())
 
     let container = NSView()
@@ -251,13 +248,14 @@ final class FooterSection {
     versionLabel.lineBreakMode = .byTruncatingMiddle
     versionLabel.translatesAutoresizingMaskIntoConstraints = false
 
-    let settingsButton = NSButton(title: "Settings", target: nil, action: #selector(toggleSettings))
+    let settingsButton = NSButton(
+      title: "Settings", target: self, action: #selector(toggleSettings))
     settingsButton.font = Typography.secondary
     settingsButton.bezelStyle = .texturedRounded
     settingsButton.translatesAutoresizingMaskIntoConstraints = false
     settingsButton.keyEquivalent = ","
 
-    let quitButton = NSButton(title: "Quit", target: nil, action: #selector(quitApp))
+    let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitApp))
     quitButton.font = Typography.secondary
     quitButton.bezelStyle = .texturedRounded
     quitButton.translatesAutoresizingMaskIntoConstraints = false
@@ -292,10 +290,6 @@ final class FooterSection {
 
     let item = NSMenuItem.viewItem(with: container)
     item.isEnabled = true
-    settingsButton.target = self
-    settingsButton.action = #selector(toggleSettings)
-    quitButton.target = self
-    quitButton.action = #selector(quitApp)
     menu.addItem(item)
   }
 

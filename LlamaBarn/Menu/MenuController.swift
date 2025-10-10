@@ -99,7 +99,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     installedSection.add(to: menu)
     catalogSection.add(to: menu)
-    footerSection.add(to: menu, menuWidth: menuWidth, isSettingsVisible: isSettingsVisible)
+    footerSection.add(to: menu, menuWidth: menuWidth)
 
     if isSettingsVisible {
       menu.addItem(.separator())
