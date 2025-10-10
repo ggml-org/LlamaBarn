@@ -3,11 +3,16 @@ import Foundation
 
 enum ByteFormatters {
   /// Formats bytes as decimal gigabytes with one fractional digit (e.g., "3.1 GB").
+  /// Omits decimal point when fractional part is zero (e.g., "4 GB" not "4.0 GB").
   /// Uses 1 GB = 1,000,000,000 bytes to match network/download UI conventions.
   /// Uses period separator (US format) for consistency with memory formatting.
   static func gbOneDecimal(_ bytes: Int64) -> String {
     let gb = Double(bytes) / 1_000_000_000.0
-    return String(format: "%.1f GB", gb)
+    let rounded = (gb * 10).rounded() / 10
+    if rounded.truncatingRemainder(dividingBy: 1) == 0 {
+      return String(format: "%.0f GB", rounded)
+    }
+    return String(format: "%.1f GB", rounded)
   }
 
   /// Formats bytes as decimal gigabytes with two fractional digits (e.g., "3.14 GB").
@@ -59,10 +64,15 @@ enum TokenFormatters {
 
 enum MemoryFormatters {
   /// Formats binary megabytes as gigabytes with one decimal (e.g., "3.1 GB" from 3174 MB).
+  /// Omits decimal point when fractional part is zero (e.g., "4 GB" not "4.0 GB").
   /// Uses binary units (1 GB = 1024 MB) to match Activity Monitor and system memory reporting.
   static func gbOneDecimal(_ mb: UInt64) -> String {
     let gb = Double(mb) / 1024.0
-    return String(format: "%.1f GB", gb)
+    let rounded = (gb * 10).rounded() / 10
+    if rounded.truncatingRemainder(dividingBy: 1) == 0 {
+      return String(format: "%.0f GB", rounded)
+    }
+    return String(format: "%.1f GB", rounded)
   }
 
   /// Formats runtime memory usage from binary megabytes.
