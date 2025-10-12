@@ -76,13 +76,13 @@ final class FamilyItemView: ItemView {
     contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      iconView.widthAnchor.constraint(equalToConstant: Layout.iconSize),
-      iconView.heightAnchor.constraint(equalToConstant: Layout.iconSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       // Align icon center with first text line center
       iconView.centerYAnchor.constraint(equalTo: familyLabel.centerYAnchor),
 
-      chevron.widthAnchor.constraint(equalToConstant: Layout.iconSize),
-      chevron.heightAnchor.constraint(equalToConstant: Layout.iconSize),
+      chevron.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
+      chevron.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       hStack.topAnchor.constraint(equalTo: contentView.topAnchor),

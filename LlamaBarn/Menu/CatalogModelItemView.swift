@@ -74,8 +74,8 @@ final class CatalogModelItemView: ItemView {
     contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      statusIndicator.widthAnchor.constraint(equalToConstant: Layout.iconSize),
-      statusIndicator.heightAnchor.constraint(equalToConstant: Layout.iconSize),
+      statusIndicator.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
+      statusIndicator.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth),
       hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),

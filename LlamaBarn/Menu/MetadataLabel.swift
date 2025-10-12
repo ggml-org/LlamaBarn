@@ -9,9 +9,15 @@ enum MetadataLabel {
   /// Used for status indicators like checkmarks.
   static func makeIconOnly(icon: NSImage?, color: NSColor? = nil) -> NSAttributedString {
     guard let icon else { return NSAttributedString() }
-    let tintedIcon =
-      color.flatMap { icon.withSymbolConfiguration(.init(paletteColors: [$0])) } ?? icon
-    return NSAttributedString(attachment: iconAttachment(for: tintedIcon))
+
+    // Configure icon with optional color
+    var config = NSImage.SymbolConfiguration(pointSize: Layout.metadataIconSize, weight: .regular)
+    if let color {
+      config = config.applying(.init(paletteColors: [color]))
+    }
+    let configuredIcon = icon.withSymbolConfiguration(config) ?? icon
+
+    return NSAttributedString(attachment: iconAttachment(for: configuredIcon))
   }
 
   /// Creates an attributed string with an icon followed by text (e.g., "📦 2.5 GB").
@@ -25,7 +31,10 @@ enum MetadataLabel {
       return NSAttributedString(string: text, attributes: Typography.secondaryAttributes)
     }
 
-    let composed = NSMutableAttributedString(attachment: iconAttachment(for: icon))
+    let config = NSImage.SymbolConfiguration(pointSize: Layout.metadataIconSize, weight: .regular)
+    let configuredIcon = icon.withSymbolConfiguration(config) ?? icon
+
+    let composed = NSMutableAttributedString(attachment: iconAttachment(for: configuredIcon))
     composed.append(
       NSAttributedString(string: " \(text)", attributes: Typography.secondaryAttributes))
     return composed

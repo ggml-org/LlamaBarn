@@ -16,7 +16,7 @@ final class IconView: NSView {
     translatesAutoresizingMaskIntoConstraints = false
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
-    imageView.symbolConfiguration = .init(pointSize: Layout.iconSize, weight: .regular)
+    imageView.symbolConfiguration = .init(pointSize: Layout.uiIconSize, weight: .regular)
 
     // Configure spinner but keep it hidden until used.
     spinner.translatesAutoresizingMaskIntoConstraints = false
@@ -27,12 +27,12 @@ final class IconView: NSView {
     addSubview(imageView)
     addSubview(spinner)
     NSLayoutConstraint.activate([
-      widthAnchor.constraint(equalToConstant: Layout.iconSize),
-      heightAnchor.constraint(equalToConstant: Layout.iconSize),
+      widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
+      heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       imageView.centerXAnchor.constraint(equalTo: centerXAnchor),
       imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
-      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
+      imageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.uiIconSize),
+      imageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.uiIconSize),
       spinner.centerXAnchor.constraint(equalTo: centerXAnchor),
       spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
     ])

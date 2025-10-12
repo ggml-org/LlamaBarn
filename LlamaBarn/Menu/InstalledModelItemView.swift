@@ -101,13 +101,13 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     contentView.addSubview(deleteLabel)
 
     NSLayoutConstraint.activate([
-      iconView.widthAnchor.constraint(equalToConstant: Layout.iconSize),
-      iconView.heightAnchor.constraint(equalToConstant: Layout.iconSize),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       // Align icon center with first text line center
       iconView.centerYAnchor.constraint(equalTo: modelNameLabel.centerYAnchor),
 
-      cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
-      cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.iconSize),
+      cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.uiIconSize),
+      cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.uiIconSize),
 
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth),
       rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),

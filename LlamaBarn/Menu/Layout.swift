@@ -10,8 +10,10 @@ enum Layout {
   static let verticalPadding: CGFloat = 4
   /// Rounded corner radius for highlights.
   static let cornerRadius: CGFloat = 6
-  /// Size for icons (model icons, status indicators, chevrons, cancel buttons).
-  static let iconSize: CGFloat = 16
+  /// Size for UI icons (model icons, chevrons, cancel buttons).
+  static let uiIconSize: CGFloat = 16
+  /// Size for inline metadata icons (status indicators in metadata text).
+  static let metadataIconSize: CGFloat = 9.5
   /// Maximum width for download progress labels.
   static let progressWidth: CGFloat = 48
 }
