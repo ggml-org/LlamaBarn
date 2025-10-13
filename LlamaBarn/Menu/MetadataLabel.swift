@@ -40,6 +40,42 @@ enum MetadataLabel {
     return composed
   }
 
+  /// Creates an attributed string with an icon followed by text with small caps for GB/MB.
+  static func makeWithSmallCaps(
+    icon: NSImage?,
+    text: String,
+    font: NSFont = Typography.secondary
+  ) -> NSAttributedString {
+    guard let icon else {
+      return applySmallCapsToUnits(text)
+    }
+
+    let config = NSImage.SymbolConfiguration(pointSize: Layout.metadataIconSize, weight: .regular)
+    let configuredIcon = icon.withSymbolConfiguration(config) ?? icon
+
+    let composed = NSMutableAttributedString(attachment: iconAttachment(for: configuredIcon))
+    composed.append(NSAttributedString(string: " "))
+    composed.append(applySmallCapsToUnits(text))
+    return composed
+  }
+
+  /// Applies small caps to "GB" and "MB" in text while preserving secondary typography.
+  static func applySmallCapsToUnits(_ text: String) -> NSAttributedString {
+    let result = NSMutableAttributedString(string: text, attributes: Typography.secondaryAttributes)
+    let pattern = "\\b(GB|MB)\\b"
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+      let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+      for match in matches.reversed() {
+        let smallCapsFont = NSFont.systemFont(
+          ofSize: Typography.secondary.pointSize,
+          weight: .regular
+        ).withSmallCaps()
+        result.addAttribute(.font, value: smallCapsFont, range: match.range)
+      }
+    }
+    return result
+  }
+
   /// Creates a bullet separator for metadata lines (e.g., "2.5 GB · 128k · 4 GB").
   static func makeSeparator(font: NSFont = Typography.secondary) -> NSAttributedString {
     NSAttributedString(string: " · ", attributes: Typography.tertiaryAttributes)

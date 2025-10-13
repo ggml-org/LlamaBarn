@@ -1,6 +1,21 @@
 import AppKit
 import Foundation
 
+extension NSFont {
+  /// Returns a font with small caps feature enabled.
+  func withSmallCaps() -> NSFont {
+    let descriptor = fontDescriptor.addingAttributes([
+      .featureSettings: [
+        [
+          NSFontDescriptor.FeatureKey.typeIdentifier: kUpperCaseType,
+          NSFontDescriptor.FeatureKey.selectorIdentifier: kUpperCaseSmallCapsSelector,
+        ]
+      ]
+    ])
+    return NSFont(descriptor: descriptor, size: pointSize) ?? self
+  }
+}
+
 enum ByteFormatters {
   /// Formats bytes as decimal gigabytes with one fractional digit (e.g., "3.1 GB").
   /// Omits decimal point when fractional part is zero (e.g., "4 GB" not "4.0 GB").
@@ -125,7 +140,8 @@ enum ModelMetadataFormatters {
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
     // Size
-    result.append(MetadataLabel.make(icon: Symbols.internaldrive, text: model.totalSize))
+    result.append(
+      MetadataLabel.makeWithSmallCaps(icon: Symbols.internaldrive, text: model.totalSize))
     result.append(MetadataLabel.makeSeparator())
 
     // Memory (estimated)
@@ -134,7 +150,7 @@ enum ModelMetadataFormatters {
       ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
     )
     result.append(
-      MetadataLabel.make(
+      MetadataLabel.makeWithSmallCaps(
         icon: Symbols.memorychip, text: MemoryFormatters.gbOneDecimal(memoryMb)))
     result.append(MetadataLabel.makeSeparator())
 
@@ -157,8 +173,7 @@ enum ModelMetadataFormatters {
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
     // Size
-    result.append(
-      NSAttributedString(string: model.totalSize, attributes: Typography.secondaryAttributes))
+    result.append(MetadataLabel.applySmallCapsToUnits(model.totalSize))
     result.append(MetadataLabel.makeSeparator())
 
     // Memory (estimated)
@@ -167,10 +182,7 @@ enum ModelMetadataFormatters {
       ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
     )
     result.append(
-      NSAttributedString(
-        string: MemoryFormatters.gbOneDecimal(memoryMb) + " mem",
-        attributes: Typography.secondaryAttributes
-      ))
+      MetadataLabel.applySmallCapsToUnits(MemoryFormatters.gbOneDecimal(memoryMb) + " mem"))
     result.append(MetadataLabel.makeSeparator())
 
     // Context window: show "usable capped" if limited by memory, otherwise show full value
