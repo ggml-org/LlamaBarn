@@ -6,7 +6,7 @@ final class FamilyHeaderView: NSView {
   private static let menuWidth: CGFloat = 320
   private static let iconTextSpacing: CGFloat = 8
 
-  private let iconView = IconView()
+  private let iconView = NSImageView()
   private let familyNameLabel = Typography.makePrimaryLabel()
   private let descriptionLabel = Typography.makeSecondaryLabel()
 
@@ -18,7 +18,8 @@ final class FamilyHeaderView: NSView {
     setAccessibilityRole(.group)
     setAccessibilityLabel("\(familyName) info")
 
-    iconView.setImage(NSImage(named: iconName))
+    iconView.image = NSImage(named: iconName)
+    iconView.contentTintColor = Typography.primaryColor
     familyNameLabel.stringValue = familyName
     familyNameLabel.lineBreakMode = .byTruncatingTail
     descriptionLabel.stringValue = blurb

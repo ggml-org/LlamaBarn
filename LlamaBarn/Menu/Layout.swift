@@ -12,6 +12,8 @@ enum Layout {
   static let cornerRadius: CGFloat = 6
   /// Size for UI icons (model icons, chevrons, cancel buttons).
   static let uiIconSize: CGFloat = 16
+  /// Size for IconView containers (circular backgrounds for installed model icons).
+  static let iconViewSize: CGFloat = 28
   /// Size for inline metadata icons (status indicators in metadata text).
   static let metadataIconSize: CGFloat = 9.5
   /// Maximum width for download progress labels.

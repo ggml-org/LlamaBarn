@@ -12,7 +12,7 @@ final class FamilyItemView: ItemView {
   private let sortedModels: [CatalogEntry]
   private unowned let modelManager: ModelManager
 
-  private let iconView = IconView()
+  private let iconView = NSImageView()
   private let familyLabel = Typography.makePrimaryLabel()
   private let metadataLabel = Typography.makeSecondaryLabel()
   private let chevron = NSImageView()
@@ -40,7 +40,8 @@ final class FamilyItemView: ItemView {
     wantsLayer = true
 
     // Configure icon view
-    iconView.setImage(NSImage(named: sortedModels.first?.icon ?? ""))
+    iconView.image = NSImage(named: sortedModels.first?.icon ?? "")
+    iconView.contentTintColor = Typography.primaryColor
 
     // Configure family name label
     familyLabel.stringValue = family

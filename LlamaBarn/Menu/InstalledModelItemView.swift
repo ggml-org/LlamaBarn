@@ -44,7 +44,7 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
   private func setup() {
     wantsLayer = true
-    iconView.setImage(NSImage(named: model.icon))
+    iconView.imageView.image = NSImage(named: model.icon)
 
     progressLabel.alignment = .right
 
@@ -78,7 +78,8 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     let leading = NSStackView(views: [iconView, nameStack])
     leading.orientation = .horizontal
     leading.spacing = 6
-    leading.alignment = .top
+    // Center icon vertically against two-line text to match Wi‑Fi menu
+    leading.alignment = .centerY
 
     // Right: status/progress/cancel in a row, delete label positioned separately
     cancelImageView.setContentHuggingPriority(.required, for: .horizontal)
@@ -101,10 +102,8 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     contentView.addSubview(deleteLabel)
 
     NSLayoutConstraint.activate([
-      iconView.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
-      iconView.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
-      // Align icon center with first text line center
-      iconView.centerYAnchor.constraint(equalTo: modelNameLabel.centerYAnchor),
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconViewSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconViewSize),
 
       cancelImageView.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.uiIconSize),
       cancelImageView.heightAnchor.constraint(lessThanOrEqualToConstant: Layout.uiIconSize),
