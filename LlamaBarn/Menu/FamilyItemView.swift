@@ -1,6 +1,6 @@
 import AppKit
 
-/// Interactive menu item that triggers a submenu for a model family, showing model size indicators with download/compatibility status.
+/// Interactive menu item that expands/collapses to show models in a family inline.
 ///
 /// Background and hover handling provided by ItemView.
 /// Size indicators are rebuilt on each refresh rather than tracked statefully for simplicity.
@@ -10,17 +10,28 @@ final class FamilyItemView: ItemView {
   private let family: String
   private let sortedModels: [CatalogEntry]
   private unowned let modelManager: ModelManager
+  private let onToggle: (String) -> Void
+  private var isExpanded: Bool
 
   private let familyLabel = Typography.makePrimaryLabel()
   private let metadataLabel = Typography.makeSecondaryLabel()
   private let chevron = NSImageView()
+  private var clickRecognizer: NSClickGestureRecognizer?
 
   // MARK: - Initialization
 
-  init(family: String, sortedModels: [CatalogEntry], modelManager: ModelManager) {
+  init(
+    family: String,
+    sortedModels: [CatalogEntry],
+    modelManager: ModelManager,
+    isExpanded: Bool,
+    onToggle: @escaping (String) -> Void
+  ) {
     self.family = family
     self.sortedModels = sortedModels
     self.modelManager = modelManager
+    self.isExpanded = isExpanded
+    self.onToggle = onToggle
     super.init(frame: .zero)
     translatesAutoresizingMaskIntoConstraints = false
     setup()
@@ -49,8 +60,8 @@ final class FamilyItemView: ItemView {
     metadataLabel.maximumNumberOfLines = 1
     metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-    // Configure chevron indicator
-    chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
+    // Configure chevron indicator (changes based on expansion state)
+    updateChevron()
     chevron.symbolConfiguration = .init(pointSize: 10, weight: .semibold)
     chevron.contentTintColor = Typography.primaryColor
 
@@ -79,12 +90,41 @@ final class FamilyItemView: ItemView {
     ])
   }
 
+  // MARK: - View Lifecycle
+
+  override func viewDidMoveToWindow() {
+    super.viewDidMoveToWindow()
+    guard clickRecognizer == nil else { return }
+
+    let click = NSClickGestureRecognizer(target: self, action: #selector(didClickRow(_:)))
+    click.buttonMask = 0x1  // Left mouse button only
+    addGestureRecognizer(click)
+    clickRecognizer = click
+  }
+
+  @objc private func didClickRow(_ recognizer: NSClickGestureRecognizer) {
+    guard recognizer.state == .ended else { return }
+    let location = recognizer.location(in: self)
+    guard bounds.contains(location) else { return }
+
+    // Toggle expansion state
+    isExpanded.toggle()
+    updateChevron()
+    onToggle(family)
+  }
+
   // MARK: - Refresh
 
   /// Updates the metadata line with current model size states.
   func refresh() {
     metadataLabel.attributedStringValue = makeMetadataLine()
+    updateChevron()
     needsDisplay = true
+  }
+
+  private func updateChevron() {
+    let symbolName = isExpanded ? "chevron.down" : "chevron.right"
+    chevron.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
   }
 
   // MARK: - Metadata Line Construction

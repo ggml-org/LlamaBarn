@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Interactive menu item for a downloadable model build inside a family submenu.
+/// Interactive menu item for a downloadable model build shown under an expanded family item.
 final class CatalogModelItemView: ItemView {
   private let model: CatalogEntry
   private unowned let modelManager: ModelManager
@@ -12,9 +12,6 @@ final class CatalogModelItemView: ItemView {
   private let metadataLabel = Typography.makeSecondaryLabel()
   private let progressLabel = Typography.makeSecondaryLabel()
   private var rowClickRecognizer: NSClickGestureRecognizer?
-  // Background handled by MenuItemView
-
-  // Hover handling provided by MenuItemView
 
   init(
     model: CatalogEntry, modelManager: ModelManager, membershipChanged: @escaping () -> Void
@@ -30,7 +27,7 @@ final class CatalogModelItemView: ItemView {
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-  override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 40) }
+  override var intrinsicContentSize: NSSize { NSSize(width: 260, height: 28) }
 
   // Only allow highlight for actionable rows (available/compatible or downloading).
   override var highlightEnabled: Bool {
@@ -49,19 +46,20 @@ final class CatalogModelItemView: ItemView {
     wantsLayer = true
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
-    labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    labelField.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+    metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     progressLabel.alignment = .right
 
-    // Two-line text column (title + metadata)
-    let textColumn = NSStackView(views: [labelField, metadataLabel])
-    textColumn.orientation = .vertical
-    textColumn.alignment = .leading
-    textColumn.spacing = 1
+    // Single-line text row (name + metadata)
+    let textRow = NSStackView(views: [labelField, metadataLabel])
+    textRow.orientation = .horizontal
+    textRow.alignment = .centerY
+    textRow.spacing = 8
 
-    // Leading group aligns status icon with first line of text
-    let leading = NSStackView(views: [statusIndicator, textColumn])
+    // Leading group with status icon and text
+    let leading = NSStackView(views: [statusIndicator, textRow])
     leading.orientation = .horizontal
-    leading.alignment = .top
+    leading.alignment = .centerY
     leading.spacing = 6
 
     // Main horizontal row with flexible space and trailing progress label
@@ -133,15 +131,15 @@ final class CatalogModelItemView: ItemView {
     let compatible = Catalog.isModelCompatible(model)
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
-    // Title and basic display
-    labelField.stringValue = model.fullName
+    // Title and basic display (just size when shown under family)
+    labelField.stringValue = model.sizeLabel
 
-    // Metadata text (second line)
+    // Metadata text (same line as model name)
     if compatible {
       metadataLabel.attributedStringValue = ModelMetadataFormatters.makeMetadataText(for: model)
     } else {
       metadataLabel.attributedStringValue = NSAttributedString(
-        string: "Won't run on this device.",
+        string: "incompatible",
         attributes: Typography.tertiaryAttributes
       )
     }

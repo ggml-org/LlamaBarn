@@ -153,6 +153,9 @@ final class CatalogSection {
   private let onDownloadStatusChange: (CatalogEntry) -> Void
   private var familyViews: [FamilyItemView] = []
   private var catalogViews: [CatalogModelItemView] = []
+  private var expandedFamilies: Set<String> = []
+  private weak var menu: NSMenu?
+  private weak var headerItem: NSMenuItem?
 
   init(
     modelManager: ModelManager,
@@ -163,13 +166,29 @@ final class CatalogSection {
   }
 
   func add(to menu: NSMenu) {
-    let showQuantized = UserSettings.showQuantizedModels
+    self.menu = menu
     let families = Catalog.families
 
     guard !families.isEmpty else { return }
 
     menu.addItem(.separator())
-    menu.addItem(makeSectionHeaderItem("Available"))
+    let header = makeSectionHeaderItem("Available")
+    headerItem = header
+    menu.addItem(header)
+
+    buildCatalogItems { familyItem, modelItems in
+      menu.addItem(familyItem)
+      modelItems.forEach { menu.addItem($0) }
+    }
+  }
+
+  /// Builds catalog family items and their associated model items, invoking the handler for each family.
+  /// The handler receives the family menu item and an array of model menu items (empty if family is collapsed).
+  private func buildCatalogItems(
+    handler: (NSMenuItem, [NSMenuItem]) -> Void
+  ) {
+    let showQuantized = UserSettings.showQuantizedModels
+    let families = Catalog.families
 
     // Filter and group all entries once, avoiding N×M work in the family loop
     let allEntries = Catalog.allEntries().filter { showQuantized || $0.isFullPrecision }
@@ -186,37 +205,71 @@ final class CatalogSection {
       let familyView = FamilyItemView(
         family: family.name,
         sortedModels: sortedModels,
-        modelManager: modelManager
-      )
+        modelManager: modelManager,
+        isExpanded: expandedFamilies.contains(family.name)
+      ) { [weak self] familyName in
+        self?.toggleFamily(familyName)
+      }
       familyViews.append(familyView)
 
       let familyItem = NSMenuItem.viewItem(with: familyView)
       familyItem.isEnabled = true
 
-      // Build submenu immediately
-      let submenu = NSMenu(title: family.name)
-      submenu.autoenablesItems = false
-
-      let infoView = FamilyHeaderView(
-        familyName: family.name,
-        iconName: family.iconName,
-        blurb: family.blurb
-      )
-      submenu.addItem(NSMenuItem.viewItem(with: infoView))
-      submenu.addItem(.separator())
-
-      for model in sortedModels {
-        let view = CatalogModelItemView(model: model, modelManager: modelManager) {
-          [weak self] in
-          self?.onDownloadStatusChange(model)
+      // Build model items if this family is expanded
+      let modelItems: [NSMenuItem] =
+        if expandedFamilies.contains(family.name) {
+          sortedModels.map { model in
+            let view = CatalogModelItemView(model: model, modelManager: modelManager) {
+              [weak self] in
+              self?.onDownloadStatusChange(model)
+            }
+            catalogViews.append(view)
+            return NSMenuItem.viewItem(with: view)
+          }
+        } else {
+          []
         }
-        catalogViews.append(view)
-        let modelItem = NSMenuItem.viewItem(with: view)
-        submenu.addItem(modelItem)
-      }
 
-      familyItem.submenu = submenu
-      menu.addItem(familyItem)
+      handler(familyItem, modelItems)
+    }
+  }
+
+  private func toggleFamily(_ familyName: String) {
+    if expandedFamilies.contains(familyName) {
+      expandedFamilies.remove(familyName)
+    } else {
+      expandedFamilies.insert(familyName)
+    }
+
+    // Rebuild menu to reflect expansion state
+    guard let menu = self.menu else { return }
+    rebuildCatalogSection(in: menu)
+  }
+
+  private func rebuildCatalogSection(in menu: NSMenu) {
+    // Find the catalog section and rebuild it
+    guard let headerItem, let sectionHeaderIndex = menu.items.firstIndex(of: headerItem) else {
+      return
+    }
+
+    // Remove all catalog items (family items and their expanded models)
+    let indexToRemove = sectionHeaderIndex + 1
+    while indexToRemove < menu.items.count {
+      let item = menu.items[indexToRemove]
+      // Stop when we hit a separator (which marks the end of our section)
+      if item.isSeparatorItem { break }
+      menu.removeItem(at: indexToRemove)
+    }
+
+    // Re-add all catalog items with current expansion state
+    var insertIndex = sectionHeaderIndex + 1
+    buildCatalogItems { familyItem, modelItems in
+      menu.insertItem(familyItem, at: insertIndex)
+      insertIndex += 1
+      for modelItem in modelItems {
+        menu.insertItem(modelItem, at: insertIndex)
+        insertIndex += 1
+      }
     }
   }
 
