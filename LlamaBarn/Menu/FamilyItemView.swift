@@ -51,8 +51,7 @@ final class FamilyItemView: ItemView {
 
     // Configure chevron indicator
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
-    // Match InstalledModelMenuItemView trailing indicator sizing for alignment.
-    chevron.symbolConfiguration = .init(pointSize: 14, weight: .regular)
+    chevron.symbolConfiguration = .init(pointSize: 10, weight: .semibold)
     chevron.contentTintColor = Typography.primaryColor
 
     // Build layout hierarchy: family name and metadata on same line, chevron on right
@@ -71,8 +70,8 @@ final class FamilyItemView: ItemView {
     contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
-      chevron.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
-      chevron.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
+      chevron.widthAnchor.constraint(equalToConstant: 10),
+      chevron.heightAnchor.constraint(equalToConstant: 10),
       hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       hStack.topAnchor.constraint(equalTo: contentView.topAnchor),
