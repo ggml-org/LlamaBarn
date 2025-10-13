@@ -11,7 +11,6 @@ final class CatalogModelItemView: ItemView {
   private let statusIndicator = NSImageView()
   private let labelField = Typography.makePrimaryLabel()
   private let metadataLabel = Typography.makeSecondaryLabel()
-  private let progressLabel = Typography.makeSecondaryLabel()
   private var rowClickRecognizer: NSClickGestureRecognizer?
 
   init(
@@ -48,7 +47,6 @@ final class CatalogModelItemView: ItemView {
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-    progressLabel.alignment = .right
 
     // Two-line text column (title + metadata)
     let textColumn = NSStackView(views: [labelField, metadataLabel])
@@ -67,14 +65,8 @@ final class CatalogModelItemView: ItemView {
     spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
     spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-    // Right: status indicator + progress, aligned to center of second line
-    let trailing = NSStackView(views: [statusIndicator, progressLabel])
-    trailing.orientation = .horizontal
-    trailing.alignment = .centerY
-    trailing.spacing = 6
-
     // Main horizontal row
-    let hStack = NSStackView(views: [leading, spacer, trailing])
+    let hStack = NSStackView(views: [leading, spacer, statusIndicator])
     hStack.translatesAutoresizingMaskIntoConstraints = false
     hStack.orientation = .horizontal
     hStack.spacing = 6
@@ -87,7 +79,6 @@ final class CatalogModelItemView: ItemView {
       iconView.heightAnchor.constraint(equalToConstant: Layout.iconViewSize),
       statusIndicator.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
       statusIndicator.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
-      progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth),
       hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       hStack.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -172,9 +163,8 @@ final class CatalogModelItemView: ItemView {
     let symbolName = compatible ? "arrow.down" : "nosign"
     statusIndicator.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
 
-    // No tooltips or progress for catalog items
+    // No tooltips for catalog items
     toolTip = nil
-    progressLabel.stringValue = ""
 
     // Colors: tertiary for incompatible, primary for compatible
     let itemColor: NSColor = compatible ? Typography.primaryColor : Typography.tertiaryColor
