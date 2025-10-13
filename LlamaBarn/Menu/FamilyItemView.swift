@@ -29,8 +29,6 @@ final class FamilyItemView: ItemView {
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-  override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 40) }
-
   // MARK: - Setup
 
   /// Configures the view hierarchy and layout constraints.
@@ -39,9 +37,17 @@ final class FamilyItemView: ItemView {
 
     // Configure family name label
     familyLabel.stringValue = family
+    familyLabel.cell?.lineBreakMode = .byTruncatingTail
+    familyLabel.cell?.truncatesLastVisibleLine = true
+    familyLabel.maximumNumberOfLines = 1
+    familyLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
 
-    // Configure metadata label (second line showing all available model sizes)
+    // Configure metadata label (showing all available model sizes on same line as family name)
     // Contains all size entries in a single attributed string (e.g., "270M · 1B · 4B · 12B")
+    metadataLabel.cell?.lineBreakMode = .byTruncatingTail
+    metadataLabel.cell?.truncatesLastVisibleLine = true
+    metadataLabel.maximumNumberOfLines = 1
+    metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
     // Configure chevron indicator
     chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
@@ -49,14 +55,14 @@ final class FamilyItemView: ItemView {
     chevron.symbolConfiguration = .init(pointSize: 14, weight: .regular)
     chevron.contentTintColor = Typography.primaryColor
 
-    // Build layout hierarchy: text column on left, chevron on right
-    let textColumn = NSStackView(views: [familyLabel, metadataLabel])
-    textColumn.orientation = .vertical
-    textColumn.spacing = 2
-    textColumn.alignment = .leading
+    // Build layout hierarchy: family name and metadata on same line, chevron on right
+    let textRow = NSStackView(views: [familyLabel, metadataLabel])
+    textRow.orientation = .horizontal
+    textRow.spacing = 8
+    textRow.alignment = .centerY
 
     // Main row with flexible space between leading content and chevron
-    let hStack = NSStackView(views: [textColumn, NSView(), chevron])
+    let hStack = NSStackView(views: [textRow, NSView(), chevron])
     hStack.translatesAutoresizingMaskIntoConstraints = false
     hStack.orientation = .horizontal
     hStack.spacing = 6
