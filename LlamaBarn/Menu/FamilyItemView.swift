@@ -156,20 +156,16 @@ final class FamilyItemView: ItemView {
   }
 
   /// Creates an attributed string for a model size label.
-  /// Unsupported models use a dimmed tertiary label color.
   private func attributedSizeLabel(
     for model: CatalogEntry,
     downloaded: Bool
   ) -> NSAttributedString {
-    let isSupported = Catalog.isModelCompatible(model)
-    let textColor: NSColor = isSupported ? Typography.secondaryColor : Typography.tertiaryColor
-
     // Use sizeLabel property which includes quantization suffix (e.g., "27B" or "27B-Q4")
     return NSAttributedString(
       string: model.sizeLabel,
       attributes: [
         .font: Typography.secondary,
-        .foregroundColor: textColor,
+        .foregroundColor: Typography.tertiaryColor,
       ]
     )
   }
