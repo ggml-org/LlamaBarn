@@ -187,14 +187,19 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
       iconView.inactiveTintColor = Typography.primaryColor
     }
 
-    // Delete button only for installed models
-    deleteLabel.isHidden = status != .installed
+    // Delete button only for installed models on hover
+    deleteLabel.isHidden = status != .installed || !isHighlighted
 
     // Update icon state
     iconView.setLoading(isLoading)
     iconView.isActive = isActive
 
     needsDisplay = true
+  }
+
+  override func highlightDidChange(_ highlighted: Bool) {
+    let status = modelManager.status(for: model)
+    deleteLabel.isHidden = status != .installed || !highlighted
   }
 
   override func viewDidChangeEffectiveAppearance() {
