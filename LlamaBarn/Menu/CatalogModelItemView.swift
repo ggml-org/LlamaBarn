@@ -7,6 +7,7 @@ final class CatalogModelItemView: ItemView {
   private unowned let modelManager: ModelManager
   private let membershipChanged: () -> Void
 
+  private let iconView = CatalogIconView()
   private let statusIndicator = NSImageView()
   private let labelField = Typography.makePrimaryLabel()
   private let metadataLabel = Typography.makeSecondaryLabel()
@@ -37,8 +38,13 @@ final class CatalogModelItemView: ItemView {
     return Catalog.isModelCompatible(model)
   }
 
+  override func highlightDidChange(_ highlighted: Bool) {
+    iconView.isHighlighted = highlighted
+  }
+
   private func setup() {
     wantsLayer = true
+    iconView.imageView.image = NSImage(named: model.icon)
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -48,16 +54,27 @@ final class CatalogModelItemView: ItemView {
     let textColumn = NSStackView(views: [labelField, metadataLabel])
     textColumn.orientation = .vertical
     textColumn.alignment = .leading
-    textColumn.spacing = 1
+    textColumn.spacing = 2
 
-    // Leading group aligns status icon with first line of text
-    let leading = NSStackView(views: [statusIndicator, textColumn])
+    // Leading: icon + text column, aligned to center vertically
+    let leading = NSStackView(views: [iconView, textColumn])
     leading.orientation = .horizontal
-    leading.alignment = .top
+    leading.alignment = .centerY
     leading.spacing = 6
 
-    // Main horizontal row with flexible space and trailing progress label
-    let hStack = NSStackView(views: [leading, NSView(), progressLabel])
+    // Spacer expands so trailing visuals sit flush right
+    let spacer = NSView()
+    spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+    spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+    // Right: status indicator + progress, aligned to center of second line
+    let trailing = NSStackView(views: [statusIndicator, progressLabel])
+    trailing.orientation = .horizontal
+    trailing.alignment = .centerY
+    trailing.spacing = 6
+
+    // Main horizontal row
+    let hStack = NSStackView(views: [leading, spacer, trailing])
     hStack.translatesAutoresizingMaskIntoConstraints = false
     hStack.orientation = .horizontal
     hStack.spacing = 6
@@ -66,10 +83,12 @@ final class CatalogModelItemView: ItemView {
     contentView.addSubview(hStack)
 
     NSLayoutConstraint.activate([
+      iconView.widthAnchor.constraint(equalToConstant: Layout.iconViewSize),
+      iconView.heightAnchor.constraint(equalToConstant: Layout.iconViewSize),
       statusIndicator.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
       statusIndicator.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth),
-      hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+      hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       hStack.topAnchor.constraint(equalTo: contentView.topAnchor),
       hStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
