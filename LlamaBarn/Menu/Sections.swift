@@ -182,6 +182,34 @@ final class CatalogSection {
     }
   }
 
+  /// Rebuilds the catalog section to reflect current model availability.
+  /// Called when models move between catalog and installed (e.g., when downloads start/cancel).
+  func rebuild(in menu: NSMenu) {
+    guard let headerItem, let sectionHeaderIndex = menu.items.firstIndex(of: headerItem) else {
+      return
+    }
+
+    // Remove all catalog items (family items and their expanded models)
+    let indexToRemove = sectionHeaderIndex + 1
+    while indexToRemove < menu.items.count {
+      let item = menu.items[indexToRemove]
+      // Stop when we hit a separator (which marks the end of our section)
+      if item.isSeparatorItem { break }
+      menu.removeItem(at: indexToRemove)
+    }
+
+    // Re-add all catalog items with current expansion state and filtered models
+    var insertIndex = sectionHeaderIndex + 1
+    buildCatalogItems { familyItem, modelItems in
+      menu.insertItem(familyItem, at: insertIndex)
+      insertIndex += 1
+      for modelItem in modelItems {
+        menu.insertItem(modelItem, at: insertIndex)
+        insertIndex += 1
+      }
+    }
+  }
+
   /// Builds catalog family items and their associated model items, invoking the handler for each family.
   /// The handler receives the family menu item and an array of model menu items (empty if family is collapsed).
   private func buildCatalogItems(
@@ -191,7 +219,12 @@ final class CatalogSection {
     let families = Catalog.families
 
     // Filter and group all entries once, avoiding N×M work in the family loop
-    let allEntries = Catalog.allEntries().filter { showQuantized || $0.isFullPrecision }
+    // Exclude installed and downloading models from catalog
+    let allEntries = Catalog.allEntries().filter { model in
+      let status = modelManager.status(for: model)
+      let isAvailable = status == .available
+      return isAvailable && (showQuantized || model.isFullPrecision)
+    }
     let modelsByFamily = Dictionary(grouping: allEntries, by: \.family)
 
     familyViews.removeAll()
@@ -243,34 +276,7 @@ final class CatalogSection {
 
     // Rebuild menu to reflect expansion state
     guard let menu = self.menu else { return }
-    rebuildCatalogSection(in: menu)
-  }
-
-  private func rebuildCatalogSection(in menu: NSMenu) {
-    // Find the catalog section and rebuild it
-    guard let headerItem, let sectionHeaderIndex = menu.items.firstIndex(of: headerItem) else {
-      return
-    }
-
-    // Remove all catalog items (family items and their expanded models)
-    let indexToRemove = sectionHeaderIndex + 1
-    while indexToRemove < menu.items.count {
-      let item = menu.items[indexToRemove]
-      // Stop when we hit a separator (which marks the end of our section)
-      if item.isSeparatorItem { break }
-      menu.removeItem(at: indexToRemove)
-    }
-
-    // Re-add all catalog items with current expansion state
-    var insertIndex = sectionHeaderIndex + 1
-    buildCatalogItems { familyItem, modelItems in
-      menu.insertItem(familyItem, at: insertIndex)
-      insertIndex += 1
-      for modelItem in modelItems {
-        menu.insertItem(modelItem, at: insertIndex)
-        insertIndex += 1
-      }
-    }
+    rebuild(in: menu)
   }
 
   func refresh() {

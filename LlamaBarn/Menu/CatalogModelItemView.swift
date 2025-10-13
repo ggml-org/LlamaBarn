@@ -29,17 +29,12 @@ final class CatalogModelItemView: ItemView {
 
   override var intrinsicContentSize: NSSize { NSSize(width: 320, height: 40) }
 
-  // Only allow highlight for actionable rows (available/compatible or downloading).
+  // Only allow highlight for available/compatible models.
+  // Catalog items should never show downloading or installed states.
   override var highlightEnabled: Bool {
     let status = modelManager.status(for: model)
-    switch status {
-    case .available:
-      return Catalog.isModelCompatible(model)
-    case .downloading:
-      return true
-    case .installed:
-      return false
-    }
+    guard case .available = status else { return false }
+    return Catalog.isModelCompatible(model)
   }
 
   private func setup() {
@@ -96,37 +91,28 @@ final class CatalogModelItemView: ItemView {
     guard bounds.contains(location) else { return }
     guard highlightEnabled else { return }
     handleAction()
-    refresh()
+    // No refresh needed - membershipChanged() will trigger catalog rebuild and remove this item
   }
 
   private func handleAction() {
-    let status = modelManager.status(for: model)
-    switch status {
-    case .available:
-      // The `highlightEnabled` check already covers compatibility, but we could also check here.
-      do {
-        try modelManager.downloadModel(model)
-        membershipChanged()
-      } catch {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = error.localizedDescription
-        if let error = error as? LocalizedError, let recoverySuggestion = error.recoverySuggestion {
-          alert.informativeText = recoverySuggestion
-        }
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-      }
-    case .downloading:
-      modelManager.cancelModelDownload(model)
+    // Catalog items only handle the download action for available models.
+    // Downloading/installed states are shown in the installed section.
+    do {
+      try modelManager.downloadModel(model)
       membershipChanged()
-    case .installed:
-      break
+    } catch {
+      let alert = NSAlert()
+      alert.alertStyle = .warning
+      alert.messageText = error.localizedDescription
+      if let error = error as? LocalizedError, let recoverySuggestion = error.recoverySuggestion {
+        alert.informativeText = recoverySuggestion
+      }
+      alert.addButton(withTitle: "OK")
+      alert.runModal()
     }
   }
 
   func refresh() {
-    let status = modelManager.status(for: model)
     let compatible = Catalog.isModelCompatible(model)
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
@@ -163,49 +149,18 @@ final class CatalogModelItemView: ItemView {
       .nilIfEmpty
 
     // Status-specific display
-    let symbolName: String
-    let rowTooltip: String?
-    let progressText: String?
-
-    switch status {
-    case .installed:
-      symbolName = "checkmark"
-      rowTooltip = "Already installed"
-      progressText = nil
-
-    case .downloading(let progress):
-      symbolName = "arrow.down"
-      rowTooltip = nil
-      progressText = ProgressFormatters.percentText(progress)
-
-    case .available:
-      symbolName = compatible ? "arrow.down" : "nosign"
-      rowTooltip = nil
-      progressText = nil
-    }
-
+    // Catalog items only show available models (compatible or incompatible)
+    let symbolName = compatible ? "arrow.down" : "nosign"
     statusIndicator.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-    toolTip = rowTooltip
-    progressLabel.stringValue = progressText ?? ""
 
-    // Colors: tertiary for non-selectable items (incompatible/installed), primary otherwise
-    let itemColor: NSColor =
-      if compatible && status != .installed {
-        Typography.primaryColor
-      } else {
-        Typography.tertiaryColor
-      }
+    // No tooltips or progress for catalog items
+    toolTip = nil
+    progressLabel.stringValue = ""
+
+    // Colors: tertiary for incompatible, primary for compatible
+    let itemColor: NSColor = compatible ? Typography.primaryColor : Typography.tertiaryColor
     labelField.textColor = itemColor
     statusIndicator.contentTintColor = itemColor
-
-    // Override attributed text colors for installed models
-    if case .installed = status,
-      let current = metadataLabel.attributedStringValue.mutableCopy() as? NSMutableAttributedString
-    {
-      current.addAttribute(
-        .foregroundColor, value: itemColor, range: NSRange(location: 0, length: current.length))
-      metadataLabel.attributedStringValue = current
-    }
 
     // Clear highlight if no longer actionable
     if !highlightEnabled { setHighlight(false) }

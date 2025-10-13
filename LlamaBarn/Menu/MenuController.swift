@@ -114,10 +114,11 @@ final class MenuController: NSObject, NSMenuDelegate {
   // MARK: - Live updates without closing submenus
 
   /// Called from model rows when a user starts/cancels a download.
-  /// Rebuilds the installed section to reflect changes while keeping submenus open.
+  /// Rebuilds both installed and catalog sections to reflect changes while keeping submenus open.
   private func didChangeDownloadStatus(for _: CatalogEntry) {
     if let menu = statusItem.menu {
       installedSection.rebuild(in: menu)
+      catalogSection.rebuild(in: menu)
     }
     refresh()
   }
@@ -154,13 +155,14 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
       })
 
-    // Model downloaded or deleted - rebuild installed section
+    // Model downloaded or deleted - rebuild both installed and catalog sections
     observers.append(
       center.addObserver(forName: .LBModelDownloadedListDidChange, object: nil, queue: .main) {
         [weak self] _ in
         MainActor.assumeIsolated {
           if let menu = self?.statusItem.menu {
             self?.installedSection.rebuild(in: menu)
+            self?.catalogSection.rebuild(in: menu)
           }
           self?.refresh()
         }
