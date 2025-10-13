@@ -75,7 +75,7 @@ final class CatalogModelItemView: ItemView {
       statusIndicator.widthAnchor.constraint(equalToConstant: Layout.uiIconSize),
       statusIndicator.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth),
-      hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+      hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
       hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       hStack.topAnchor.constraint(equalTo: contentView.topAnchor),
       hStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
