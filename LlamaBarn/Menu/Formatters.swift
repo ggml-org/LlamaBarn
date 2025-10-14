@@ -1,21 +1,6 @@
 import AppKit
 import Foundation
 
-extension NSFont {
-  /// Returns a font with small caps feature enabled.
-  func withSmallCaps() -> NSFont {
-    let descriptor = fontDescriptor.addingAttributes([
-      .featureSettings: [
-        [
-          NSFontDescriptor.FeatureKey.typeIdentifier: kUpperCaseType,
-          NSFontDescriptor.FeatureKey.selectorIdentifier: kUpperCaseSmallCapsSelector,
-        ]
-      ]
-    ])
-    return NSFont(descriptor: descriptor, size: pointSize) ?? self
-  }
-}
-
 enum ByteFormatters {
   /// Formats bytes as decimal gigabytes with one fractional digit (e.g., "3.1 GB").
   /// Omits decimal point when fractional part is zero (e.g., "4 GB" not "4.0 GB").
@@ -133,39 +118,6 @@ enum ProgressFormatters {
 }
 
 enum ModelMetadataFormatters {
-  /// Formats complete model metadata line showing size, memory, and context window.
-  /// Format: "􀥾 2.53 GB · 􀫦 3.1 GB · 􀵫 128k" (or "􀵫 32k of 128k" if capped).
-  static func makeMetadataText(for model: CatalogEntry) -> NSAttributedString {
-    let result = NSMutableAttributedString()
-    let usableCtx = Catalog.usableCtxWindow(for: model)
-
-    // Size
-    result.append(
-      MetadataLabel.makeWithSmallCaps(icon: Symbols.internaldrive, text: model.totalSize))
-    result.append(MetadataLabel.makeSeparator())
-
-    // Memory (estimated)
-    let memoryMb = Catalog.runtimeMemoryUsageMb(
-      for: model,
-      ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
-    )
-    result.append(
-      MetadataLabel.makeWithSmallCaps(
-        icon: Symbols.memorychip, text: MemoryFormatters.gbOneDecimal(memoryMb)))
-    result.append(MetadataLabel.makeSeparator())
-
-    // Context window: show usable value if limited by memory, otherwise show full value
-    if let usable = usableCtx, usable < model.ctxWindow {
-      let text = TokenFormatters.shortTokens(usable)
-      result.append(MetadataLabel.make(icon: Symbols.textWordSpacing, text: text))
-    } else {
-      let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) : "—"
-      result.append(MetadataLabel.make(icon: Symbols.textWordSpacing, text: text))
-    }
-
-    return result
-  }
-
   /// Formats model metadata text without icons (text only).
   /// Format: "2.53 GB · 3.1 GB mem · 128k ctx" (or "32k ctx capped" if limited).
   static func makeMetadataTextOnly(for model: CatalogEntry) -> NSAttributedString {
@@ -173,7 +125,8 @@ enum ModelMetadataFormatters {
     let usableCtx = Catalog.usableCtxWindow(for: model)
 
     // Size
-    result.append(MetadataLabel.applySmallCapsToUnits(model.totalSize))
+    result.append(
+      NSAttributedString(string: model.totalSize, attributes: Typography.secondaryAttributes))
     result.append(MetadataLabel.makeSeparator())
 
     // Memory (estimated)
@@ -182,17 +135,19 @@ enum ModelMetadataFormatters {
       ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
     )
     result.append(
-      MetadataLabel.applySmallCapsToUnits(MemoryFormatters.gbOneDecimal(memoryMb) + " MEM"))
+      NSAttributedString(
+        string: MemoryFormatters.gbOneDecimal(memoryMb) + " mem",
+        attributes: Typography.secondaryAttributes))
     result.append(MetadataLabel.makeSeparator())
 
     // Context window: show usable value if limited by memory, otherwise show full value
     if let usable = usableCtx, usable < model.ctxWindow {
-      let text = TokenFormatters.shortTokens(usable)
-      result.append(MetadataLabel.applySmallCapsToUnits(text))
+      let text = TokenFormatters.shortTokens(usable) + " ctx"
+      result.append(NSAttributedString(string: text, attributes: Typography.secondaryAttributes))
     } else {
       if model.ctxWindow > 0 {
-        let text = TokenFormatters.shortTokens(model.ctxWindow)
-        result.append(MetadataLabel.applySmallCapsToUnits(text))
+        let text = TokenFormatters.shortTokens(model.ctxWindow) + " ctx"
+        result.append(NSAttributedString(string: text, attributes: Typography.secondaryAttributes))
       } else {
         result.append(NSAttributedString(string: "—", attributes: Typography.secondaryAttributes))
       }
