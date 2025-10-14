@@ -166,17 +166,17 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
     let isActive = server.isActive(model: model)
     let isLoading = isActive && server.isLoading
 
-    modelNameLabel.stringValue = model.fullName
+    // Progress and cancel button only for downloading
+    let isDownloading = modelManager.downloadProgress(for: model) != nil
+    modelNameLabel.attributedStringValue = makeModelNameAttributedString(
+      isDownloading: isDownloading)
     metadataLabel.attributedStringValue = ModelMetadataFormatters.makeMetadataTextOnly(for: model)
 
-    // Progress and cancel button only for downloading
     if let progress = modelManager.downloadProgress(for: model) {
-      modelNameLabel.textColor = Typography.secondaryColor
       progressLabel.stringValue = ProgressFormatters.percentText(progress)
       cancelImageView.isHidden = false
       iconView.inactiveTintColor = Typography.secondaryColor
     } else {
-      modelNameLabel.textColor = .controlTextColor
       progressLabel.stringValue = ""
       cancelImageView.isHidden = true
       iconView.inactiveTintColor = Typography.primaryColor
@@ -203,6 +203,30 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
 
   private func makeDeleteButtonText() -> NSAttributedString {
     MetadataLabel.makeIconOnly(icon: Symbols.trash, color: Typography.tertiaryColor)
+  }
+
+  private func makeModelNameAttributedString(isDownloading: Bool) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+
+    // Use secondary color for downloading models
+    let familyColor: NSColor = isDownloading ? Typography.secondaryColor : Typography.primaryColor
+    let sizeColor: NSColor = Typography.secondaryColor
+
+    // Family name in primary style
+    let familyAttributes: [NSAttributedString.Key: Any] = [
+      .font: Typography.primary,
+      .foregroundColor: familyColor,
+    ]
+    result.append(NSAttributedString(string: model.family, attributes: familyAttributes))
+
+    // Em dash and size in primary font with secondary color
+    let sizeAttributes: [NSAttributedString.Key: Any] = [
+      .font: Typography.primary,
+      .foregroundColor: sizeColor,
+    ]
+    result.append(NSAttributedString(string: " — \(model.sizeLabel)", attributes: sizeAttributes))
+
+    return result
   }
 
   @objc private func performDelete() {

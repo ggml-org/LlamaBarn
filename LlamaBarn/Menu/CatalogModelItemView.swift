@@ -122,11 +122,35 @@ final class CatalogModelItemView: ItemView {
     }
   }
 
+  private func makeModelNameAttributedString(compatible: Bool) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+
+    // Use tertiary color for incompatible models
+    let familyColor = compatible ? Typography.primaryColor : Typography.tertiaryColor
+    let sizeColor = compatible ? Typography.secondaryColor : Typography.tertiaryColor
+
+    // Family name in primary style
+    let familyAttributes: [NSAttributedString.Key: Any] = [
+      .font: Typography.primary,
+      .foregroundColor: familyColor,
+    ]
+    result.append(NSAttributedString(string: model.family, attributes: familyAttributes))
+
+    // Em dash and size in primary font with secondary color
+    let sizeAttributes: [NSAttributedString.Key: Any] = [
+      .font: Typography.primary,
+      .foregroundColor: sizeColor,
+    ]
+    result.append(NSAttributedString(string: " — \(model.sizeLabel)", attributes: sizeAttributes))
+
+    return result
+  }
+
   func refresh() {
     let compatible = Catalog.isModelCompatible(model)
 
     // Title and basic display
-    labelField.stringValue = model.fullName
+    labelField.attributedStringValue = makeModelNameAttributedString(compatible: compatible)
 
     // Metadata text (second line)
     if compatible {
@@ -146,10 +170,9 @@ final class CatalogModelItemView: ItemView {
     // No tooltips for catalog items
     toolTip = nil
 
-    // Colors: tertiary for incompatible, primary for compatible
-    let itemColor: NSColor = compatible ? Typography.primaryColor : Typography.tertiaryColor
-    labelField.textColor = itemColor
-    statusIndicator.contentTintColor = itemColor
+    // Colors: status indicator only (label color is handled in makeModelNameAttributedString)
+    statusIndicator.contentTintColor =
+      compatible ? Typography.primaryColor : Typography.tertiaryColor
 
     // Clear highlight if no longer actionable
     if !highlightEnabled { setHighlight(false) }
