@@ -75,6 +75,7 @@ enum Catalog {
         additionalParts: additionalParts,
         serverArgs: effectiveArgs,
         icon: family.iconName,
+        color: family.color,
         quantization: quantization,
         isFullPrecision: isFullPrecision
       )
@@ -94,6 +95,7 @@ enum Catalog {
     let name: String  // e.g. "Qwen3 2507"
     let series: String  // e.g. "qwen"
     let blurb: String  // short one- or two-sentence description
+    let color: String  // hex color for the model family (e.g. "#8b5cf6")
     let serverArgs: [String]?  // optional defaults for all models/builds
     let overheadMultiplier: Double  // overhead multiplier for file size
     let models: [Model]
@@ -102,6 +104,7 @@ enum Catalog {
       name: String,
       series: String,
       blurb: String,
+      color: String,
       serverArgs: [String]? = nil,
       overheadMultiplier: Double = 1.05,
       models: [Model]
@@ -109,6 +112,7 @@ enum Catalog {
       self.name = name
       self.series = series
       self.blurb = blurb
+      self.color = color
       self.serverArgs = serverArgs
       self.overheadMultiplier = overheadMultiplier
       self.models = models
@@ -344,6 +348,7 @@ enum CatalogFamilies {
       series: "deepseek",
       blurb:
         "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
+      color: "#0ea5e9",
       serverArgs: nil,
       models: [
         Model(
@@ -388,6 +393,7 @@ enum CatalogFamilies {
       series: "gpt",
       blurb:
         "An open, GPT-style instruction-tuned family aimed at general-purpose assistance on local hardware.",
+      color: "#14b8a6",
       // Sliding-window family: use max context by default
       serverArgs: ["-c", "0"],
       models: [
@@ -448,6 +454,7 @@ enum CatalogFamilies {
       series: "gemma",
       blurb:
         "Gemma 3 models trained with quantization‑aware training (QAT) for better quality at low‑bit quantizations and smaller footprints.",
+      color: "#3b82f6",
       serverArgs: nil,
       overheadMultiplier: 1.3,
       models: [
@@ -559,6 +566,7 @@ enum CatalogFamilies {
       series: "gemma",
       blurb:
         "Google's efficient Gemma 3n line tuned for on‑device performance with solid instruction following at small scales.",
+      color: "#3b82f6",
       // Sliding-window family: force max context and keep Gemma-specific overrides
       serverArgs: ["-c", "0", "-ot", "per_layer_token_embd.weight=CPU", "--no-mmap"],
       models: [
@@ -638,6 +646,7 @@ enum CatalogFamilies {
       series: "qwen",
       blurb:
         "Qwen3 optimized for software tasks: strong code completion, instruction following, and long-context coding.",
+      color: "#8b5cf6",
       serverArgs: nil,
       overheadMultiplier: 1.1,
       models: [
@@ -683,6 +692,7 @@ enum CatalogFamilies {
       series: "qwen",
       blurb:
         "Alibaba's latest Qwen3 refresh focused on instruction following, multilingual coverage, and long contexts across sizes.",
+      color: "#8b5cf6",
       serverArgs: nil,
       overheadMultiplier: 1.1,
       models: [
@@ -762,6 +772,7 @@ enum CatalogFamilies {
       series: "qwen",
       blurb:
         "Qwen3 models biased toward deliberate reasoning and step‑by‑step answers; useful for analysis and planning tasks.",
+      color: "#8b5cf6",
       serverArgs: nil,
       overheadMultiplier: 1.1,
       models: [

@@ -8,6 +8,7 @@ final class CatalogIconView: NSView {
   let imageView = NSImageView()
 
   var isHighlighted: Bool = false { didSet { refresh() } }
+  var backgroundColor: NSColor = .lbSubtleBackground { didSet { refresh() } }
 
   override init(frame frameRect: NSRect = .zero) {
     super.init(frame: frameRect)
@@ -43,7 +44,6 @@ final class CatalogIconView: NSView {
 
   private func refresh() {
     guard let layer else { return }
-    // Use same background as inactive IconView
-    layer.setBackgroundColor(.lbSubtleBackground, in: self)
+    layer.setBackgroundColor(backgroundColor, in: self)
   }
 }

@@ -45,6 +45,9 @@ final class InstalledModelItemView: ItemView, NSGestureRecognizerDelegate {
   private func setup() {
     wantsLayer = true
     iconView.imageView.image = NSImage(named: model.icon)
+    if let bgColor = NSColor.fromHex(model.color) {
+      iconView.inactiveBackgroundColor = bgColor.withAlphaComponent(0.11)
+    }
 
     progressLabel.alignment = .right
 

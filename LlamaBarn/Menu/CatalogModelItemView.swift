@@ -44,6 +44,9 @@ final class CatalogModelItemView: ItemView {
   private func setup() {
     wantsLayer = true
     iconView.imageView.image = NSImage(named: model.icon)
+    if let bgColor = NSColor.fromHex(model.color) {
+      iconView.backgroundColor = bgColor.withAlphaComponent(0.11)
+    }
     statusIndicator.symbolConfiguration = .init(pointSize: 12, weight: .regular)
 
     labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)

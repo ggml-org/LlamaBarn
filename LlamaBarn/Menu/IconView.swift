@@ -13,6 +13,7 @@ final class IconView: NSView {
   var isActive: Bool = false { didSet { refresh() } }
   private var isLoading: Bool = false { didSet { refresh() } }
   var inactiveTintColor: NSColor = Typography.primaryColor { didSet { refresh() } }
+  var inactiveBackgroundColor: NSColor = .lbSubtleBackground { didSet { refresh() } }
 
   override init(frame frameRect: NSRect = .zero) {
     super.init(frame: frameRect)
@@ -76,7 +77,7 @@ final class IconView: NSView {
       // Spinner always white on blue background regardless of theme
       spinner.appearance = NSAppearance(named: .darkAqua)
     } else {
-      layer.setBackgroundColor(.lbSubtleBackground, in: self)
+      layer.setBackgroundColor(inactiveBackgroundColor, in: self)
       imageView.contentTintColor = inactiveTintColor
     }
   }
