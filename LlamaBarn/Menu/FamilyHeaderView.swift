@@ -63,7 +63,7 @@ final class FamilyHeaderView: ItemView {
 
   private func formatSizes() -> String {
     guard !sizes.isEmpty else { return "" }
-    return "  |  " + sizes.joined(separator: " · ")
+    return "  ∣  " + sizes.joined(separator: " · ")
   }
 
   override func mouseDown(with event: NSEvent) {
