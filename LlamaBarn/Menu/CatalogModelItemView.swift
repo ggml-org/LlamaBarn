@@ -38,7 +38,7 @@ final class CatalogModelItemView: ItemView {
   }
 
   override func highlightDidChange(_ highlighted: Bool) {
-    iconView.isHighlighted = highlighted
+    // No color changes on hover - catalog models stay with secondary colors
   }
 
   private func setup() {
@@ -129,23 +129,16 @@ final class CatalogModelItemView: ItemView {
   private func makeModelNameAttributedString(compatible: Bool) -> NSAttributedString {
     let result = NSMutableAttributedString()
 
-    // Use tertiary color for incompatible models
-    let familyColor = compatible ? Typography.primaryColor : Typography.tertiaryColor
-    let sizeColor = compatible ? Typography.secondaryColor : Typography.tertiaryColor
+    // Use secondary color for catalog models, tertiary for incompatible models
+    let textColor = compatible ? Typography.secondaryColor : Typography.tertiaryColor
 
-    // Family name in primary style
-    let familyAttributes: [NSAttributedString.Key: Any] = [
+    // Family name and size both use secondary color in catalog
+    let attributes: [NSAttributedString.Key: Any] = [
       .font: Typography.primary,
-      .foregroundColor: familyColor,
+      .foregroundColor: textColor,
     ]
-    result.append(NSAttributedString(string: model.family, attributes: familyAttributes))
-
-    // Size in primary font with secondary color
-    let sizeAttributes: [NSAttributedString.Key: Any] = [
-      .font: Typography.primary,
-      .foregroundColor: sizeColor,
-    ]
-    result.append(NSAttributedString(string: " \(model.sizeLabel)", attributes: sizeAttributes))
+    result.append(NSAttributedString(string: model.family, attributes: attributes))
+    result.append(NSAttributedString(string: " \(model.sizeLabel)", attributes: attributes))
 
     return result
   }
@@ -176,7 +169,7 @@ final class CatalogModelItemView: ItemView {
 
     // Colors: status indicator only (label color is handled in makeModelNameAttributedString)
     statusIndicator.contentTintColor =
-      compatible ? Typography.primaryColor : Typography.tertiaryColor
+      compatible ? Typography.secondaryColor : Typography.tertiaryColor
 
     // Clear highlight if no longer actionable
     if !highlightEnabled { setHighlight(false) }

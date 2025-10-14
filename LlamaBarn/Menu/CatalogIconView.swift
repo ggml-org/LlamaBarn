@@ -17,7 +17,6 @@ final class CatalogIconView: NSView {
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.symbolConfiguration = .init(pointSize: Layout.uiIconSize, weight: .regular)
-    imageView.contentTintColor = Typography.primaryColor
 
     addSubview(imageView)
     NSLayoutConstraint.activate([
@@ -45,5 +44,6 @@ final class CatalogIconView: NSView {
   private func refresh() {
     guard let layer else { return }
     layer.setBackgroundColor(backgroundColor, in: self)
+    imageView.contentTintColor = Typography.secondaryColor
   }
 }
