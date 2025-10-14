@@ -153,6 +153,7 @@ final class CatalogSection {
   private let onDownloadStatusChange: (CatalogEntry) -> Void
   private var catalogViews: [CatalogModelItemView] = []
   private weak var headerItem: NSMenuItem?
+  private weak var separatorItem: NSMenuItem?
 
   init(
     modelManager: ModelManager,
@@ -166,7 +167,10 @@ final class CatalogSection {
     let availableModels = filterAvailableModels()
     guard !availableModels.isEmpty else { return }
 
-    menu.addItem(.separator())
+    let separator = NSMenuItem.separator()
+    separatorItem = separator
+    menu.addItem(separator)
+
     let header = makeSectionHeaderItem("Available")
     headerItem = header
     menu.addItem(header)
@@ -177,26 +181,65 @@ final class CatalogSection {
   /// Rebuilds the catalog section to reflect current model availability.
   /// Called when models move between catalog and installed (e.g., when downloads start/cancel).
   func rebuild(in menu: NSMenu) {
-    guard let headerItem, let sectionHeaderIndex = menu.items.firstIndex(of: headerItem) else {
+    let availableModels = filterAvailableModels()
+
+    // Case 1: Section exists and has models
+    if let headerItem, let sectionHeaderIndex = menu.items.firstIndex(of: headerItem) {
+      // Remove all catalog items
+      let indexToRemove = sectionHeaderIndex + 1
+      while indexToRemove < menu.items.count {
+        let item = menu.items[indexToRemove]
+        // Stop when we hit a separator (which marks the end of our section)
+        if item.isSeparatorItem { break }
+        menu.removeItem(at: indexToRemove)
+      }
+
+      if availableModels.isEmpty {
+        // No models left - remove the header and separator
+        menu.removeItem(at: sectionHeaderIndex)
+        if let separatorItem, let separatorIndex = menu.items.firstIndex(of: separatorItem) {
+          menu.removeItem(at: separatorIndex)
+        }
+        self.headerItem = nil
+        self.separatorItem = nil
+      } else {
+        // Re-add catalog items
+        let items = buildCatalogItems(availableModels)
+        var insertIndex = sectionHeaderIndex + 1
+        for item in items {
+          menu.insertItem(item, at: insertIndex)
+          insertIndex += 1
+        }
+      }
       return
     }
 
-    // Remove all catalog items
-    let indexToRemove = sectionHeaderIndex + 1
-    while indexToRemove < menu.items.count {
-      let item = menu.items[indexToRemove]
-      // Stop when we hit a separator (which marks the end of our section)
-      if item.isSeparatorItem { break }
-      menu.removeItem(at: indexToRemove)
+    // Case 2: Section doesn't exist - add it if there are models
+    guard !availableModels.isEmpty else { return }
+
+    // Find the footer separator by searching backwards from the end.
+    // Insert the catalog section (separator + header + items) right before it.
+    var insertIndex = menu.items.count
+    for (index, item) in menu.items.enumerated().reversed() {
+      if item.isSeparatorItem {
+        insertIndex = index
+        break
+      }
     }
 
-    // Re-add all catalog items
-    let availableModels = filterAvailableModels()
+    let separator = NSMenuItem.separator()
+    separatorItem = separator
+    menu.insertItem(separator, at: insertIndex)
+
+    let header = makeSectionHeaderItem("Available")
+    headerItem = header
+    menu.insertItem(header, at: insertIndex + 1)
+
     let items = buildCatalogItems(availableModels)
-    var insertIndex = sectionHeaderIndex + 1
+    var itemInsertIndex = insertIndex + 2
     for item in items {
-      menu.insertItem(item, at: insertIndex)
-      insertIndex += 1
+      menu.insertItem(item, at: itemInsertIndex)
+      itemInsertIndex += 1
     }
   }
 
