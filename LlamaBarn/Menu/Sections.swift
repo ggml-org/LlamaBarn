@@ -162,21 +162,30 @@ final class InstalledSection {
 final class CatalogSection {
   private let modelManager: ModelManager
   private let onDownloadStatusChange: (CatalogEntry) -> Void
+  private let onRebuild: () -> Void
   private var catalogViews: [CatalogModelItemView] = []
   private weak var separatorItem: NSMenuItem?
   private var collapsedFamilies: Set<String> = []
+  private var knownFamilies: Set<String> = []
 
   init(
     modelManager: ModelManager,
-    onDownloadStatusChange: @escaping (CatalogEntry) -> Void
+    onDownloadStatusChange: @escaping (CatalogEntry) -> Void,
+    onRebuild: @escaping () -> Void
   ) {
     self.modelManager = modelManager
     self.onDownloadStatusChange = onDownloadStatusChange
+    self.onRebuild = onRebuild
   }
 
   func add(to menu: NSMenu) {
     let availableModels = filterAvailableModels()
     guard !availableModels.isEmpty else { return }
+
+    // Start with all families collapsed
+    let families = Set(availableModels.map { $0.family })
+    collapsedFamilies = families
+    knownFamilies = families
 
     let separator = NSMenuItem.separator()
     separatorItem = separator
@@ -258,6 +267,13 @@ final class CatalogSection {
 
     let sortedModels = models.sorted(by: CatalogEntry.displayOrder(_:_:))
 
+    // Add only newly appearing families to collapsed state
+    let currentFamilies = Set(sortedModels.map { $0.family })
+    let newFamilies = currentFamilies.subtracting(knownFamilies)
+    collapsedFamilies.formUnion(newFamilies)
+    collapsedFamilies.formIntersection(currentFamilies)  // Remove families no longer in catalog
+    knownFamilies = currentFamilies
+
     // Group models by family to collect unique sizes
     var familySizes: [String: [String]] = [:]
     for model in sortedModels {
@@ -307,7 +323,7 @@ final class CatalogSection {
     } else {
       collapsedFamilies.insert(family)
     }
-    NotificationCenter.default.post(name: .LBUserSettingsDidChange, object: nil)
+    onRebuild()
   }
 
   func refresh() {

@@ -21,6 +21,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     modelManager: modelManager
   ) { [weak self] model in
     self?.didChangeDownloadStatus(for: model)
+  } onRebuild: { [weak self] in
+    self?.rebuildCatalogSection()
   }
   private let footerSection = FooterSection()
 
@@ -117,6 +119,14 @@ final class MenuController: NSObject, NSMenuDelegate {
       catalogSection.rebuild(in: menu)
     }
     refresh()
+  }
+
+  /// Called when family collapse/expand is toggled.
+  /// Rebuilds only the catalog section to show/hide models while preserving collapse state.
+  private func rebuildCatalogSection() {
+    if let menu = statusItem.menu {
+      catalogSection.rebuild(in: menu)
+    }
   }
 
   // Observe server and download changes while the menu is open.
