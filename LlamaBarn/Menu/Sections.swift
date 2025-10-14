@@ -181,13 +181,12 @@ final class CatalogSection {
     separatorItem = separator
     menu.addItem(separator)
 
-    if UserSettings.catalogCollapsed {
-      // Only show toggle button when collapsed
-      menu.addItem(makeToggleItem())
-    } else {
-      // Show catalog items + toggle button when expanded
+    // Toggle button always at the top
+    menu.addItem(makeToggleItem())
+
+    if !UserSettings.catalogCollapsed {
+      // Show catalog items when expanded
       buildCatalogItems(availableModels).forEach { menu.addItem($0) }
-      menu.addItem(makeToggleItem())
     }
   }
 
@@ -212,17 +211,17 @@ final class CatalogSection {
         menu.removeItem(at: separatorIndex)
         self.separatorItem = nil
       } else {
-        // Re-add catalog items or just toggle button based on collapsed state
+        // Re-add toggle button at the top, then catalog items if expanded
         var insertIndex = separatorIndex + 1
-        if UserSettings.catalogCollapsed {
-          menu.insertItem(makeToggleItem(), at: insertIndex)
-        } else {
+        menu.insertItem(makeToggleItem(), at: insertIndex)
+        insertIndex += 1
+
+        if !UserSettings.catalogCollapsed {
           let items = buildCatalogItems(availableModels)
           for item in items {
             menu.insertItem(item, at: insertIndex)
             insertIndex += 1
           }
-          menu.insertItem(makeToggleItem(), at: insertIndex)
         }
       }
       return
@@ -246,15 +245,15 @@ final class CatalogSection {
     menu.insertItem(separator, at: insertIndex)
 
     var itemInsertIndex = insertIndex + 1
-    if UserSettings.catalogCollapsed {
-      menu.insertItem(makeToggleItem(), at: itemInsertIndex)
-    } else {
+    menu.insertItem(makeToggleItem(), at: itemInsertIndex)
+    itemInsertIndex += 1
+
+    if !UserSettings.catalogCollapsed {
       let items = buildCatalogItems(availableModels)
       for item in items {
         menu.insertItem(item, at: itemInsertIndex)
         itemInsertIndex += 1
       }
-      menu.insertItem(makeToggleItem(), at: itemInsertIndex)
     }
   }
 

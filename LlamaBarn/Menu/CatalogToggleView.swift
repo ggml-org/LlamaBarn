@@ -16,11 +16,11 @@ final class CatalogToggleView: ItemView {
 
   private func setup() {
     label.translatesAutoresizingMaskIntoConstraints = false
-    label.textColor = .secondaryLabelColor
+    label.textColor = .controlTextColor
     updateLabel()
 
     chevronImageView.translatesAutoresizingMaskIntoConstraints = false
-    chevronImageView.contentTintColor = .secondaryLabelColor
+    chevronImageView.contentTintColor = .controlTextColor
     chevronImageView.symbolConfiguration = .init(pointSize: Layout.uiIconSize, weight: .regular)
     updateChevron()
 
@@ -50,7 +50,7 @@ final class CatalogToggleView: ItemView {
   }
 
   private func updateLabel() {
-    label.stringValue = UserSettings.catalogCollapsed ? "Show catalog" : "Hide catalog"
+    label.stringValue = "Model catalog"
   }
 
   private func updateChevron() {
@@ -59,6 +59,7 @@ final class CatalogToggleView: ItemView {
   }
 
   private func updateAccessibilityLabel() {
-    setAccessibilityLabel(UserSettings.catalogCollapsed ? "Show catalog" : "Hide catalog")
+    setAccessibilityLabel(
+      UserSettings.catalogCollapsed ? "Model catalog, collapsed" : "Model catalog, expanded")
   }
 }
