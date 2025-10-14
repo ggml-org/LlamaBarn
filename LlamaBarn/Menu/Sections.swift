@@ -257,14 +257,25 @@ final class CatalogSection {
     catalogViews.removeAll()
 
     let sortedModels = models.sorted(by: CatalogEntry.displayOrder(_:_:))
+
+    // Group models by family to collect unique sizes
+    var familySizes: [String: [String]] = [:]
+    for model in sortedModels {
+      if !familySizes[model.family, default: []].contains(model.size) {
+        familySizes[model.family, default: []].append(model.size)
+      }
+    }
+
     var items: [NSMenuItem] = []
     var previousFamily: String?
 
     for model in sortedModels {
       // Insert family header when family changes
       if previousFamily != model.family {
+        let sizes = familySizes[model.family] ?? []
         let headerView = FamilyHeaderView(
           family: model.family,
+          sizes: sizes,
           isCollapsed: collapsedFamilies.contains(model.family)
         ) { [weak self] family in
           self?.toggleFamilyCollapsed(family)

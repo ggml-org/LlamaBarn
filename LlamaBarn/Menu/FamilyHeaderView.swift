@@ -3,13 +3,16 @@ import AppKit
 /// Interactive header for catalog families that can be collapsed or expanded.
 final class FamilyHeaderView: ItemView {
   private let label = Typography.makeTertiaryLabel()
+  private let sizesLabel = Typography.makeTertiaryLabel()
   private let chevronImageView = NSImageView()
   private let family: String
+  private let sizes: [String]
   private let isCollapsed: Bool
   private let onToggle: (String) -> Void
 
-  init(family: String, isCollapsed: Bool, onToggle: @escaping (String) -> Void) {
+  init(family: String, sizes: [String], isCollapsed: Bool, onToggle: @escaping (String) -> Void) {
     self.family = family
+    self.sizes = sizes
     self.isCollapsed = isCollapsed
     self.onToggle = onToggle
     super.init(frame: .zero)
@@ -24,17 +27,27 @@ final class FamilyHeaderView: ItemView {
     label.translatesAutoresizingMaskIntoConstraints = false
     label.stringValue = family
 
+    sizesLabel.translatesAutoresizingMaskIntoConstraints = false
+    sizesLabel.stringValue = isCollapsed ? formatSizes() : ""
+    sizesLabel.isHidden = !isCollapsed
+
     chevronImageView.translatesAutoresizingMaskIntoConstraints = false
     chevronImageView.contentTintColor = .tertiaryLabelColor
     chevronImageView.symbolConfiguration = .init(pointSize: 10, weight: .regular)
     updateChevron()
 
     contentView.addSubview(label)
+    contentView.addSubview(sizesLabel)
     contentView.addSubview(chevronImageView)
 
     NSLayoutConstraint.activate([
       label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+
+      sizesLabel.leadingAnchor.constraint(equalTo: label.trailingAnchor),
+      sizesLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+      sizesLabel.trailingAnchor.constraint(
+        lessThanOrEqualTo: chevronImageView.leadingAnchor, constant: -8),
 
       chevronImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       chevronImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -46,6 +59,11 @@ final class FamilyHeaderView: ItemView {
     setAccessibilityElement(true)
     setAccessibilityRole(.button)
     updateAccessibilityLabel()
+  }
+
+  private func formatSizes() -> String {
+    guard !sizes.isEmpty else { return "" }
+    return "  |  " + sizes.joined(separator: " · ")
   }
 
   override func mouseDown(with event: NSEvent) {
