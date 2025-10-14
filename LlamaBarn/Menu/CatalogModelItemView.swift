@@ -124,7 +124,6 @@ final class CatalogModelItemView: ItemView {
 
   func refresh() {
     let compatible = Catalog.isModelCompatible(model)
-    let usableCtx = Catalog.usableCtxWindow(for: model)
 
     // Title and basic display
     labelField.stringValue = model.fullName
@@ -138,25 +137,6 @@ final class CatalogModelItemView: ItemView {
         attributes: Typography.tertiaryAttributes
       )
     }
-
-    // Tooltips
-    let infoTooltip: String? =
-      compatible
-      ? nil
-      : (Catalog.incompatibilitySummary(model) ?? "not compatible")
-
-    let warningTooltip: String? =
-      if compatible, let ctx = usableCtx, ctx < model.ctxWindow {
-        "Can run at reduced context window"
-      } else {
-        nil
-      }
-
-    metadataLabel.toolTip =
-      [infoTooltip, warningTooltip]
-      .compactMap { $0 }
-      .joined(separator: "\n")
-      .nilIfEmpty
 
     // Status-specific display
     // Catalog items only show available models (compatible or incompatible)
