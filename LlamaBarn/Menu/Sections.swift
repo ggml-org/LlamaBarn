@@ -163,7 +163,6 @@ final class CatalogSection {
   private let modelManager: ModelManager
   private let onDownloadStatusChange: (CatalogEntry) -> Void
   private var catalogViews: [CatalogModelItemView] = []
-  private weak var headerItem: NSMenuItem?
   private weak var separatorItem: NSMenuItem?
 
   init(
@@ -182,10 +181,6 @@ final class CatalogSection {
     separatorItem = separator
     menu.addItem(separator)
 
-    let header = makeSectionHeaderItem("Available")
-    headerItem = header
-    menu.addItem(header)
-
     buildCatalogItems(availableModels).forEach { menu.addItem($0) }
   }
 
@@ -194,10 +189,10 @@ final class CatalogSection {
   func rebuild(in menu: NSMenu) {
     let availableModels = filterAvailableModels()
 
-    // Case 1: Section exists and has models
-    if let headerItem, let sectionHeaderIndex = menu.items.firstIndex(of: headerItem) {
-      // Remove all catalog items
-      let indexToRemove = sectionHeaderIndex + 1
+    // Case 1: Section exists
+    if let separatorItem, let separatorIndex = menu.items.firstIndex(of: separatorItem) {
+      // Remove all catalog items (everything after the separator until the next separator or end)
+      let indexToRemove = separatorIndex + 1
       while indexToRemove < menu.items.count {
         let item = menu.items[indexToRemove]
         // Stop when we hit a separator (which marks the end of our section)
@@ -206,17 +201,13 @@ final class CatalogSection {
       }
 
       if availableModels.isEmpty {
-        // No models left - remove the header and separator
-        menu.removeItem(at: sectionHeaderIndex)
-        if let separatorItem, let separatorIndex = menu.items.firstIndex(of: separatorItem) {
-          menu.removeItem(at: separatorIndex)
-        }
-        self.headerItem = nil
+        // No models left - remove the separator
+        menu.removeItem(at: separatorIndex)
         self.separatorItem = nil
       } else {
         // Re-add catalog items
         let items = buildCatalogItems(availableModels)
-        var insertIndex = sectionHeaderIndex + 1
+        var insertIndex = separatorIndex + 1
         for item in items {
           menu.insertItem(item, at: insertIndex)
           insertIndex += 1
@@ -229,7 +220,7 @@ final class CatalogSection {
     guard !availableModels.isEmpty else { return }
 
     // Find the footer separator by searching backwards from the end.
-    // Insert the catalog section (separator + header + items) right before it.
+    // Insert the catalog section (separator + items) right before it.
     var insertIndex = menu.items.count
     for (index, item) in menu.items.enumerated().reversed() {
       if item.isSeparatorItem {
@@ -242,12 +233,8 @@ final class CatalogSection {
     separatorItem = separator
     menu.insertItem(separator, at: insertIndex)
 
-    let header = makeSectionHeaderItem("Available")
-    headerItem = header
-    menu.insertItem(header, at: insertIndex + 1)
-
     let items = buildCatalogItems(availableModels)
-    var itemInsertIndex = insertIndex + 2
+    var itemInsertIndex = insertIndex + 1
     for item in items {
       menu.insertItem(item, at: itemInsertIndex)
       itemInsertIndex += 1
@@ -264,20 +251,34 @@ final class CatalogSection {
     }
   }
 
-  /// Builds a flat list of catalog model items
+  /// Builds a flat list of catalog model items with family headers
   private func buildCatalogItems(_ models: [CatalogEntry]) -> [NSMenuItem] {
     catalogViews.removeAll()
 
     let sortedModels = models.sorted(by: CatalogEntry.displayOrder(_:_:))
+    var items: [NSMenuItem] = []
+    var previousFamily: String?
 
-    return sortedModels.map { model in
+    for model in sortedModels {
+      // Insert family header when family changes
+      if let prev = previousFamily, prev != model.family {
+        items.append(makeSectionHeaderItem(model.family))
+      } else if previousFamily == nil {
+        // First model - always add header
+        items.append(makeSectionHeaderItem(model.family))
+      }
+
       let view = CatalogModelItemView(model: model, modelManager: modelManager) {
         [weak self] in
         self?.onDownloadStatusChange(model)
       }
       catalogViews.append(view)
-      return NSMenuItem.viewItem(with: view)
+      items.append(NSMenuItem.viewItem(with: view))
+
+      previousFamily = model.family
     }
+
+    return items
   }
 
   func refresh() {
