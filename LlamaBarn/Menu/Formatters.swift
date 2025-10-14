@@ -182,18 +182,20 @@ enum ModelMetadataFormatters {
       ctxWindowTokens: Double(usableCtx ?? model.ctxWindow)
     )
     result.append(
-      MetadataLabel.applySmallCapsToUnits(MemoryFormatters.gbOneDecimal(memoryMb) + " mem"))
+      MetadataLabel.applySmallCapsToUnits(MemoryFormatters.gbOneDecimal(memoryMb) + " MEM"))
     result.append(MetadataLabel.makeSeparator())
 
     // Context window: show "usable capped" if limited by memory, otherwise show full value
     if let usable = usableCtx, usable < model.ctxWindow {
-      let text = TokenFormatters.shortTokens(usable) + " ctx capped"
-      result.append(
-        NSAttributedString(string: text, attributes: Typography.secondaryAttributes))
+      let text = TokenFormatters.shortTokens(usable) + " CTX CAPPED"
+      result.append(MetadataLabel.applySmallCapsToUnits(text))
     } else {
-      let text = model.ctxWindow > 0 ? TokenFormatters.shortTokens(model.ctxWindow) + " ctx" : "—"
-      result.append(
-        NSAttributedString(string: text, attributes: Typography.secondaryAttributes))
+      if model.ctxWindow > 0 {
+        let text = TokenFormatters.shortTokens(model.ctxWindow) + " CTX"
+        result.append(MetadataLabel.applySmallCapsToUnits(text))
+      } else {
+        result.append(NSAttributedString(string: "—", attributes: Typography.secondaryAttributes))
+      }
     }
 
     return result

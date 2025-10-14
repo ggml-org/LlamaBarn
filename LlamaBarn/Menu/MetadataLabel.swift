@@ -59,10 +59,10 @@ enum MetadataLabel {
     return composed
   }
 
-  /// Applies small caps to "GB" and "MB" in text while preserving secondary typography.
+  /// Applies small caps to "GB", "MB", "MEM", "CTX", and "CAPPED" in text while preserving secondary typography.
   static func applySmallCapsToUnits(_ text: String) -> NSAttributedString {
     let result = NSMutableAttributedString(string: text, attributes: Typography.secondaryAttributes)
-    let pattern = "\\b(GB|MB)\\b"
+    let pattern = "\\b(GB|MB|MEM|CTX|CAPPED)\\b"
     if let regex = try? NSRegularExpression(pattern: pattern) {
       let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
       for match in matches.reversed() {
