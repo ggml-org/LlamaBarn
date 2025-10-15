@@ -182,9 +182,13 @@ final class CatalogSection {
     let availableModels = filterAvailableModels()
     guard !availableModels.isEmpty else { return }
 
-    // Start with all families collapsed
+    // Initialize families as collapsed when menu first opens.
+    // On subsequent rebuilds during the same session (e.g., toggling settings),
+    // preserve the collapse state.
     let families = Set(availableModels.map { $0.family })
-    collapsedFamilies = families
+    if collapsedFamilies.isEmpty && knownFamilies.isEmpty {
+      collapsedFamilies = families
+    }
     knownFamilies = families
 
     let separator = NSMenuItem.separator()
@@ -328,6 +332,11 @@ final class CatalogSection {
 
   func refresh() {
     catalogViews.forEach { $0.refresh() }
+  }
+
+  func reset() {
+    collapsedFamilies.removeAll()
+    knownFamilies.removeAll()
   }
 }
 

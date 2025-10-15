@@ -73,6 +73,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     preservingHighlightForFamily = nil
     observer.removeAll()
     isSettingsVisible = false
+    catalogSection.reset()
   }
 
   func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
