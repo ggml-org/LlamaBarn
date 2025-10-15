@@ -5,7 +5,7 @@ final class FamilyHeaderView: ItemView {
   private let label = Typography.makeTertiaryLabel()
   private let sizesLabel = Typography.makeTertiaryLabel()
   private let chevronImageView = NSImageView()
-  private let family: String
+  let family: String
   private let sizes: [String]
   private let isCollapsed: Bool
   private let onToggle: (String) -> Void
@@ -66,9 +66,12 @@ final class FamilyHeaderView: ItemView {
     return "  ∣  " + sizes.joined(separator: " · ")
   }
 
-  override func mouseDown(with event: NSEvent) {
-    super.mouseDown(with: event)
-    onToggle(family)
+  override func mouseUp(with event: NSEvent) {
+    super.mouseUp(with: event)
+    // Only toggle if mouse is still within bounds (allows canceling by dragging away)
+    if bounds.contains(convert(event.locationInWindow, from: nil)) {
+      onToggle(family)
+    }
   }
 
   private func updateChevron() {
