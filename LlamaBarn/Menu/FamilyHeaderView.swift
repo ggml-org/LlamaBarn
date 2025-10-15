@@ -75,8 +75,13 @@ final class FamilyHeaderView: ItemView {
   }
 
   private func updateChevron() {
-    let imageName = isCollapsed ? "chevron.right" : "chevron.down"
-    chevronImageView.image = NSImage(systemSymbolName: imageName, accessibilityDescription: nil)
+    if isCollapsed {
+      chevronImageView.isHidden = false
+      chevronImageView.image = NSImage(
+        systemSymbolName: "chevron.right", accessibilityDescription: nil)
+    } else {
+      chevronImageView.isHidden = true
+    }
   }
 
   private func updateAccessibilityLabel() {

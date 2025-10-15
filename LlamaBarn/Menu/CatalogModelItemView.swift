@@ -161,15 +161,17 @@ final class CatalogModelItemView: ItemView {
 
     // Status-specific display
     // Catalog items only show available models (compatible or incompatible)
-    let symbolName = compatible ? "arrow.down" : "nosign"
-    statusIndicator.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+    // Show nosign indicator for incompatible models, hide for compatible
+    if compatible {
+      statusIndicator.isHidden = true
+    } else {
+      statusIndicator.isHidden = false
+      statusIndicator.image = NSImage(systemSymbolName: "nosign", accessibilityDescription: nil)
+      statusIndicator.contentTintColor = Typography.tertiaryColor
+    }
 
     // No tooltips for catalog items
     toolTip = nil
-
-    // Colors: status indicator only (label color is handled in makeModelNameAttributedString)
-    statusIndicator.contentTintColor =
-      compatible ? Typography.secondaryColor : Typography.tertiaryColor
 
     // Clear highlight if no longer actionable
     if !highlightEnabled { setHighlight(false) }
