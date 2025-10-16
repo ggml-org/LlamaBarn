@@ -4,7 +4,7 @@ Run local LLMs on your Mac with a simple menu bar app. Launch any model with a s
 
 Get it from [Releases ↗](https://github.com/ggml-org/LlamaBarn/releases)
 
-![LlamaBarn](https://i.imgur.com/S2jzV6Y.png)
+![LlamaBarn](https://github.com/user-attachments/assets/9ff133d8-6a65-43d5-9672-5eb58da0dd0e)
 
 ## Goals
 
