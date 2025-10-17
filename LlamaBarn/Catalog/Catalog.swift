@@ -144,11 +144,7 @@ enum Catalog {
   private static func makeId(family: String, modelLabel: String, build: ModelBuild) -> String {
     let familySlug = slug(family)
     let modelSlug = slug(modelLabel)
-    var base = "\(familySlug)-\(modelSlug)"
-    // DeepSeek R1 legacy IDs included "-qwen3" segment
-    if familySlug == "deepseek-r1-0528" {
-      base = "\(familySlug)-qwen3-\(modelSlug)"
-    }
+    let base = "\(familySlug)-\(modelSlug)"
     let quant = build.quantization.uppercased()
     if quant == "Q8_0" {
       return base + "-q8"
@@ -342,51 +338,6 @@ private typealias ModelBuild = Catalog.ModelBuild
 
 enum CatalogFamilies {
   static let families: [Catalog.ModelFamily] = [
-    // MARK: DeepSeek R1 0528 (migrated)
-    ModelFamily(
-      name: "DeepSeek R1 0528",
-      series: "deepseek",
-      blurb:
-        "Reasoning‑forward DeepSeek R1 models distilled onto Qwen3 backbones; persuasive step‑by‑step behavior within local limits.",
-      color: "#0ea5e9",
-      serverArgs: nil,
-      models: [
-        Model(
-          label: "8B",
-          releaseDate: Calendar.current.date(from: DateComponents(year: 2025, month: 5, day: 29))!,
-          ctxWindow: 131_072,
-          serverArgs: nil,
-          build: ModelBuild(
-            id: "deepseek-r1-0528-qwen3-8b-q8",
-            quantization: "Q8_0",
-            isFullPrecision: true,
-            fileSize: 8_709_519_872,
-            ctxBytesPer1kTokens: 150_994_944,
-            downloadUrl: URL(
-              string:
-                "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf"
-            )!,
-            additionalParts: nil,
-            serverArgs: []
-          ),
-          quantizedBuilds: [
-            ModelBuild(
-              id: "deepseek-r1-0528-qwen3-8b",
-              quantization: "Q4_K_M",
-              isFullPrecision: false,
-              fileSize: 5_027_785_216,
-              ctxBytesPer1kTokens: 150_994_944,
-              downloadUrl: URL(
-                string:
-                  "https://huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf"
-              )!,
-              additionalParts: nil,
-              serverArgs: []
-            )
-          ]
-        )
-      ]
-    ),
     // MARK: GPT-OSS (migrated)
     ModelFamily(
       name: "GPT-OSS",
