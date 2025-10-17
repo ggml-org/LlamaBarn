@@ -281,8 +281,8 @@ final class CatalogSection {
     // Group models by family to collect unique sizes
     var familySizes: [String: [String]] = [:]
     for model in sortedModels {
-      if !familySizes[model.family, default: []].contains(model.size) {
-        familySizes[model.family, default: []].append(model.size)
+      if !familySizes[model.family, default: []].contains(model.sizeLabel) {
+        familySizes[model.family, default: []].append(model.sizeLabel)
       }
     }
 
