@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>SUFeedURL</key>
-	<string>https://github.com/ggml-org/LlamaBarn/releases/latest/download/appcast.xml</string>
+	<string>https://releases.llamabarn.app/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>01xoznnymetv09HCBgDEoSpaz6WG5WY6EBB+VpbHRaU=</string>
 	<key>SUEnableAutomaticChecks</key>
