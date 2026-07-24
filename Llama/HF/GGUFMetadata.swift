@@ -30,6 +30,22 @@ enum GGUFMetadata {
     return (layers ?? 0) > 0
   }
 
+  /// The model's native (training) context window, per its
+  /// `<arch>.context_length` metadata key -- the value llama.cpp loads into
+  /// `hparams.n_ctx_train`. Like the MTP head above we match on the key suffix
+  /// rather than resolving `general.architecture` first, since the key is
+  /// arch-namespaced (`gemma3.context_length`, ...) but unique within a file.
+  ///
+  /// The leading dot in the suffix is load-bearing: the sibling key
+  /// `<arch>.rope.scaling.original_context_length` ends in `_context_length`
+  /// (underscore, not dot), so anchoring on `.context_length` excludes it.
+  ///
+  /// Returns nil when the header can't be parsed or the key is absent -- the
+  /// caller falls back to a fixed default.
+  static func contextLength(path: String) -> Int? {
+    intValue(forKeySuffix: ".context_length", path: path) ?? nil
+  }
+
   // MARK: - Header parsing
 
   /// GGUF metadata value types, per the spec's `gguf_metadata_value_type`.

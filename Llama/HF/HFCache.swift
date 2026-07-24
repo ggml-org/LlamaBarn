@@ -599,10 +599,19 @@ enum HFCache {
     // their code.
     let modelId = Model.makeId(org: parsed.org, repo: parsed.repo, tag: quant)
 
+    // The model's native context window, read from the GGUF header (metadata
+    // lives in the first shard, which `filename` points at for split models).
+    // This drives which tiers the picker offers -- without it every model was
+    // capped at 128k regardless of what it natively supports. Fall back to 128k
+    // when the header can't be read, matching the prior fixed behavior.
+    let ctxWindow =
+      GGUFMetadata.contextLength(path: snapshotDir.appendingPathComponent(filename).path)
+      ?? 131_072
+
     let entry = Model(
       id: modelId,
       family: parsed.name,
-      ctxWindow: 131_072,  // 128k upper bound — clamped by memory budget
+      ctxWindow: ctxWindow,
       fileSize: totalFileSize,
       // ctxBytesPer1kTokens stays 0 until the async MemProfile probe runs.
       downloadUrl: URL(string: "file:///")!,
