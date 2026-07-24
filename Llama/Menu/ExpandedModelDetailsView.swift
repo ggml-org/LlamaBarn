@@ -127,7 +127,36 @@ final class ExpandedModelDetailsView: ItemView {
           .foregroundColor: Theme.Colors.textTertiary,
         ]))
       header.attributedStringValue = headerText
-      mainStack.addArrangedSubview(header)
+
+      // A `?` next to the header answers the recurring newcomer question of
+      // what picking a size actually does -- without changing the "Context
+      // length" term itself (renaming would only confuse the many users who
+      // already know it). The tooltip carries the honest answer to all three
+      // things people ask: the memory is reserved on load, it's a hard ceiling,
+      // and bigger costs more. Hover-only, so it's invisible to those who
+      // already understand it. A tooltip (not an NSPopover) because this view is
+      // hosted in the menu, whose event tracking a popover would fight.
+      let info = NSImageView(
+        image: NSImage(
+          systemSymbolName: "questionmark.circle",
+          accessibilityDescription: "What is context length?") ?? NSImage())
+      info.contentTintColor = Theme.Colors.textTertiary
+      info.symbolConfiguration = .init(pointSize: 11, weight: .regular)
+      info.toolTip = """
+        How much of the conversation the model can remember at once. Bigger \
+        sizes remember more, but use more memory and run a little slower.
+
+        The memory shown is reserved while the model is loaded. Once a \
+        conversation grows past the limit, it no longer fits -- you'll need a \
+        larger size or a fresh conversation.
+        """
+
+      // Header text and the `?` on one line, left-aligned and snug together.
+      let headerRow = NSStackView(views: [header, info])
+      headerRow.orientation = .horizontal
+      headerRow.alignment = .centerY
+      headerRow.spacing = 4
+      mainStack.addArrangedSubview(headerRow)
       mainStack.addArrangedSubview(picker)
       // The picker spans the full content width, with segments sharing it
       // equally (fillEqually above) so the costs read as a table column.
