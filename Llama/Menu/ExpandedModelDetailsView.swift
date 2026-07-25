@@ -165,7 +165,7 @@ final class ExpandedModelDetailsView: ItemView {
       // One caption explaining every dimmed segment, in place of per-segment
       // tooltips as the primary explanation (tooltips remain for the numbers).
       if enabledTiers.count < tiers.count {
-        let caption = Theme.tertiaryLabel("Dimmed sizes need more memory than this Mac has")
+        let caption = Theme.tertiaryLabel("Dimmed sizes exceed this Mac's memory")
         caption.maximumNumberOfLines = 1
         caption.lineBreakMode = .byTruncatingTail
         mainStack.addArrangedSubview(caption)
