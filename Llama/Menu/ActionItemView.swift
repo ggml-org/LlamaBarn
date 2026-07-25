@@ -26,14 +26,12 @@ final class ActionItemView: ItemView {
   /// - Parameters:
   ///   - title: Row label, e.g. "Chat".
   ///   - symbol: SF symbol name for the leading glyph.
-  ///   - destructive: Tints the whole row red for delete-style actions.
   ///   - detail: Optional trailing metadata (e.g. Delete's disk footprint).
   ///   - confirmTitle: When set, requires an inline two-step confirm (see above).
   ///   - onAction: Invoked on click (or the confirming second click).
   init(
     title: String,
     symbol: String,
-    destructive: Bool = false,
     detail: String? = nil,
     confirmTitle: String? = nil,
     onAction: @escaping () -> Void
@@ -45,12 +43,10 @@ final class ActionItemView: ItemView {
     self.label = Theme.primaryLabel(title)
     super.init(frame: .zero)
 
-    let color: NSColor = destructive ? .systemRed : Theme.Colors.modelIconTint
-    Theme.configure(iconView, symbol: symbol, color: color, pointSize: 12)
-
-    if destructive {
-      label.textColor = .systemRed
-    }
+    // Every row shares one style, including Delete: the trash glyph and the
+    // inline confirm carry the destructiveness, so a red tint would only pull
+    // the eye toward the item you least want misclicked.
+    Theme.configure(iconView, symbol: symbol, color: Theme.Colors.modelIconTint, pointSize: 12)
 
     // Fixed-width glyph slot so labels column-align across rows regardless of
     // each symbol's natural width.

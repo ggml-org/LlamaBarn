@@ -615,8 +615,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     // Page actions as labeled menu rows -- bezel buttons read as dialog chrome
     // inside a menu and gray out whenever the app isn't frontmost. Chat leads
     // (the primary action on a model); Unload appears only while the model is
-    // loaded (a server-state rebuild keeps it current); Delete closes the set,
-    // tinted destructive.
+    // loaded (a server-state rebuild keeps it current); Delete closes the set.
     menu.addItem(NSMenuItem.viewItem(with: SeparatorView()))
     let chatRow = ActionItemView(title: "Chat with model", symbol: "bubble.left") {}
     chatRow.onAction = { [weak chatRow] in
@@ -659,7 +658,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     // Disk footprint rides the Delete row -- it's the one place the number
     // informs a decision (how much space deleting reclaims).
     menu.addItem(NSMenuItem.viewItem(with: ActionItemView(
-      title: "Delete", symbol: "trash", destructive: true,
+      title: "Delete", symbol: "trash",
       detail: model.totalSize, confirmTitle: "Click again to confirm"
     ) { [weak self] in
       self?.actionHandler.delete(model: model)
