@@ -157,6 +157,14 @@ extension Theme {
 
 // Helper for configuring image views with SF Symbols
 extension Theme {
+  /// Resolves a glyph name to an image: an SF Symbol if the system has one,
+  /// otherwise a symbol set of our own from the asset catalog. Custom symbol
+  /// sets respond to `symbolConfiguration` and tinting just like system
+  /// symbols, so callers don't need to know which kind they're asking for.
+  static func symbolImage(_ name: String) -> NSImage? {
+    NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? NSImage(named: name)
+  }
+
   // Configures an NSImageView with an SF Symbol icon and consistent styling
   // - Parameters:
   //   - view: The image view to configure
@@ -171,7 +179,7 @@ extension Theme {
     color: NSColor = Colors.textSecondary,
     pointSize: CGFloat = 13
   ) {
-    view.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+    view.image = symbolImage(symbol)
     view.toolTip = tooltip
     view.contentTintColor = color
     view.symbolConfiguration = .init(pointSize: pointSize, weight: .regular)
@@ -186,7 +194,7 @@ extension Theme {
     color: NSColor = Colors.textSecondary,
     pointSize: CGFloat = 13
   ) {
-    button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+    button.image = symbolImage(symbol)
     button.toolTip = tooltip
     button.contentTintColor = color
     button.symbolConfiguration = .init(pointSize: pointSize, weight: .regular)
