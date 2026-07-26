@@ -312,7 +312,7 @@ class LlamaServer {
       // Other value-taking flags.
       "--port", String(Self.port),
       "--models-max", "1",
-      "--fit-target", String(Int(Model.memOverheadMb)),
+      "--fit-target", String(Int(Model.fitTargetMb)),
     ]
 
     // Bind to custom address if network exposure is enabled

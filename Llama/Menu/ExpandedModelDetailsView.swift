@@ -102,8 +102,7 @@ final class ExpandedModelDetailsView: ItemView {
         // `makeSegment`), so they need no tooltip. Disabled tiers still get one
         // to explain why they can't be selected -- info shown nowhere else.
         if !enabledTiers.contains(tier) {
-          segment.toolTip = model.incompatibilitySummary(
-            ctxWindowTokens: Double(tier.rawValue))
+          segment.toolTip = disabledReason(for: tier)
         }
         picker.addArrangedSubview(segment)
       }
@@ -162,14 +161,11 @@ final class ExpandedModelDetailsView: ItemView {
       // equally (fillEqually above) so the costs read as a table column.
       picker.widthAnchor.constraint(equalToConstant: Layout.contentWidth).isActive = true
 
-      // One caption explaining every dimmed segment, in place of per-segment
-      // tooltips as the primary explanation (tooltips remain for the numbers).
-      if enabledTiers.count < tiers.count {
-        let caption = Theme.tertiaryLabel("Dimmed sizes exceed this Mac's memory")
-        caption.maximumNumberOfLines = 1
-        caption.lineBreakMode = .byTruncatingTail
-        mainStack.addArrangedSubview(caption)
-      }
+      // No caption explaining the dimmed segments: hovering the one you're
+      // wondering about is the natural move, and its tooltip can name that
+      // tier's own numbers instead of a general rule you'd have to apply
+      // yourself. A caption would charge every model page, forever, for a
+      // fact you only need once.
     }
 
     contentView.addSubview(mainStack)
@@ -186,10 +182,33 @@ final class ExpandedModelDetailsView: ItemView {
   /// 10 GB, whole numbers above -- the decimal stops being meaningful and the
   /// narrow form keeps 7-tier pickers within the menu width.
   private func costLabel(for tier: ContextTier) -> String {
-    let mb = model.runtimeMemoryUsageMb(ctxWindowTokens: Double(tier.rawValue))
-    let gb = Double(mb) / 1024.0
+    gbLabel(mb: Double(model.runtimeMemoryUsageMb(ctxWindowTokens: Double(tier.rawValue))))
+  }
+
+  /// Renders binary megabytes as gigabytes the way the segments do, so the
+  /// budget quoted in a tooltip is directly comparable to the per-tier costs
+  /// on screen.
+  private func gbLabel(mb: Double) -> String {
+    let gb = mb / 1024.0
     let number = gb < 10 ? String(format: "%.1f", gb) : String(format: "%.0f", gb.rounded())
     return number + " GB"
+  }
+
+  /// Tooltip for a dimmed segment. Runnable tiers get none -- their cost
+  /// sublabel already says everything, and a tooltip on the ordinary case is
+  /// noise.
+  ///
+  /// Names the machine rather than our budget. The segment already shows what
+  /// the size costs, and the budget (working set less a margin for macOS) is a
+  /// number nobody recognizes -- quoting it just moves the question from "why
+  /// is this dimmed" to "why 11 and not 16". The Mac's own size is the one
+  /// figure the reader already knows.
+  private func disabledReason(for tier: ContextTier) -> String? {
+    let memoryMb = Double(SystemMemory.memoryMb)
+    guard memoryMb > 0 else {
+      return model.incompatibilitySummary(ctxWindowTokens: Double(tier.rawValue))
+    }
+    return "Too large for a \(gbLabel(mb: memoryMb)) Mac."
   }
 
   /// Creates one clickable segment: the tier label over its memory cost,

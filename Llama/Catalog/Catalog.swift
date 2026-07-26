@@ -103,7 +103,7 @@ enum Catalog {
       return []
     }
 
-    let budgetMb = Model.memoryBudget(systemMemoryMb: systemMemoryMb)
+    let budgetMb = Model.deviceMemoryBudgetMb
     return
       families
       .filter { $0.featured == true }

@@ -89,7 +89,6 @@ enum HFRepoResolver {
   static func resolve(
     repo: String,
     quant: String?,
-    systemMemoryMb: UInt64,
     token: String?
   ) async throws -> Resolved {
     // Up-front validation: a malformed but present quant is a hard reject.
@@ -104,7 +103,7 @@ enum HFRepoResolver {
       throw ResolveError.noGgufFiles(repo)
     }
 
-    let budgetMb = Model.memoryBudget(systemMemoryMb: systemMemoryMb)
+    let budgetMb = Model.deviceMemoryBudgetMb
 
     // File selection: pick the main GGUF (plus its canonical quant tag).
     let pick = try selectMain(

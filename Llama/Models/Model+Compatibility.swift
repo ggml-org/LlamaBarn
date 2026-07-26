@@ -8,20 +8,49 @@ extension Model {
   /// Models must also support at least this context length to launch.
   static let compatibilityCtxWindowTokens: Double = 4_096
 
-  /// Memory overhead reserved for macOS and other apps (in MB).
-  /// This margin is also passed to llama-server via --fit-target so both
-  /// Llama's predictions and llama-server's runtime checks use the same value.
-  static let memOverheadMb: Double = 2048
+  /// Slack (in MB) left inside the GPU working set for what the memory
+  /// estimate can't see: allocation rounding, a model still resident while the
+  /// next one loads. llama.cpp's own default for `--fit-target`, and their
+  /// number for the error in the fit we rely on.
+  static let fitSlackMb: Double = 1024
+
+  /// Physical RAM (in MB) kept out of a model's reach for macOS and other
+  /// apps. Absolute rather than proportional, because the desktop's needs
+  /// don't shrink on a small Mac -- which is the whole reason this exists.
+  /// On roomy machines the working set already leaves far more than this
+  /// unused, so the term does nothing; on an 8 GB Mac the working set leaves
+  /// only ~2 GB outside itself and this is what pulls the budget down.
+  static let osFloorMb: Double = 4096
 
   /// Overhead multiplier applied to the model file size when estimating weight
   /// memory without a MemProfile measurement. 1.05 = 5% overhead.
   static let weightOverheadMultiplier = 1.05
 
-  /// Calculates available memory budget in MB based on system memory.
-  /// Formula: totalRAM * 0.75 - overhead
-  static func memoryBudget(systemMemoryMb: UInt64) -> Double {
-    let totalMb = Double(systemMemoryMb)
-    return max(totalMb * 0.75 - memOverheadMb, 0)
+  /// The memory a model may use on this device -- whichever of the two limits
+  /// binds first:
+  ///
+  /// - `workingSet - fitSlack`: what the GPU will hold, less llama.cpp's
+  ///   margin. We read Metal's working set rather than taking a fraction of
+  ///   `hw.memsize` because Apple's ratio varies by machine (~75% on common
+  ///   configurations, 84% measured on a 128 GB Mac) -- assuming 75%
+  ///   understated large Macs and blocked sizes that run fine. llama.cpp
+  ///   treats the same figure as the device's total and fits against it, so
+  ///   this side matches `serve`'s own limit.
+  /// - `physicalRam - osFloor`: leaves the desktop enough to work with. Only
+  ///   binds on small Macs, where the memory outside the working set isn't
+  ///   enough to host macOS on its own.
+  static var deviceMemoryBudgetMb: Double {
+    let workingSetMb = Double(SystemMemory.gpuWorkingSetMb)
+    let physicalMb = Double(SystemMemory.memoryMb)
+    return max(min(workingSetMb - fitSlackMb, physicalMb - osFloorMb), 0)
+  }
+
+  /// The margin to hand `serve` as `--fit-target`: everything between the
+  /// working set and our budget, so its runtime fit lands on the same number
+  /// our predictions do. Larger than `fitSlackMb` exactly when the OS floor is
+  /// the binding limit.
+  static var fitTargetMb: Double {
+    max(Double(SystemMemory.gpuWorkingSetMb) - deviceMemoryBudgetMb, 0)
   }
 
   /// Rough pre-download fit check used by the deeplink resolver and the
@@ -97,15 +126,20 @@ extension Model {
       )
     }
 
-    let sysMem = SystemMemory.memoryMb
+    let budgetMb = Self.deviceMemoryBudgetMb
     let estimatedMemoryUsageMb = runtimeMemoryUsageMb(
       ctxWindowTokens: ctxWindowTokens)
 
     func memoryRequirementSummary() -> String {
-      // Reverse the budget formula to find required total RAM:
-      // budget = total * 0.75 - overhead => total = (budget + overhead) / 0.75
-      let requiredBudgetMb = Double(estimatedMemoryUsageMb)
-      let requiredTotalMb = (requiredBudgetMb + Self.memOverheadMb) / 0.75
+      // Work back from the requirement to a Mac that could meet it, inverting
+      // both limbs of the budget and taking whichever demands more RAM. The
+      // working-set limb needs Apple's ratio, which we can only measure on
+      // *this* machine, so sizing another one assumes the usual ~75% -- fine
+      // for naming a memory tier, too rough to gate anything on.
+      let neededMb = Double(estimatedMemoryUsageMb)
+      let fromWorkingSet = (neededMb + Self.fitSlackMb) / 0.75
+      let fromOsFloor = neededMb + Self.osFloorMb
+      let requiredTotalMb = max(fromWorkingSet, fromOsFloor)
       let gb = ceil(requiredTotalMb / 1024.0)
 
       let commonSizes: [Double] = [8, 16, 18, 24, 32, 36, 48, 64, 96, 128, 192]
@@ -114,14 +148,15 @@ extension Model {
       return String(format: "Requires a Mac with %.0f GB+ of memory", displayGb)
     }
 
-    guard sysMem > 0 else {
+    // No budget means we couldn't read the device's memory at all; report the
+    // requirement rather than guessing that it fits.
+    guard budgetMb > 0 else {
       return CompatibilityInfo(
         isCompatible: false,
         incompatibilitySummary: memoryRequirementSummary()
       )
     }
 
-    let budgetMb = Self.memoryBudget(systemMemoryMb: sysMem)
     let isCompatible = estimatedMemoryUsageMb <= UInt64(budgetMb)
 
     return CompatibilityInfo(
@@ -130,8 +165,8 @@ extension Model {
     )
   }
 
-  /// Returns all context tiers that this model can support given device memory constraints.
-  /// Shows all standard tiers (4K through 128K) that are compatible, plus 256K if supported.
+  /// Context tiers this device can actually run -- the ones the picker leaves
+  /// selectable.
   /// When the MemProfile probe is still pending (or failed), returns only 4K as a safe
   /// default — without `ctxBytesPer1kTokens`, memory estimates are artificially low and
   /// all tiers would falsely appear compatible.
@@ -140,12 +175,10 @@ extension Model {
       return [.k4]
     }
 
-    // Filter standard tiers to those compatible with this device
     var tiers = ContextTier.standardTiers.filter { tier in
       isCompatible(ctxWindowTokens: Double(tier.rawValue))
     }
 
-    // Add 256K tier if compatible and not already included
     if isCompatible(ctxWindowTokens: Double(ContextTier.k256.rawValue)),
       !tiers.contains(.k256)
     {
