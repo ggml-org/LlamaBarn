@@ -39,10 +39,24 @@ extension Model {
   /// - `physicalRam - osFloor`: leaves the desktop enough to work with. Only
   ///   binds on small Macs, where the memory outside the working set isn't
   ///   enough to host macOS on its own.
+  ///
+  /// With `useFullWorkingSet` set, the GPU limb is the working set itself --
+  /// llama.cpp's fit slack is spent rather than held back. That's the whole
+  /// override: it never exceeds what Metal recommends, so the machine is never
+  /// pushed into swap by our arithmetic. Worth a gigabyte on every Mac, and a
+  /// gigabyte is the difference for a model that lands just over the line.
+  ///
+  /// The floor stays at `osFloorMb` in both modes, which makes the flag inert
+  /// on an 8 GB Mac (the floor is already what governs there). That's
+  /// deliberate: taking a model past ~4 GB on an 8 GB machine doesn't just
+  /// slow it down, it wedges it hard enough that the process can't be quit.
   static var deviceMemoryBudgetMb: Double {
     let workingSetMb = Double(SystemMemory.gpuWorkingSetMb)
     let physicalMb = Double(SystemMemory.memoryMb)
-    return max(min(workingSetMb - fitSlackMb, physicalMb - osFloorMb), 0)
+    let ramLimbMb = physicalMb - osFloorMb
+    let gpuLimbMb =
+      UserSettings.useFullWorkingSet ? workingSetMb : workingSetMb - fitSlackMb
+    return max(min(gpuLimbMb, ramLimbMb), 0)
   }
 
   /// The margin to hand `serve` as `--fit-target`: everything between the

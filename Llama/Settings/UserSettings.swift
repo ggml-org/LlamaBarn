@@ -39,6 +39,7 @@ enum UserSettings {
     static let hfCacheDirectory = "hfCacheDirectory"
     static let hfToken = "hfToken"
     static let modelLastUsedDates = "modelLastUsedDates"
+    static let useFullWorkingSet = "useFullWorkingSet"
     static let globalInputEnabled = "globalInputEnabled"
     static let globalInputShortcut = "globalInputShortcut"
   }
@@ -89,6 +90,32 @@ enum UserSettings {
   /// capture selector by recency.
   static func modelLastUsed(for id: String) -> Double {
     modelLastUsedDates[id] ?? 0
+  }
+
+  /// Whether a model may use the whole GPU working set, rather than leaving
+  /// llama.cpp's fit slack unspent. Off unless explicitly set:
+  ///   `defaults write app.llama.Llama useFullWorkingSet -bool true`
+  ///
+  /// Worth a gigabyte, which is the difference for a model that lands just
+  /// over the default line -- a 20B MXFP4 model on a 16 GB Mac, say. The slack
+  /// covers what the memory estimate can't see, so spending it means a load
+  /// that fits on paper can still fail, or a second model briefly resident
+  /// during a swap can push things over. That's a fine bet for someone who
+  /// knows their model works, and a bad default for everyone else.
+  ///
+  /// Note what this deliberately doesn't do: exceed what Metal recommends.
+  /// Allocations past the working set do succeed, with macOS swapping to cover
+  /// them, so a bigger override is possible -- but nobody has yet shown a
+  /// model that runs acceptably there, and "technically loads" isn't the same
+  /// as "works".
+  ///
+  /// It does nothing on an 8 GB Mac, where the RAM floor governs either way --
+  /// pushing past it there wedges the machine rather than merely slowing it.
+  ///
+  /// Undocumented on purpose: it's a probe. If people keep asking for it, that
+  /// argues for a real affordance; silence argues for leaving it alone.
+  static var useFullWorkingSet: Bool {
+    defaults.bool(forKey: Keys.useFullWorkingSet)
   }
 
   /// Whether the global-input capture panel (default ⌥Space) is enabled. Off unless
