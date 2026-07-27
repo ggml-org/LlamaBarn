@@ -3,21 +3,41 @@ import Foundation
 
 /// Interactive menu item representing a single installed/downloading model.
 /// Visual states:
-/// - Downloading: progress ring with a pause/play glyph in place of the icon
+/// - Downloading: the icon as usual, with a progress ring around it
 /// - Installed: circular icon (inactive) + label
 /// - Loading: circular icon (active, spinner)
 /// - Running: circular icon (active)
 ///
-/// The trailing slot follows the menu's existing grammar -- one glyph naming
-/// what clicking the row does (cf. the catalog row's download arrow and
+/// The trailing slot follows the menu's existing grammar -- a persistent glyph
+/// naming what clicking the row does (cf. the catalog row's download arrow and
 /// `BrowseModelsRow`'s arrow.up.forward). An installed row navigates, so it
-/// carries a persistent, decorative chevron: the whole row is the click target,
-/// and the page it opens owns the full action set (Chat, Copy ID, Unload,
-/// Delete). A downloading row doesn't navigate -- clicking it pauses or resumes
-/// -- so it shows no chevron, and its slot holds the hover-only cancel X
-/// instead. The two states are mutually exclusive, so the slot never mixes a
-/// destination hint with an action.
+/// gets a chevron, and the page it opens owns the full action set (Chat, Copy
+/// ID, Unload, Delete). A downloading row has no page worth opening -- memory
+/// estimates need the file on disk -- so it stays put: clicking pauses or
+/// resumes, and a pause/play glyph says so. Either way the glyph is decorative,
+/// because the whole row is the click target.
+///
+/// Cancel is the one action that doesn't fit that scheme: a downloading row
+/// genuinely has two, and nowhere to put the second. So it slides in on hover,
+/// to the left of the persistent glyph -- which keeps that glyph in the same
+/// column as every other row's, rather than shunting it sideways on hover.
 final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
+  /// Point sizes for the trailing glyphs. They differ because SF Symbols fits
+  /// each glyph to cap height rather than to how much of that box the mark
+  /// actually fills, so equal point sizes don't read as equal: a chevron's
+  /// single full-height stroke needs the least, the cancel X sits at the
+  /// `Theme.configure` default, and the circled pause/play needs the most --
+  /// its ring takes the height and leaves the mark inside about half of it.
+  private static let chevronSize: CGFloat = 11
+  private static let pausePlaySize: CGFloat = 16
+
+  /// One box for every trailing glyph, so they all center on the same axis --
+  /// with a box per glyph, the column reads ragged as rows change state. Sized
+  /// for the largest of them: at `pausePlaySize` the circled pair would
+  /// otherwise be scaled back down to fit `Layout.uiIconSize` and the size above
+  /// cancelled out.
+  private static let trailingGlyphFrame: CGFloat = 18
+
   private let model: Model
   private unowned let server: LlamaServer
   private unowned let modelManager: ModelManager
@@ -52,17 +72,23 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     return label
   }()
 
-  // Icon plus the two trailing glyphs, one per state: the persistent chevron on
-  // installed rows and the hover-only cancel X on downloading rows. They're
-  // mutually exclusive, so they share the slot.
+  // Icon plus the trailing glyphs: one persistent per state (chevron when
+  // installed, pause/play when downloading -- mutually exclusive, so they share
+  // a column) and the hover-only cancel X in its own column to their left.
   private let iconView = IconView()
   private let cancelImageView = NSImageView()
   private let chevronImageView = NSImageView()
+  private let pausePlayImageView = NSImageView()
 
   /// Whether the row is currently styled as downloading (in flight, paused, or in the
   /// brief post-cancel window). Set by `refresh()`; read back both to detect the
   /// cancelled transition and to gate the hover-only cancel X in `highlightDidChange`.
   private var showAsDownloading = false
+
+  /// Which of the pause/play pair is currently drawn, so `refresh()` can skip
+  /// rebuilding the symbol on every progress tick. Starts matching the `pause`
+  /// set up in `init`.
+  private var showsPausedGlyph = false
 
   init(
     model: Model, server: LlamaServer, modelManager: ModelManager,
@@ -87,11 +113,23 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
 
     // Disclosure chevron -- purely decorative, so it takes no gesture of its own
     // and no tooltip: the whole row is the click target, and a hint on a hint
-    // says nothing. Dimmer and a step smaller than the cancel X, which is an
-    // actual button.
+    // says nothing. Dimmer than the cancel X, which is an actual button.
     Theme.configure(
-      chevronImageView, symbol: "chevron.right", color: .tertiaryLabelColor, pointSize: 11)
+      chevronImageView, symbol: "chevron.right", color: .tertiaryLabelColor,
+      pointSize: Self.chevronSize)
     chevronImageView.isHidden = true
+
+    // Pause/play -- the downloading row's equivalent of the chevron: it names
+    // the row click's outcome rather than being its own target, so like the
+    // chevron it takes no gesture. Circled: a bare play triangle is near enough
+    // to chevron.right that the two blur together a few rows apart in the same
+    // column, and the enclosure separates them at any size while echoing the
+    // progress ring on the leading chip. This is the only place its size and
+    // tint are set; `refresh()` swaps just the symbol as the state changes.
+    Theme.configure(
+      pausePlayImageView, symbol: "pause.circle", color: .tertiaryLabelColor,
+      pointSize: Self.pausePlaySize)
+    pausePlayImageView.isHidden = true
 
     setupLayout()
     setupGestures()
@@ -118,11 +156,11 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
     spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-    // Trailing slot: the chevron (installed) and the hover-only cancel X
-    // (downloading), gated in `updateTrailingGlyph`. They never show at once, so
-    // they can share the slot. Progress and pause/play both live in the ring
-    // around the leading icon (see `IconView`).
-    let rootStack = NSStackView(views: [leading, spacer, chevronImageView, cancelImageView])
+    // Trailing glyphs, gated in `updateTrailingGlyphs`. Cancel comes first so it
+    // opens a column to the left of the persistent glyph, which stays put. The
+    // chevron and pause/play never show at once, so they share the last column.
+    let rootStack = NSStackView(
+      views: [leading, spacer, cancelImageView, chevronImageView, pausePlayImageView])
     rootStack.orientation = .horizontal
     rootStack.alignment = .centerY
     rootStack.spacing = 6
@@ -138,8 +176,9 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     ])
 
     // Constraints
-    Layout.constrainToIconSize(cancelImageView)
-    Layout.constrainToIconSize(chevronImageView)
+    for glyph in [cancelImageView, chevronImageView, pausePlayImageView] {
+      Layout.constrainToIconSize(glyph, size: Self.trailingGlyphFrame)
+    }
 
     titleLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
     titleLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
@@ -149,6 +188,8 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     cancelImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
     chevronImageView.setContentHuggingPriority(.required, for: .horizontal)
     chevronImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
+    pausePlayImageView.setContentHuggingPriority(.required, for: .horizontal)
+    pausePlayImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
   }
 
   private func setupGestures() {
@@ -266,16 +307,26 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
       )
     }
 
-    updateTrailingGlyph()
+    // Pause while in flight, play while paused -- the glyph names what a click
+    // on the row would do next. Only the symbol and its tooltip vary; size and
+    // tint stay with the one `Theme.configure` in `init`, so the two can't
+    // drift. Guarded because `refresh()` runs on every progress tick and this
+    // changes at most twice a download.
+    if showsPausedGlyph != isPaused {
+      showsPausedGlyph = isPaused
+      pausePlayImageView.image = Theme.symbolImage(isPaused ? "play.circle" : "pause.circle")
+      pausePlayImageView.toolTip = isPaused ? "Resume download" : "Pause download"
+    }
+
+    updateTrailingGlyphs()
 
     // While the row is styled as downloading, the leading icon swaps into its
-    // downloading look: a progress ring around the rim with a pause/play glyph
-    // in place of the icon (see `IconView.downloadFraction`). Keyed off
-    // `showAsDownloading` (not the narrower live-or-paused state) so the icon
-    // holds this look through the post-cancel flicker window too, instead of
-    // popping back to the chip background for a frame before the row disappears.
+    // downloading look: a progress ring around the rim (see
+    // `IconView.downloadFraction`). Keyed off `showAsDownloading` (not the
+    // narrower live-or-paused state) so the icon holds this look through the
+    // post-cancel flicker window too, instead of popping back to the chip
+    // background for a frame before the row disappears.
     iconView.downloadFraction = showAsDownloading ? (fraction ?? 0) : nil
-    iconView.downloadPaused = isPaused
 
     iconView.inactiveTintColor =
       isCompatible ? Theme.Colors.modelIconTint : Theme.Colors.textSecondary
@@ -296,18 +347,19 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   override func highlightDidChange(_ highlighted: Bool) {
-    updateTrailingGlyph()
+    updateTrailingGlyphs()
   }
 
-  // Picks the trailing glyph for the row's state: the cancel X on downloading
-  // rows (hover-only, since it's a button), the chevron on installed ones
-  // (always, since it's a hint and a hint that only appears once you're already
-  // pointing at the row is too late to be one). Called from both `refresh()`
+  // Picks the trailing glyphs for the row's state. The persistent pair are
+  // hints, not buttons, so they don't wait for hover -- a hint that appears
+  // only once you're already pointing at the row is too late to be one. Cancel
+  // is an actual button and stays hover-only. Called from both `refresh()`
   // (state changes while hovered) and `highlightDidChange` (hover enters/leaves).
-  private func updateTrailingGlyph() {
+  private func updateTrailingGlyphs() {
     cancelImageView.isHidden = !(isHighlighted && showAsDownloading)
-    // Suppressed through the post-cancel window too, so a cancelled row doesn't
-    // flash a chevron for a frame before it disappears.
+    // Both keyed off `showAsDownloading` rather than the live-or-paused state,
+    // so a cancelled row doesn't flash a chevron for a frame before it goes.
+    pausePlayImageView.isHidden = !showAsDownloading
     chevronImageView.isHidden = showAsDownloading || !modelManager.isInstalled(model)
   }
 
@@ -315,5 +367,6 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     super.viewDidChangeEffectiveAppearance()
     cancelImageView.contentTintColor = .tertiaryLabelColor
     chevronImageView.contentTintColor = .tertiaryLabelColor
+    pausePlayImageView.contentTintColor = .tertiaryLabelColor
   }
 }

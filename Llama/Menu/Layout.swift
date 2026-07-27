@@ -54,13 +54,15 @@ enum Layout {
     menuWidth - (outerHorizontalPadding * 2) - (innerHorizontalPadding * 2)
   }
 
-  /// Constrains a view to the standard UI icon size (width and height).
+  /// Constrains a view to the standard UI icon size (width and height), or to
+  /// `size` for the odd glyph that needs its own box — an enclosed symbol, say,
+  /// which needs a bigger one to draw its mark at the same scale as a bare one.
   /// Uses `equalToConstant` so icons never shrink when other row content
   /// (long titles, hover buttons appearing) competes for width — without this,
   /// autolayout silently squeezes icons instead of truncating the subtitle.
-  static func constrainToIconSize(_ view: NSView) {
-    view.widthAnchor.constraint(equalToConstant: uiIconSize).isActive = true
-    view.heightAnchor.constraint(equalToConstant: uiIconSize).isActive = true
+  static func constrainToIconSize(_ view: NSView, size: CGFloat = uiIconSize) {
+    view.widthAnchor.constraint(equalToConstant: size).isActive = true
+    view.heightAnchor.constraint(equalToConstant: size).isActive = true
   }
 }
 

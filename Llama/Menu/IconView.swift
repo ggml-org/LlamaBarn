@@ -5,8 +5,9 @@ import AppKit
 /// - Inactive: subtle background, tinted icon
 /// - Active: blue background, white icon
 /// - Loading: shows spinner in place of icon
-/// - Downloading: no background; a progress ring around the rim with a pause/play
-///   glyph in place of the icon -- see `downloadFraction` / `downloadPaused`
+/// - Downloading: the icon as usual, minus the background, with a progress ring
+///   around the rim -- see `downloadFraction`. The chip is a state display in
+///   every one of these; the row's controls all live in its trailing slot.
 final class IconView: NSView {
   /// Ring stroke. Runs along the chip's own rim, inset by half the stroke.
   private static let ringLineWidth: CGFloat = 2.5
@@ -14,9 +15,6 @@ final class IconView: NSView {
   /// The image view containing the model icon. Set the `image` property directly.
   let imageView = NSImageView()
   private let spinner = NSProgressIndicator()
-  /// Pause (in flight) / play (paused) glyph shown in place of the model icon
-  /// while the ring is up, making the downloading chip read as a control.
-  private let pausePlayView = NSImageView()
 
   /// Ring layers: a faint full-circle track with a progress arc on top, drawn
   /// with `strokeEnd`. Hidden unless `downloadFraction` is set.
@@ -30,7 +28,7 @@ final class IconView: NSView {
   var inactiveBackgroundColor: NSColor = Theme.Colors.subtleBackground { didSet { refresh() } }
 
   /// Download progress in 0...1, or nil when not downloading. Non-nil swaps the
-  /// chip into its downloading look: background dropped, icon shrunk, ring shown.
+  /// chip into its downloading look: background dropped, ring shown.
   /// The arc floors at a small visible sliver so a just-started download reads
   /// as "a ring beginning to fill" rather than an empty circle.
   var downloadFraction: Double? {
@@ -38,20 +36,6 @@ final class IconView: NSView {
       updateRingProgress()
       // Only rebuild the whole look on show/hide, not on every progress tick.
       if (downloadFraction == nil) != (oldValue == nil) { refresh() }
-    }
-  }
-
-  /// Swaps the in-ring glyph between pause (in flight) and play (paused).
-  /// Only visible while `downloadFraction` is set. Assigned on every progress
-  /// tick, so no-op writes bail early instead of rebuilding the symbol image.
-  var downloadPaused: Bool = false {
-    didSet {
-      guard downloadPaused != oldValue else { return }
-      let symbol = downloadPaused ? "play.fill" : "pause.fill"
-      pausePlayView.image = NSImage(
-        systemSymbolName: symbol,
-        accessibilityDescription: downloadPaused ? "Resume download" : "Pause download")
-      refresh()  // tooltip depends on both this and the downloading state
     }
   }
 
@@ -66,14 +50,6 @@ final class IconView: NSView {
 
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.symbolConfiguration = .init(pointSize: Layout.uiIconSize, weight: .regular)
-
-    // Pause/play glyph, sized to sit comfortably inside the ring. Starts as
-    // pause (the in-flight symbol); `downloadPaused` swaps it from there.
-    pausePlayView.translatesAutoresizingMaskIntoConstraints = false
-    pausePlayView.symbolConfiguration = .init(pointSize: 10, weight: .bold)
-    pausePlayView.image = NSImage(
-      systemSymbolName: "pause.fill", accessibilityDescription: "Pause download")
-    pausePlayView.isHidden = true
 
     for shape in [trackLayer, progressLayer] {
       shape.fillColor = nil
@@ -91,7 +67,6 @@ final class IconView: NSView {
 
     addSubview(imageView)
     addSubview(spinner)
-    addSubview(pausePlayView)
     NSLayoutConstraint.activate([
       // Container is fixed at iconViewSize so it can't be squeezed when long titles
       // or hover buttons compete for row width. Intrinsic size alone isn't enough —
@@ -104,8 +79,6 @@ final class IconView: NSView {
       imageView.heightAnchor.constraint(equalToConstant: Layout.uiIconSize),
       spinner.centerXAnchor.constraint(equalTo: centerXAnchor),
       spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
-      pausePlayView.centerXAnchor.constraint(equalTo: centerXAnchor),
-      pausePlayView.centerYAnchor.constraint(equalTo: centerYAnchor),
     ])
     refresh()
   }
@@ -159,20 +132,17 @@ final class IconView: NSView {
 
   private func refresh() {
     guard let layer else { return }
-    // Downloading look: ring in place of the chip background, pause/play glyph
-    // in place of the model icon; both restored the moment the download ends.
+    // Downloading look: ring in place of the chip background, restored the
+    // moment the download ends. The icon stays put throughout -- the chip only
+    // ever reports state, so the model stays identifiable while it downloads.
     let isDownloading = downloadFraction != nil
     trackLayer.isHidden = !isDownloading
     progressLayer.isHidden = !isDownloading
     trackLayer.setStrokeColor(Theme.Colors.subtleBackground, in: self)
     progressLayer.setStrokeColor(Theme.Colors.textSecondary, in: self)
-    pausePlayView.isHidden = !isDownloading
-    pausePlayView.contentTintColor = .secondaryLabelColor
-    toolTip = isDownloading ? (downloadPaused ? "Resume download" : "Pause download") : nil
 
-    // Spinner appears in the center and the glyph hides while loading;
-    // the pause/play glyph replaces the icon while downloading.
-    imageView.isHidden = isLoading || isDownloading
+    // Spinner appears in the center and the icon hides while loading.
+    imageView.isHidden = isLoading
     spinner.isHidden = !isLoading
 
     if isActive {
