@@ -5,12 +5,17 @@ import AppKit
 /// - Inactive: subtle background, tinted icon
 /// - Active: blue background, white icon
 /// - Loading: shows spinner in place of icon
-/// - Downloading: the icon as usual, minus the background, with a progress ring
+/// - Downloading: the icon faded, minus the background, with a progress ring
 ///   around the rim -- see `downloadFraction`. The chip is a state display in
 ///   every one of these; the row's controls all live in its trailing slot.
 final class IconView: NSView {
   /// Ring stroke. Runs along the chip's own rim, inset by half the stroke.
   private static let ringLineWidth: CGFloat = 2.5
+
+  /// Icon opacity while a download is in flight. The mark stays legible enough
+  /// to identify the model, but reads as "not fully here yet" against the solid
+  /// marks of the installed rows around it.
+  private static let downloadingIconAlpha: CGFloat = 0.45
 
   /// The image view containing the model icon. Set the `image` property directly.
   let imageView = NSImageView()
@@ -37,6 +42,13 @@ final class IconView: NSView {
       // Only rebuild the whole look on show/hide, not on every progress tick.
       if (downloadFraction == nil) != (oldValue == nil) { refresh() }
     }
+  }
+
+  /// Whether the download this chip is showing is paused. Dims the progress arc
+  /// so a stalled download reads as stalled from the chip alone, without having
+  /// to read the subtitle. Ignored while `downloadFraction` is nil.
+  var isDownloadPaused: Bool = false {
+    didSet { if isDownloadPaused != oldValue { refresh() } }
   }
 
   override var intrinsicContentSize: NSSize {
@@ -133,13 +145,15 @@ final class IconView: NSView {
   private func refresh() {
     guard let layer else { return }
     // Downloading look: ring in place of the chip background, restored the
-    // moment the download ends. The icon stays put throughout -- the chip only
+    // moment the download ends. The icon stays put but fades -- the chip only
     // ever reports state, so the model stays identifiable while it downloads.
     let isDownloading = downloadFraction != nil
     trackLayer.isHidden = !isDownloading
     progressLayer.isHidden = !isDownloading
     trackLayer.setStrokeColor(Theme.Colors.subtleBackground, in: self)
-    progressLayer.setStrokeColor(Theme.Colors.textSecondary, in: self)
+    progressLayer.setStrokeColor(
+      isDownloadPaused ? Theme.Colors.textTertiary : Theme.Colors.textSecondary, in: self)
+    imageView.alphaValue = isDownloading ? Self.downloadingIconAlpha : 1
 
     // Spinner appears in the center and the icon hides while loading.
     imageView.isHidden = isLoading

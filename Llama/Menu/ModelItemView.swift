@@ -327,6 +327,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     // post-cancel flicker window too, instead of popping back to the chip
     // background for a frame before the row disappears.
     iconView.downloadFraction = showAsDownloading ? (fraction ?? 0) : nil
+    iconView.isDownloadPaused = isPaused
 
     iconView.inactiveTintColor =
       isCompatible ? Theme.Colors.modelIconTint : Theme.Colors.textSecondary
