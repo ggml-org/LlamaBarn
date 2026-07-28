@@ -6,8 +6,11 @@ import AppKit
 /// - Active: blue background, white icon
 /// - Loading: shows spinner in place of icon
 /// - Downloading: the icon faded, minus the background, with a progress ring
-///   around the rim -- see `downloadFraction`. The chip is a state display in
-///   every one of these; the row's controls all live in its trailing slot.
+///   around the rim in the icon's own tint at the icon's own fade -- see
+///   `downloadFraction`. Pausing dims the ring below that shared weight.
+///
+/// The chip is a state display in every one of these; the row's controls all
+/// live in its trailing slot.
 final class IconView: NSView {
   /// Ring stroke. Runs along the chip's own rim, inset by half the stroke.
   private static let ringLineWidth: CGFloat = 2.5
@@ -16,6 +19,10 @@ final class IconView: NSView {
   /// to identify the model, but reads as "not fully here yet" against the solid
   /// marks of the installed rows around it.
   private static let downloadingIconAlpha: CGFloat = 0.45
+
+  /// Progress-arc opacity while the download is paused -- below the shared
+  /// icon/arc weight, but still clear of the track beneath it.
+  private static let pausedArcAlpha: CGFloat = 0.25
 
   /// The image view containing the model icon. Set the `image` property directly.
   let imageView = NSImageView()
@@ -151,9 +158,20 @@ final class IconView: NSView {
     trackLayer.isHidden = !isDownloading
     progressLayer.isHidden = !isDownloading
     trackLayer.setStrokeColor(Theme.Colors.subtleBackground, in: self)
-    progressLayer.setStrokeColor(
-      isDownloadPaused ? Theme.Colors.textTertiary : Theme.Colors.textSecondary, in: self)
     imageView.alphaValue = isDownloading ? Self.downloadingIconAlpha : 1
+
+    // The arc takes the icon's own tint at the icon's own fade, so ring and mark
+    // read as one object at one weight -- the ring is the mark's progress, not a
+    // separate indicator competing with it. Pausing drops it below that shared
+    // weight, which is what makes a stalled download legible from the chip
+    // alone. Opacity rather than a dimmer color keeps the two tied to the icon:
+    // a change to `inactiveTintColor` carries to the arc for free.
+    progressLayer.setStrokeColor(inactiveTintColor, in: self)
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    progressLayer.opacity =
+      Float(isDownloadPaused ? Self.pausedArcAlpha : Self.downloadingIconAlpha)
+    CATransaction.commit()
 
     // Spinner appears in the center and the icon hides while loading.
     imageView.isHidden = isLoading
