@@ -602,11 +602,21 @@ enum HFCache {
     // The model's native context window, read from the GGUF header (metadata
     // lives in the first shard, which `filename` points at for split models).
     // This drives which tiers the picker offers -- without it every model was
-    // capped at 128k regardless of what it natively supports. Fall back to 128k
-    // when the header can't be read, matching the prior fixed behavior.
-    let ctxWindow =
-      GGUFMetadata.contextLength(path: snapshotDir.appendingPathComponent(filename).path)
-      ?? 131_072
+    // capped at 128k regardless of what it natively supports.
+    //
+    // The two nil cases mean different things. A header we couldn't parse falls
+    // back to 128k, matching the prior fixed behavior -- misreading a file must
+    // never hide a model. But a header that parsed cleanly and simply has no
+    // `<arch>.context_length` is a GGUF llama.cpp can't run: the key is required
+    // for every arch it supports, so its absence marks a non-LLM sharing the
+    // cache (speech-to-text models dropped there by other apps, say). Those get
+    // skipped -- we can't serve them, and their memory estimates are nonsense.
+    let ctxWindow: Int
+    switch GGUFMetadata.contextLength(path: snapshotDir.appendingPathComponent(filename).path) {
+    case .some(.some(let length)): ctxWindow = length
+    case .some(.none): return nil  // header parsed, key absent -- not an LLM
+    case .none: ctxWindow = 131_072  // header unparseable -- fall back
+    }
 
     let entry = Model(
       id: modelId,

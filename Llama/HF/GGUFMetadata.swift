@@ -40,10 +40,15 @@ enum GGUFMetadata {
   /// `<arch>.rope.scaling.original_context_length` ends in `_context_length`
   /// (underscore, not dot), so anchoring on `.context_length` excludes it.
   ///
-  /// Returns nil when the header can't be parsed or the key is absent -- the
-  /// caller falls back to a fixed default.
-  static func contextLength(path: String) -> Int? {
-    intValue(forKeySuffix: ".context_length", path: path) ?? nil
+  /// The double optional keeps the two nil-ish outcomes apart, and callers care
+  /// about the difference: outer nil = header unparseable, fall back to a
+  /// default; `.some(nil)` = header fine but the key is genuinely absent, which
+  /// means llama.cpp can't run the file at all. `llama-model.cpp` reads this key
+  /// as required (unlike the optional hparams around it) for every arch but
+  /// CLIP, so a clean absence marks a non-LLM GGUF -- e.g. speech-to-text models
+  /// (`cohere_asr`, ...), which namespace their hparams under `stt.*` instead.
+  static func contextLength(path: String) -> Int?? {
+    intValue(forKeySuffix: ".context_length", path: path)
   }
 
   // MARK: - Header parsing
