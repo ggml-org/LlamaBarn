@@ -36,7 +36,7 @@ final class CatalogItemView: ItemView {
     self.onInstall = onInstall
     super.init(frame: .zero)
 
-    iconView.imageView.image =
+    iconView.image =
       suggestion.brandLogoAsset.flatMap { NSImage(named: $0) }
       ?? NSImage(systemSymbolName: "cube.fill", accessibilityDescription: "Model")
     iconView.inactiveTintColor = Theme.Colors.modelIconTint

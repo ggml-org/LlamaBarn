@@ -24,7 +24,7 @@ final class BrowseModelsRow: ItemView {
     // column visually consistent. The web-destination cue is carried by the
     // caption and the trailing arrow, not the icon.
     let icon = IconView()
-    icon.imageView.image = NSImage(
+    icon.image = NSImage(
       systemSymbolName: "square.grid.2x2", accessibilityDescription: "Model catalog")
     icon.inactiveTintColor = Theme.Colors.modelIconTint
 

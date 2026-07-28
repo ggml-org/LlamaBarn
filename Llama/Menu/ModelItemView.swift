@@ -3,7 +3,7 @@ import Foundation
 
 /// Interactive menu item representing a single installed/downloading model.
 /// Visual states:
-/// - Downloading: the icon as usual, with a progress ring around it
+/// - Downloading: the icon faded, its chip filling from the bottom as bytes land
 /// - Installed: circular icon (inactive) + label
 /// - Loading: circular icon (active, spinner)
 /// - Running: circular icon (active)
@@ -104,7 +104,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     self.showTags = showTags
     super.init(frame: .zero)
 
-    iconView.imageView.image =
+    iconView.image =
       model.brandLogoAsset.flatMap { NSImage(named: $0) }
       ?? NSImage(systemSymbolName: "cube.fill", accessibilityDescription: "Model")
 
@@ -123,9 +123,9 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     // the row click's outcome rather than being its own target, so like the
     // chevron it takes no gesture. Circled: a bare play triangle is near enough
     // to chevron.right that the two blur together a few rows apart in the same
-    // column, and the enclosure separates them at any size while echoing the
-    // progress ring on the leading chip. This is the only place its size and
-    // tint are set; `refresh()` swaps just the symbol as the state changes.
+    // column, and the enclosure separates them at any size. This is the only
+    // place its size and tint are set; `refresh()` swaps just the symbol as the
+    // state changes.
     Theme.configure(
       pausePlayImageView, symbol: "pause.circle", color: .tertiaryLabelColor,
       pointSize: Self.pausePlaySize)
@@ -321,13 +321,12 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     updateTrailingGlyphs()
 
     // While the row is styled as downloading, the leading icon swaps into its
-    // downloading look: a progress ring around the rim (see
+    // downloading look: faded mark over a rising fill (see
     // `IconView.downloadFraction`). Keyed off `showAsDownloading` (not the
     // narrower live-or-paused state) so the icon holds this look through the
     // post-cancel flicker window too, instead of popping back to the chip
     // background for a frame before the row disappears.
     iconView.downloadFraction = showAsDownloading ? (fraction ?? 0) : nil
-    iconView.isDownloadPaused = isPaused
 
     iconView.inactiveTintColor =
       isCompatible ? Theme.Colors.modelIconTint : Theme.Colors.textSecondary

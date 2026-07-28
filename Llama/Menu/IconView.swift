@@ -5,33 +5,39 @@ import AppKit
 /// - Inactive: subtle background, tinted icon
 /// - Active: blue background, white icon
 /// - Loading: shows spinner in place of icon
-/// - Downloading: the icon faded, minus the background, with a progress ring
-///   around the rim in the icon's own tint at the icon's own fade -- see
-///   `downloadFraction`. Pausing dims the ring below that shared weight.
+/// - Downloading: the icon faded over an empty container that fills from the
+///   bottom up as the file lands, arriving at exactly the inactive look above
+///   -- see `downloadFraction`. The chip's full height is the meter, so progress
+///   reads at a glance and moves on small increments; the circle also keeps the
+///   fill's shape independent of the mark's. Live and paused look alike here --
+///   the row's trailing play/pause glyph and its subtitle both say which, and
+///   the level itself means the same either way.
 ///
 /// The chip is a state display in every one of these; the row's controls all
 /// live in its trailing slot.
 final class IconView: NSView {
-  /// Ring stroke. Runs along the chip's own rim, inset by half the stroke.
-  private static let ringLineWidth: CGFloat = 2.5
-
   /// Icon opacity while a download is in flight. The mark stays legible enough
   /// to identify the model, but reads as "not fully here yet" against the solid
   /// marks of the installed rows around it.
   private static let downloadingIconAlpha: CGFloat = 0.45
 
-  /// Progress-arc opacity while the download is paused -- below the shared
-  /// icon/arc weight, but still clear of the track beneath it.
-  private static let pausedArcAlpha: CGFloat = 0.25
 
-  /// The image view containing the model icon. Set the `image` property directly.
-  let imageView = NSImageView()
+  private let imageView = NSImageView()
   private let spinner = NSProgressIndicator()
 
-  /// Ring layers: a faint full-circle track with a progress arc on top, drawn
-  /// with `strokeEnd`. Hidden unless `downloadFraction` is set.
-  private let trackLayer = CAShapeLayer()
-  private let progressLayer = CAShapeLayer()
+  /// The rising level: a bottom-anchored slice of the chip, clipped to the
+  /// circle by the view's own `masksToBounds`. Sits below the icon and draws in
+  /// the chip's ordinary background color, with the chip's own background
+  /// switched off meanwhile -- so the level rises toward the installed look
+  /// rather than past it, and a completed download changes nothing about the
+  /// circle. Anything darker would make finishing read as a step backwards.
+  private let fillLayer = CALayer()
+
+  /// The model icon. The view owns its own layering, so callers set the image
+  /// rather than reaching for the image view.
+  var image: NSImage? {
+    didSet { imageView.image = image }
+  }
 
   var isActive: Bool = false { didSet { refresh() } }
   private var isLoading: Bool = false { didSet { refresh() } }
@@ -39,23 +45,16 @@ final class IconView: NSView {
 
   var inactiveBackgroundColor: NSColor = Theme.Colors.subtleBackground { didSet { refresh() } }
 
-  /// Download progress in 0...1, or nil when not downloading. Non-nil swaps the
-  /// chip into its downloading look: background dropped, ring shown.
-  /// The arc floors at a small visible sliver so a just-started download reads
-  /// as "a ring beginning to fill" rather than an empty circle.
+  /// Download progress in 0...1, or nil when not downloading. Non-nil fades the
+  /// mark and raises the fill to `fraction` of the chip's height. No floor: a
+  /// download that has barely started shows an empty chip, which is honest --
+  /// the row's subtitle carries the exact byte count.
   var downloadFraction: Double? {
     didSet {
-      updateRingProgress()
+      updateFillProgress()
       // Only rebuild the whole look on show/hide, not on every progress tick.
       if (downloadFraction == nil) != (oldValue == nil) { refresh() }
     }
-  }
-
-  /// Whether the download this chip is showing is paused. Dims the progress arc
-  /// so a stalled download reads as stalled from the chip alone, without having
-  /// to read the subtitle. Ignored while `downloadFraction` is nil.
-  var isDownloadPaused: Bool = false {
-    didSet { if isDownloadPaused != oldValue { refresh() } }
   }
 
   override var intrinsicContentSize: NSSize {
@@ -70,13 +69,11 @@ final class IconView: NSView {
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.symbolConfiguration = .init(pointSize: Layout.uiIconSize, weight: .regular)
 
-    for shape in [trackLayer, progressLayer] {
-      shape.fillColor = nil
-      shape.lineWidth = Self.ringLineWidth
-      shape.lineCap = .round
-      shape.isHidden = true
-      layer?.addSublayer(shape)
-    }
+    // Clip the fill to the circle. Added before the subviews so it sits behind
+    // the icon: subview layers land above sublayers added here.
+    layer?.masksToBounds = true
+    fillLayer.isHidden = true
+    layer?.addSublayer(fillLayer)
 
     // Configure spinner but keep it hidden until used.
     spinner.translatesAutoresizingMaskIntoConstraints = false
@@ -106,29 +103,23 @@ final class IconView: NSView {
     super.layout()
     // Make circular by setting corner radius to half the view's size
     layer?.cornerRadius = bounds.width / 2
-
-    // Ring path along the rim, inset by half the stroke so it isn't clipped.
-    // Start at 12 o'clock and run visually clockwise: in the layer's default
-    // (y-up) coordinates that's from π/2 sweeping through decreasing angles.
-    let radius = bounds.width / 2 - Self.ringLineWidth / 2
-    let center = CGPoint(x: bounds.midX, y: bounds.midY)
-    let path = CGMutablePath()
-    path.addArc(
-      center: center, radius: radius,
-      startAngle: .pi / 2, endAngle: .pi / 2 - 2 * .pi, clockwise: true)
-    trackLayer.frame = bounds
-    progressLayer.frame = bounds
-    trackLayer.path = path
-    progressLayer.path = path
-    updateRingProgress()
   }
 
-  private func updateRingProgress() {
+  /// Sizes the fill to the downloaded fraction of the chip's height, anchored at
+  /// the bottom so the level rises. The circle clips the corners for free.
+  private func updateFillProgress() {
     guard let fraction = downloadFraction else { return }
+    // Sized off the layout constant rather than `bounds`, which is still zero
+    // the first time through -- the fill would start empty and only appear on
+    // the next progress tick.
+    let side = Layout.iconViewSize
     // Snap to each progress sample instead of trailing behind with an implicit fade.
     CATransaction.begin()
     CATransaction.setDisableActions(true)
-    progressLayer.strokeEnd = CGFloat(max(0.04, min(1, fraction)))
+    fillLayer.frame = CGRect(
+      x: 0, y: 0,
+      width: side,
+      height: side * CGFloat(max(0, min(1, fraction))))
     CATransaction.commit()
   }
 
@@ -151,32 +142,19 @@ final class IconView: NSView {
 
   private func refresh() {
     guard let layer else { return }
-    // Downloading look: ring in place of the chip background, restored the
-    // moment the download ends. The icon stays put but fades -- the chip only
-    // ever reports state, so the model stays identifiable while it downloads.
+    // Downloading look: the mark fades and the chip fills from the bottom up as
+    // the file lands. The model stays identifiable throughout -- the chip only
+    // ever reports state.
     let isDownloading = downloadFraction != nil
-    trackLayer.isHidden = !isDownloading
-    progressLayer.isHidden = !isDownloading
-    trackLayer.setStrokeColor(Theme.Colors.subtleBackground, in: self)
     imageView.alphaValue = isDownloading ? Self.downloadingIconAlpha : 1
-
-    // The arc takes the icon's own tint at the icon's own fade, so ring and mark
-    // read as one object at one weight -- the ring is the mark's progress, not a
-    // separate indicator competing with it. Pausing drops it below that shared
-    // weight, which is what makes a stalled download legible from the chip
-    // alone. Opacity rather than a dimmer color keeps the two tied to the icon:
-    // a change to `inactiveTintColor` carries to the arc for free.
-    progressLayer.setStrokeColor(inactiveTintColor, in: self)
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
-    progressLayer.opacity =
-      Float(isDownloadPaused ? Self.pausedArcAlpha : Self.downloadingIconAlpha)
-    CATransaction.commit()
+    fillLayer.isHidden = !isDownloading
 
     // Spinner appears in the center and the icon hides while loading.
     imageView.isHidden = isLoading
     spinner.isHidden = !isLoading
 
+    // While downloading, the chip's own background steps aside and the fill
+    // supplies it a slice at a time -- see `fillLayer`.
     if isActive {
       layer.setBackgroundColor(.controlAccentColor, in: self)
       imageView.contentTintColor = .white
@@ -186,5 +164,9 @@ final class IconView: NSView {
       layer.setBackgroundColor(isDownloading ? .clear : inactiveBackgroundColor, in: self)
       imageView.contentTintColor = inactiveTintColor
     }
+
+    // Set here rather than in `init` so the fill follows a light/dark switch,
+    // and any change to `inactiveBackgroundColor`, the way the chip does.
+    fillLayer.setBackgroundColor(inactiveBackgroundColor, in: self)
   }
 }
