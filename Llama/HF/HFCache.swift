@@ -168,13 +168,18 @@ enum HFCache {
   /// behind). Interrupted (not-yet-installed) downloads are kept and surfaced
   /// as paused rows at launch via `scanPlaceholders`.
   static func cleanInstalledPartials(cacheDir: URL, installedIds: Set<String>) {
-    let root = cacheDir.appendingPathComponent(partialRootDirName)
-    guard let subdirs = try? FileManager.default.contentsOfDirectory(atPath: root.path) else {
-      return
+    // Delete by id, not by listing the root: a model id contains a slash, and
+    // `appendingPathComponent` treats it as a separator rather than escaping it,
+    // so a partial lives at `<root>/<org>/<repo>:<quant>` -- two levels down.
+    // Listing the root only ever yields org names, which never match an id.
+    // Going through `partialDir` reuses the builder that created the dir, so
+    // the two sides can't disagree about the layout.
+    for modelId in installedIds {
+      removePartials(cacheDir: cacheDir, modelId: modelId)
     }
-    for modelId in subdirs where installedIds.contains(modelId) {
-      try? FileManager.default.removeItem(at: root.appendingPathComponent(modelId))
-    }
+
+    // Deleting the id dir can leave its org dir behind empty.
+    cleanEmptyDirs(at: cacheDir.appendingPathComponent(partialRootDirName))
   }
 
   /// Returns true if `filename` (repo-relative) exists in any snapshot commit
