@@ -214,9 +214,10 @@ enum HFRepoResolver {
     siblings: [Sibling], budgetMb: Double
   ) throws -> Pick {
     // Main-weight candidates only, for both selection paths below:
-    // - `mtp-…` and `mmproj*` sidecars carry a quant label too, so an explicit
-    //   `quant=Q8_0`/`quant=F16` request could otherwise match a sidecar
-    //   instead of the main weights; imatrix files aren't runnable at all.
+    // - `mtp-…`, `dflash-…` and `mmproj*` sidecars carry a quant label too, so
+    //   an explicit `quant=Q8_0`/`quant=F16` request could otherwise match a
+    //   sidecar instead of the main weights; imatrix files aren't runnable at
+    //   all.
     // - Split-shard continuations (`-00002-of-00003.gguf`, …) parse to the same
     //   quant label as their set, and picking a non-first shard as "main"
     //   breaks the shard expansion downstream (it assumes main == first shard
@@ -224,6 +225,7 @@ enum HFRepoResolver {
     let allGgufs = siblings.filter { sib in
       guard isGgufCandidate(sib.rfilename),
         !SidecarPicker.isMtp(sib.rfilename),
+        !SidecarPicker.isDflash(sib.rfilename),
         !SidecarPicker.isMmproj(sib.rfilename)
       else { return false }
       let name = (sib.rfilename as NSString).lastPathComponent

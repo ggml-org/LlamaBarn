@@ -542,11 +542,16 @@ enum HFCache {
     }
 
     return allFiles.filter { relativePath in
-      // Skip mmproj (vision projection) and mtp- (speculative draft head)
-      // sidecars -- neither is a runnable model on its own.
+      // Skip mmproj (vision projection) and the mtp-/dflash- (speculative draft
+      // head) sidecars -- none is a runnable model on its own. A draft head
+      // parses to the same quant tag as the main weights it ships beside, so
+      // leaving one in here doesn't just add a bogus entry: it collides on
+      // `{org}/{repo}:{TAG}` and the dedupe downstream can keep the sidecar and
+      // drop the real model.
       relativePath.lowercased().hasSuffix(".gguf")
         && !SidecarPicker.isMmproj(relativePath)
         && !SidecarPicker.isMtp(relativePath)
+        && !SidecarPicker.isDflash(relativePath)
     }
   }
 

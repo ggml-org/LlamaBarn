@@ -1,7 +1,7 @@
 import Foundation
 
 /// Shared selection policy for sidecar GGUFs (`mmproj*.gguf` vision projectors
-/// and `mtp-….gguf` speculative draft heads).
+/// and the `mtp-….gguf` / `dflash-….gguf` speculative draft heads).
 ///
 /// Two discovery paths need the exact same policy — the deeplink resolver
 /// choosing among HF API siblings (`HFRepoResolver`) and the cache scan
@@ -25,6 +25,16 @@ enum SidecarPicker {
   static func isMtp(_ path: String) -> Bool {
     let name = (path as NSString).lastPathComponent.lowercased()
     return name.hasPrefix("mtp-") && name.hasSuffix(".gguf")
+  }
+
+  /// True for a DFlash draft-head sidecar (`dflash-….gguf`). DFlash is a
+  /// block-diffusion drafter with its own architecture (`LLM_ARCH_DFLASH`) that
+  /// borrows the target's token embeddings and output projection, so the file
+  /// can't be loaded as a model on its own -- same story as `mtp-`, different
+  /// speculation scheme.
+  static func isDflash(_ path: String) -> Bool {
+    let name = (path as NSString).lastPathComponent.lowercased()
+    return name.hasPrefix("dflash-") && name.hasSuffix(".gguf")
   }
 
   /// Picks the mmproj sidecar from a list of candidate names: attach only when
