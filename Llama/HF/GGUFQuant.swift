@@ -85,6 +85,41 @@ enum GGUFQuant {
     return label.map(canonicalTag) ?? "unknown"
   }
 
+  /// The quant's bit width, as llama.cpp's `extract_quant_bits`
+  /// (`common/download.cpp`) derives it: take the file's trailing tag, then read
+  /// the integer starting at its first digit — `Q4_K_M` → 4, `BF16` → 16,
+  /// `F32` → 32, `NVFP4` → 4. Returns 0 when the path carries no tag.
+  ///
+  /// This is deliberately cruder than `parseLabel`: it's only used to rank how
+  /// close two quants are (`SidecarPicker.bestSibling`), and it has to agree
+  /// with llama.cpp's ranking rather than with HF's label grammar. Anything
+  /// picking a *file* still goes through `parseLabel`/`tag(forPath:)`.
+  static func quantBits(forPath path: String) -> Int {
+    guard path.lowercased().hasSuffix(".gguf") else { return 0 }
+    var prefix = String(path.dropLast(".gguf".count))
+
+    // Drop a `-00001-of-00005` shard suffix so a shard ranks as its own quant.
+    if let shard = prefix.range(
+      of: #"-[0-9]{5}-of-[0-9]{5}$"#, options: .regularExpression)
+    {
+      prefix = String(prefix[..<shard.lowerBound])
+    }
+
+    // The tag is the trailing `[A-Z0-9_]+` run after the last `-`/`.`. The class
+    // excludes both separators, so the leftmost match is that last separator.
+    guard
+      let tag = prefix.range(of: #"[-.][A-Za-z0-9_]+$"#, options: .regularExpression)
+    else { return 0 }
+    return quantBits(forTag: String(prefix[tag].dropFirst()))
+  }
+
+  /// `quantBits` for an already-isolated tag (`Q8_0` → 8).
+  static func quantBits(forTag tag: String) -> Int {
+    guard let start = tag.firstIndex(where: { $0.isASCII && $0.isNumber }) else { return 0 }
+    let digits = tag[start...].prefix { $0.isASCII && $0.isNumber }
+    return Int(digits) ?? 0
+  }
+
   /// Convenience: true iff `a` and `b` parse to the same quant (case-insensitive).
   /// Used by `HFRepoResolver` to match URL-provided quants against siblings.
   static func matches(_ a: String, _ b: String) -> Bool {

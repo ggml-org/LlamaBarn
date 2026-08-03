@@ -37,36 +37,80 @@ enum SidecarPicker {
     return name.hasPrefix("dflash-") && name.hasSuffix(".gguf")
   }
 
-  /// Picks the mmproj sidecar from a list of candidate names: attach only when
-  /// there's exactly one, skip when ambiguous — an mmproj is quant-agnostic, so
-  /// we've no reliable way to pick among several (e.g. F16 vs Q8 variants).
-  static func mmproj(among names: [String]) -> String? {
-    let candidates = names.filter(isMmproj)
-    guard candidates.count == 1 else { return nil }
-    return candidates[0]
+  /// Picks the mmproj sidecar for `mainPath`. Repos routinely ship more than
+  /// one (every current ggml-org VLM ships `mmproj-…-BF16` + `mmproj-…-Q8_0`),
+  /// so ambiguity is the normal case, not a reason to skip: without an mmproj
+  /// the model loads as text-only and image input silently disappears.
+  static func mmproj(among names: [String], mainPath: String) -> String? {
+    bestSibling(among: names, mainPath: mainPath, isCandidate: isMmproj)
   }
 
-  /// Picks the MTP draft head from a list of candidate names. Repos commonly
-  /// ship one head per quant, so prefer the head whose quant matches the main
-  /// (mirroring llama.cpp's `find_best_mtp`), falling back to the smallest by
-  /// `sizeOf` — heads are tiny and any quant works as a draft, so size is the
-  /// safe tie-breaker. `mainQuant` must be the canonical tag; each candidate's
-  /// parsed label is canonicalized before comparing (parse keeps HF-style
-  /// prefixes like `UD-`).
-  static func mtp(
-    among names: [String], mainQuant: String, sizeOf: (String) -> Int64
-  ) -> String? {
-    let candidates = names.filter(isMtp)
-    guard !candidates.isEmpty else { return nil }
+  /// Picks the MTP draft head for `mainPath`. `tag` is the main file's canonical
+  /// quant tag, which lets an exact `-<TAG>.gguf` head win over a merely
+  /// near-in-bits one.
+  static func mtp(among names: [String], mainPath: String, tag: String?) -> String? {
+    bestSibling(among: names, mainPath: mainPath, tag: tag, isCandidate: isMtp)
+  }
 
-    if let exact = candidates.first(where: { candidate in
-      GGUFQuant.parseLabel(candidate).map {
-        GGUFQuant.matches(GGUFQuant.canonicalTag($0), mainQuant)
-      } ?? false
-    }) {
-      return exact
+  /// Port of llama.cpp's `find_best_sibling` (`common/download.cpp`), the
+  /// function behind its `find_best_mmproj` / `find_best_mtp`. Keeping the two
+  /// in step matters because the same repo has to resolve the same way whether
+  /// the user installs it through us or through `llama serve -hf`.
+  ///
+  /// A candidate qualifies only if its directory path is a prefix of the main
+  /// file's — the same directory, or an ancestor of it. That covers both
+  /// real-world layouts in one rule: per-quant subdir repos that ship
+  /// `Q4_K_M/mmproj-….gguf` beside the quant, and subdir repos that keep a
+  /// single shared sidecar at the snapshot root. A sidecar in an unrelated
+  /// sibling directory (another quant's) is rejected outright.
+  ///
+  /// Qualifying candidates rank by: deepest directory (so the main file's own
+  /// directory beats the root), then an exact `tag` match, then the smallest
+  /// distance in quant bits from the main file (`GGUFQuant.quantBits`) — which
+  /// is what lands a Q4_K_M or Q8_0 model on the Q8_0 mmproj and a BF16 model
+  /// on the BF16 one.
+  ///
+  /// One deliberate divergence: candidates are ranked in sorted order, so an
+  /// exact tie resolves the same way every scan. Upstream leaves ties to
+  /// manifest order; here the choice is written into `models.ini`, and a path
+  /// that flips between scans would rewrite it for no reason.
+  static func bestSibling(
+    among names: [String],
+    mainPath: String,
+    tag: String? = nil,
+    isCandidate: (String) -> Bool
+  ) -> String? {
+    let mainDirs = dirComponents(of: mainPath)
+    let mainBits =
+      tag.map(GGUFQuant.quantBits(forTag:)) ?? GGUFQuant.quantBits(forPath: mainPath)
+    let tagUpper = tag?.uppercased()
+
+    var best: (path: String, depth: Int, exact: Bool, diff: Int)?
+
+    for path in names.sorted() where isCandidate(path) {
+      let dirs = dirComponents(of: path)
+      guard dirs.count <= mainDirs.count, mainDirs.starts(with: dirs) else { continue }
+
+      let depth = dirs.count
+      let diff = abs(GGUFQuant.quantBits(forPath: path) - mainBits)
+      let exact = tagUpper.map { path.uppercased().contains("-\($0).") } ?? false
+
+      if let best {
+        let better =
+          depth > best.depth
+          || (depth == best.depth && exact && !best.exact)
+          || (depth == best.depth && exact == best.exact && diff < best.diff)
+        guard better else { continue }
+      }
+      best = (path, depth, exact, diff)
     }
 
-    return candidates.min { sizeOf($0) < sizeOf($1) }
+    return best?.path
+  }
+
+  /// The directory components of a repo-relative path (`Q4_K_M/a.gguf` →
+  /// `["Q4_K_M"]`, `a.gguf` → `[]`).
+  private static func dirComponents(of path: String) -> [Substring] {
+    Array(path.split(separator: "/").dropLast())
   }
 }

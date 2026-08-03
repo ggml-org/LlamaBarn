@@ -461,7 +461,10 @@ enum HFCache {
       // of the result list.
       for commit in commits {
         let snapshotDir = snapshotsDir.appendingPathComponent(commit)
-        let ggufFiles = collectGgufFiles(in: snapshotDir, fm: fm)
+        // `allFiles` keeps the sidecars the runnable list drops -- the sidecar
+        // pickers rank across the whole snapshot, not just one directory.
+        let allFiles = allGgufFiles(in: snapshotDir, fm: fm)
+        let ggufFiles = allFiles.filter(isRunnableModel)
         guard !ggufFiles.isEmpty else { continue }
 
         // Group split shards: "model-00001-of-00003.gguf" etc.
@@ -483,7 +486,7 @@ enum HFCache {
         for filename in standaloneFiles {
           if let result = buildSideloadedEntry(
             repoDir: repoDir, filename: filename, shardFiles: nil,
-            snapshotDir: snapshotDir, fm: fm
+            snapshotDir: snapshotDir, siblings: allFiles, fm: fm
           ), seenIds.insert(result.entry.id).inserted {
             results.append(result)
           }
@@ -505,7 +508,7 @@ enum HFCache {
 
           if let result = buildSideloadedEntry(
             repoDir: repoDir, filename: firstShard, shardFiles: sorted,
-            snapshotDir: snapshotDir, fm: fm
+            snapshotDir: snapshotDir, siblings: allFiles, fm: fm
           ), seenIds.insert(result.entry.id).inserted {
             results.append(result)
           }
@@ -516,12 +519,11 @@ enum HFCache {
     return results
   }
 
-  /// Collects runnable GGUF files from a snapshot dir and one level of subdirs.
-  /// Some repos (e.g. unsloth) store sharded quants in per-quant subdirs like
-  /// Q4_K_M/model-00001-of-00003.gguf. Returned paths are relative to
-  /// `snapshotDir` (e.g. "file.gguf" or "Q4_K_M/file.gguf"). Skips mmproj files
-  /// (vision projection) — they're not runnable models.
-  private static func collectGgufFiles(in snapshotDir: URL, fm: FileManager) -> [String] {
+  /// Collects every GGUF in a snapshot dir and one level of subdirs, sidecars
+  /// included. Some repos (e.g. unsloth) store sharded quants in per-quant
+  /// subdirs like Q4_K_M/model-00001-of-00003.gguf. Returned paths are relative
+  /// to `snapshotDir` (e.g. "file.gguf" or "Q4_K_M/file.gguf").
+  private static func allGgufFiles(in snapshotDir: URL, fm: FileManager) -> [String] {
     guard let topFiles = try? fm.contentsOfDirectory(atPath: snapshotDir.path) else {
       return []
     }
@@ -541,18 +543,20 @@ enum HFCache {
       }
     }
 
-    return allFiles.filter { relativePath in
-      // Skip mmproj (vision projection) and the mtp-/dflash- (speculative draft
-      // head) sidecars -- none is a runnable model on its own. A draft head
-      // parses to the same quant tag as the main weights it ships beside, so
-      // leaving one in here doesn't just add a bogus entry: it collides on
-      // `{org}/{repo}:{TAG}` and the dedupe downstream can keep the sidecar and
-      // drop the real model.
-      relativePath.lowercased().hasSuffix(".gguf")
-        && !SidecarPicker.isMmproj(relativePath)
-        && !SidecarPicker.isMtp(relativePath)
-        && !SidecarPicker.isDflash(relativePath)
-    }
+    return allFiles.filter { $0.lowercased().hasSuffix(".gguf") }
+  }
+
+  /// True for a GGUF that can stand on its own as a model entry.
+  ///
+  /// Skips mmproj (vision projection) and the mtp-/dflash- (speculative draft
+  /// head) sidecars -- none is a runnable model on its own. A draft head parses
+  /// to the same quant tag as the main weights it ships beside, so leaving one
+  /// in here doesn't just add a bogus entry: it collides on `{org}/{repo}:{TAG}`
+  /// and the dedupe downstream can keep the sidecar and drop the real model.
+  private static func isRunnableModel(_ relativePath: String) -> Bool {
+    !SidecarPicker.isMmproj(relativePath)
+      && !SidecarPicker.isMtp(relativePath)
+      && !SidecarPicker.isDflash(relativePath)
   }
 
   /// Builds a `Model` + `ResolvedPaths` from a discovered GGUF file.
@@ -565,6 +569,7 @@ enum HFCache {
     filename: String,
     shardFiles: [String]?,
     snapshotDir: URL,
+    siblings: [String],
     fm: FileManager
   ) -> (entry: Model, paths: ResolvedPaths)? {
     // Parse metadata from repo dir name
@@ -581,7 +586,8 @@ enum HFCache {
     // the sole source of `resolvedPaths` for `models.ini` — so if we don't
     // attach it here, the `mmproj =` line never gets written and vision
     // silently fails even though the sidecar is on disk.
-    let mmprojFile = findMmprojSidecar(snapshotDir: snapshotDir, mainRelPath: filename, fm: fm)
+    let mmprojFile = SidecarPicker.mmproj(among: siblings, mainPath: filename)
+      .map { snapshotDir.appendingPathComponent($0).path }
 
     // Calculate file size (sum all shards if split, plus the mmproj sidecar so
     // it matches `Model.fileSize`'s contract: main + shards + mmproj).
@@ -652,8 +658,8 @@ enum HFCache {
 
     // A sidecar MTP head (`mtp-….gguf`) shipped beside the main weights, if any,
     // quant-matched to the main. Present takes precedence over an embedded head.
-    let mtpSidecar = findMTPSidecar(
-      snapshotDir: snapshotDir, mainRelPath: filename, mainQuant: quant, fm: fm)
+    let mtpSidecar = SidecarPicker.mtp(among: siblings, mainPath: filename, tag: quant)
+      .map { snapshotDir.appendingPathComponent($0).path }
 
     // Embedded-head detection reads the GGUF metadata (the ground truth --
     // unsloth's MTP builds carry no filename marker at all), falling back to
@@ -689,57 +695,6 @@ enum HFCache {
       options: [.regularExpression, .caseInsensitive]) != nil
   }
 
-  /// Finds a sidecar MTP draft head (`mtp-….gguf`) shipped beside the main file,
-  /// returning its absolute path. Selection policy lives in `SidecarPicker.mtp`;
-  /// sizes are measured on the resolved blob (snapshot entries are symlinks).
-  /// Looks only in the main file's own directory, where the snapshot places its
-  /// siblings.
-  private static func findMTPSidecar(
-    snapshotDir: URL, mainRelPath: String, mainQuant: String, fm: FileManager
-  ) -> String? {
-    // The head sits in the same (sub)dir as the main file within the snapshot.
-    let mainDir = (mainRelPath as NSString).deletingLastPathComponent
-    let searchDir =
-      mainDir.isEmpty ? snapshotDir : snapshotDir.appendingPathComponent(mainDir)
-
-    guard let entries = try? fm.contentsOfDirectory(atPath: searchDir.path) else {
-      return nil
-    }
-    let chosen = SidecarPicker.mtp(among: entries, mainQuant: mainQuant) {
-      fm.fileSize(atPath: searchDir.appendingPathComponent($0).resolvingSymlinksInPath().path)
-    }
-    return chosen.map { searchDir.appendingPathComponent($0).path }
-  }
-
-  /// Finds the vision projector (`mmproj*.gguf`) sidecar for the main file,
-  /// returning its absolute path. Selection policy (lone candidate or skip)
-  /// lives in `SidecarPicker.mmproj`, shared with the deeplink resolver.
-  ///
-  /// Search is two-tier to cover both real-world layouts: first the main file's
-  /// own directory (per-quant repos ship `Q4_K_M/mmproj-….gguf` beside the
-  /// quant), then the snapshot top level (flat Gemma-style repos, and unsloth
-  /// subdir repos that keep one shared `mmproj-….gguf` at the root while the
-  /// quants live in subdirs).
-  private static func findMmprojSidecar(
-    snapshotDir: URL, mainRelPath: String, fm: FileManager
-  ) -> String? {
-    let mainDir = (mainRelPath as NSString).deletingLastPathComponent
-    let mainDirURL =
-      mainDir.isEmpty ? snapshotDir : snapshotDir.appendingPathComponent(mainDir)
-
-    // Prefer a sidecar in the main file's own directory; fall back to the
-    // snapshot root only when the main file lives in a subdir.
-    if let hit = singleMmproj(in: mainDirURL, fm: fm) { return hit }
-    if !mainDir.isEmpty, let hit = singleMmproj(in: snapshotDir, fm: fm) { return hit }
-    return nil
-  }
-
-  /// Returns the lone `mmproj*.gguf` in `dir` (per `SidecarPicker.mmproj`'s
-  /// policy) as an absolute path, or nil.
-  private static func singleMmproj(in dir: URL, fm: FileManager) -> String? {
-    guard let entries = try? fm.contentsOfDirectory(atPath: dir.path) else { return nil }
-    return SidecarPicker.mmproj(among: entries).map { dir.appendingPathComponent($0).path }
-  }
 }
 
 // MARK: - Same-Host Redirect Delegate

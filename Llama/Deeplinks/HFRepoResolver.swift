@@ -113,8 +113,8 @@ enum HFRepoResolver {
 
     // Expand shards + attach mmproj + attach the quant-matched MTP head.
     let shards = try expandShards(main: pick.rfilename, siblings: siblings, repo: repo)
-    let mmproj = pickMmproj(repo: repo, siblings: siblings)
-    let mtp = pickMtp(repo: repo, siblings: siblings, mainQuant: pick.tag)
+    let mmproj = pickMmproj(main: pick.rfilename, siblings: siblings)
+    let mtp = pickMtp(main: pick.rfilename, siblings: siblings, mainQuant: pick.tag)
 
     // Aggregate size (main + shards + mmproj + mtp), dropping unknown entries.
     var allPicked: [String] = shards  // includes the main shard at index 0
@@ -396,25 +396,20 @@ enum HFRepoResolver {
     return shards
   }
 
-  /// Picks the mmproj sidecar among the repo's siblings. Selection policy
-  /// (lone candidate or skip) lives in `SidecarPicker.mmproj`, shared with the
-  /// cache scan.
-  private static func pickMmproj(repo: String, siblings: [Sibling]) -> Sibling? {
+  /// Picks the mmproj sidecar among the repo's siblings. Selection policy lives
+  /// in `SidecarPicker.mmproj`, shared with the cache scan.
+  private static func pickMmproj(main: String, siblings: [Sibling]) -> Sibling? {
     let names = siblings.map(\.rfilename)
-    guard let picked = SidecarPicker.mmproj(among: names) else { return nil }
+    guard let picked = SidecarPicker.mmproj(among: names, mainPath: main) else { return nil }
     return siblings.first { $0.rfilename == picked }
   }
 
   /// Picks the MTP draft-head sidecar (`mtp-….gguf`) for the chosen main quant.
-  /// Selection policy (quant-matched head, else smallest) lives in
-  /// `SidecarPicker.mtp`; unknown sizes rank last.
-  private static func pickMtp(repo: String, siblings: [Sibling], mainQuant: String) -> Sibling? {
-    let sizeByName = Dictionary(
-      uniqueKeysWithValues: siblings.map { ($0.rfilename, $0.size ?? .max) })
+  /// Selection policy lives in `SidecarPicker.mtp`.
+  private static func pickMtp(main: String, siblings: [Sibling], mainQuant: String) -> Sibling? {
     let names = siblings.map(\.rfilename)
-    guard let picked = SidecarPicker.mtp(among: names, mainQuant: mainQuant, sizeOf: {
-      sizeByName[$0] ?? .max
-    }) else { return nil }
+    guard let picked = SidecarPicker.mtp(among: names, mainPath: main, tag: mainQuant)
+    else { return nil }
     return siblings.first { $0.rfilename == picked }
   }
 
