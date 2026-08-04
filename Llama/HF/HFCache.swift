@@ -548,15 +548,13 @@ enum HFCache {
 
   /// True for a GGUF that can stand on its own as a model entry.
   ///
-  /// Skips mmproj (vision projection) and the mtp-/dflash- (speculative draft
-  /// head) sidecars -- none is a runnable model on its own. A draft head parses
-  /// to the same quant tag as the main weights it ships beside, so leaving one
-  /// in here doesn't just add a bogus entry: it collides on `{org}/{repo}:{TAG}`
-  /// and the dedupe downstream can keep the sidecar and drop the real model.
+  /// Skips mmproj (vision projection) and every speculative draft head -- none
+  /// is a runnable model on its own. A draft head parses to the same quant tag
+  /// as the main weights it ships beside, so leaving one in here doesn't just
+  /// add a bogus entry: it collides on `{org}/{repo}:{TAG}` and the dedupe
+  /// downstream can keep the sidecar and drop the real model.
   private static func isRunnableModel(_ relativePath: String) -> Bool {
-    !SidecarPicker.isMmproj(relativePath)
-      && !SidecarPicker.isMtp(relativePath)
-      && !SidecarPicker.isDflash(relativePath)
+    !SidecarPicker.isMmproj(relativePath) && !SidecarPicker.isDraftHead(relativePath)
   }
 
   /// Builds a `Model` + `ResolvedPaths` from a discovered GGUF file.

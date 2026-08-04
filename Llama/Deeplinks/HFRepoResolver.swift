@@ -224,8 +224,7 @@ enum HFRepoResolver {
     //   when building `additionalParts`).
     let allGgufs = siblings.filter { sib in
       guard isGgufCandidate(sib.rfilename),
-        !SidecarPicker.isMtp(sib.rfilename),
-        !SidecarPicker.isDflash(sib.rfilename),
+        !SidecarPicker.isDraftHead(sib.rfilename),
         !SidecarPicker.isMmproj(sib.rfilename)
       else { return false }
       let name = (sib.rfilename as NSString).lastPathComponent

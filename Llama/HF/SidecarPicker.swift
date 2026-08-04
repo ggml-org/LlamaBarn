@@ -1,7 +1,7 @@
 import Foundation
 
 /// Shared selection policy for sidecar GGUFs (`mmproj*.gguf` vision projectors
-/// and the `mtp-….gguf` / `dflash-….gguf` speculative draft heads).
+/// and the speculative draft heads named by `draftHeadPrefixes`).
 ///
 /// Two discovery paths need the exact same policy — the deeplink resolver
 /// choosing among HF API siblings (`HFRepoResolver`) and the cache scan
@@ -27,14 +27,25 @@ enum SidecarPicker {
     return name.hasPrefix("mtp-") && name.hasSuffix(".gguf")
   }
 
-  /// True for a DFlash draft-head sidecar (`dflash-….gguf`). DFlash is a
-  /// block-diffusion drafter with its own architecture (`LLM_ARCH_DFLASH`) that
-  /// borrows the target's token embeddings and output projection, so the file
-  /// can't be loaded as a model on its own -- same story as `mtp-`, different
-  /// speculation scheme.
-  static func isDflash(_ path: String) -> Bool {
+  /// Filename prefixes llama.cpp resolves as draft heads shipped beside a model
+  /// (`find_best_sibling` callers in `common/download.cpp`): `mtp-`
+  /// (multi-token prediction), `dflash-` (block-diffusion drafting), `eagle3-`,
+  /// and `dspark-`. Each borrows the target's token embeddings and output
+  /// projection, so none loads as a model on its own.
+  ///
+  /// We only drive `mtp-`. The rest are here so main-model selection skips
+  /// them: a head parses to the target's quant tag, so an unrecognised one
+  /// collides on `{org}/{repo}:{TAG}` and the dedupe can keep the head and drop
+  /// the real model. Keep in step with upstream -- a scheme we don't list is a
+  /// scheme that shadows real models.
+  static let draftHeadPrefixes = ["mtp-", "dflash-", "eagle3-", "dspark-"]
+
+  /// True for any draft-head sidecar (see `draftHeadPrefixes`). Accepts full
+  /// repo-relative paths; only the basename is considered.
+  static func isDraftHead(_ path: String) -> Bool {
     let name = (path as NSString).lastPathComponent.lowercased()
-    return name.hasPrefix("dflash-") && name.hasSuffix(".gguf")
+    guard name.hasSuffix(".gguf") else { return false }
+    return draftHeadPrefixes.contains { name.hasPrefix($0) }
   }
 
   /// Picks the mmproj sidecar for `mainPath`. Repos routinely ship more than
