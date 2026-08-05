@@ -95,7 +95,12 @@ class ItemView: NSView {
   /// close on its own (see `dismissMenu`), and pairing the two here keeps a new
   /// link from silently forgetting to dismiss.
   func openInBrowser(_ url: URL) {
-    NSWorkspace.shared.open(url)
+    // Async on purpose. The synchronous `open(_:)` sends LaunchServices a
+    // sync XPC message and sleeps until it replies, which doesn't happen until
+    // the handler app is up -- a cold browser start blocks the main thread long
+    // enough to be reported as an app hang. Nothing here needs the result, so
+    // there's no reason to wait for it.
+    NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration())
     dismissMenu()
   }
 
