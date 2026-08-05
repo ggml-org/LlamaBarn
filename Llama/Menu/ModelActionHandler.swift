@@ -56,16 +56,10 @@ final class ModelActionHandler {
       try modelManager.downloadModel(model)
       onMembershipChange(model)
     } catch {
-      ModalPresentation.run {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = error.localizedDescription
-        if let error = error as? LocalizedError, let recoverySuggestion = error.recoverySuggestion {
-          alert.informativeText = recoverySuggestion
-        }
-        alert.addButton(withTitle: "OK")
-        return alert.runModal()
-      }
+      ModalPresentation.showAlert(
+        style: .warning,
+        title: error.localizedDescription,
+        body: (error as? LocalizedError)?.recoverySuggestion)
     }
   }
 }
