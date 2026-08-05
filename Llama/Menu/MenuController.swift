@@ -449,7 +449,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     NSApp.activate(ignoringOtherApps: true)
 
     ModalPresentation.showAlert(
-      style: .critical,
+      style: .warning,
       title: "Download Failed",
       body: "Could not download \(model.displayName).\n\n\(error)")
   }
