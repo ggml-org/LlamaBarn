@@ -448,12 +448,14 @@ final class MenuController: NSObject, NSMenuDelegate {
     // Activate the app to ensure the modal alert appears in front of other windows
     NSApp.activate(ignoringOtherApps: true)
 
-    let alert = NSAlert()
-    alert.alertStyle = .critical
-    alert.messageText = "Download Failed"
-    alert.informativeText = "Could not download \(model.displayName).\n\n\(error)"
-    alert.addButton(withTitle: "OK")
-    ModalPresentation.run { alert.runModal() }
+    ModalPresentation.run {
+      let alert = NSAlert()
+      alert.alertStyle = .critical
+      alert.messageText = "Download Failed"
+      alert.informativeText = "Could not download \(model.displayName).\n\n\(error)"
+      alert.addButton(withTitle: "OK")
+      return alert.runModal()
+    }
   }
 
   private func refresh() {

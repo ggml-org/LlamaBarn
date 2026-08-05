@@ -587,18 +587,22 @@ struct SettingsView: View {
 
   /// Opens a folder picker and updates the HF cache directory
   private func chooseCacheFolder() {
-    let panel = NSOpenPanel()
-    panel.canChooseFiles = false
-    panel.canChooseDirectories = true
-    panel.canCreateDirectories = true
-    panel.allowsMultipleSelection = false
-    panel.message = "Choose a directory for downloaded models"
-    panel.prompt = "Select"
+    let selection = ModalPresentation.run { () -> URL? in
+      let panel = NSOpenPanel()
+      panel.canChooseFiles = false
+      panel.canChooseDirectories = true
+      panel.canCreateDirectories = true
+      panel.allowsMultipleSelection = false
+      panel.message = "Choose a directory for downloaded models"
+      panel.prompt = "Select"
 
-    // Start in the current cache directory
-    panel.directoryURL = hfCacheDir
+      // Start in the current cache directory
+      panel.directoryURL = hfCacheDir
 
-    if ModalPresentation.run({ panel.runModal() }) == .OK, let url = panel.url {
+      return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    if let url = selection {
       UserSettings.hfCacheDirectory = url
       // Re-read for the canonical representation (the panel's URL may
       // differ in trailing slash / symlink resolution)

@@ -111,11 +111,13 @@ final class DeeplinkHandler {
     // Ensure the app can foreground the alert even in accessory (menu-bar)
     // activation mode.
     NSApp.activate(ignoringOtherApps: true)
-    let alert = NSAlert()
-    alert.alertStyle = .warning
-    alert.messageText = title
-    if let body { alert.informativeText = body }
-    alert.addButton(withTitle: "OK")
-    ModalPresentation.run { alert.runModal() }
+    ModalPresentation.run {
+      let alert = NSAlert()
+      alert.alertStyle = .warning
+      alert.messageText = title
+      if let body { alert.informativeText = body }
+      alert.addButton(withTitle: "OK")
+      return alert.runModal()
+    }
   }
 }
