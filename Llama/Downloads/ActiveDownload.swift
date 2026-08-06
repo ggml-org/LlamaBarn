@@ -36,6 +36,25 @@ struct ActiveDownload {
   var retryAttempts: [URL: Int] = [:]
   /// When the last progress notification was posted (UI refresh throttle).
   var lastNotified: Date = .distantPast
+  /// Recent (time, completed-bytes) samples backing the live rate readout.
+  /// Appended on every `refreshProgress` tick, pruned to `rateWindow`. A
+  /// trailing-window average keeps the displayed figure lively but not jumpy.
+  var rateSamples: [(time: Date, bytes: Int64)] = []
+
+  /// How far back the rate average looks.
+  private static let rateWindow: TimeInterval = 5
+
+  /// Current transfer rate in bytes/sec, averaged over `rateWindow`.
+  /// Nil until the window holds at least a second of data — a shorter span
+  /// makes the first readouts wildly noisy.
+  var bytesPerSecond: Int64? {
+    guard let first = rateSamples.first, let last = rateSamples.last else { return nil }
+    let span = last.time.timeIntervalSince(first.time)
+    guard span >= 1 else { return nil }
+    // Clamp: a retry can rewind the byte count (truncated `.partial`), and a
+    // negative rate must never reach the UI.
+    return max(0, Int64(Double(last.bytes - first.bytes) / span))
+  }
 
   mutating func addTask(_ task: URLSessionDataTask) {
     tasks[task.taskIdentifier] = task
@@ -61,6 +80,11 @@ struct ActiveDownload {
     let totalExpected = max(progress.totalUnitCount, completedFilesBytes + expectedActiveBytes)
     progress.totalUnitCount = max(totalExpected, 1)
     progress.completedUnitCount = totalCompleted
+
+    // Feed the rate window.
+    let now = Date()
+    rateSamples.append((time: now, bytes: totalCompleted))
+    rateSamples.removeAll { now.timeIntervalSince($0.time) > Self.rateWindow }
   }
 
   var isEmpty: Bool { tasks.isEmpty }

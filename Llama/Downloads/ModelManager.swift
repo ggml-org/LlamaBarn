@@ -386,6 +386,13 @@ class ModelManager: NSObject, URLSessionDataDelegate {
     return .available
   }
 
+  /// Current transfer rate for an in-flight download, in bytes/sec.
+  /// Nil when the model isn't actively downloading or the rate window hasn't
+  /// filled yet (see `ActiveDownload.bytesPerSecond`).
+  func downloadRate(for model: Model) -> Int64? {
+    activeDownloads[model.id]?.bytesPerSecond
+  }
+
   /// Safely deletes a downloaded model and its associated files.
   func deleteDownloadedModel(_ model: Model) {
     cancelModelDownload(model)

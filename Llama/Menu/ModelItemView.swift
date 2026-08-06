@@ -298,7 +298,8 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
       subtitleLabel.attributedStringValue = Format.downloadSubtitle(
         downloadedBytes: downloadedBytes,
         totalBytes: model.fileSize,
-        paused: isPaused
+        paused: isPaused,
+        bytesPerSecond: modelManager.downloadRate(for: model)
       )
     } else {
       subtitleLabel.attributedStringValue = Format.modelMetadata(

@@ -168,16 +168,27 @@ extension Format {
   // MARK: - Model Metadata (composite)
 
   /// Transfer readout shown to the right of the progress bar while a download is
-  /// in flight: "1.2 GB of 3.1 GB", with " · Paused" appended when interrupted.
+  /// in flight: "1.2 GB of 3.1 GB · 8 MB/s", with " · Paused" (and no rate)
+  /// when interrupted. The rate is the row's liveness signal — at GB scale the
+  /// byte figure only ticks every 100 MB, so without it a slow download looks
+  /// stuck. A nil rate while downloading shows "Starting…" instead — the gap
+  /// between kicking off a (re)start and the first bytes flowing can run many
+  /// seconds (metadata resolve, connection setup), and an empty slot there
+  /// reads as dead.
   /// Progress is conveyed by the bar, so no percentage here. Uses tabular digits
-  /// (so the counting-up "downloaded" figure doesn't jitter its width) and the same
+  /// (so the counting-up figures don't jitter their width) and the same
   /// secondary font / color / no-tightening paragraph style as `modelMetadata`.
   static func downloadSubtitle(
-    downloadedBytes: Int64, totalBytes: Int64, paused: Bool
+    downloadedBytes: Int64, totalBytes: Int64, paused: Bool,
+    bytesPerSecond: Int64? = nil
   ) -> NSAttributedString {
     var text = "\(bytesAdaptive(downloadedBytes)) of \(bytesAdaptive(totalBytes))"
     if paused {
       text += " · Paused"
+    } else if let bps = bytesPerSecond {
+      text += " · \(bytesAdaptive(bps))/s"
+    } else {
+      text += " · Starting…"
     }
     return NSAttributedString(
       string: text,
