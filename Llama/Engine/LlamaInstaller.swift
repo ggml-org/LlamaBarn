@@ -35,6 +35,11 @@ enum LlamaInstaller {
   }
   private static var unzstdPath: String { installDir + "/unzstd" }
 
+  /// Where a background update is staged. The live path never changes under a
+  /// running server; a staged binary is promoted (renamed over `llamaPath`) at
+  /// the next app launch, before the server starts.
+  static var stagedPath: String { LlamaBinaries.managedPath + ".staged" }
+
   /// The on-PATH symlink `install.sh` creates so `llama` works in a terminal.
   private static var symlinkDir: String {
     (NSHomeDirectory() as NSString).appendingPathComponent(".local/bin")
@@ -64,8 +69,12 @@ enum LlamaInstaller {
   // MARK: - Public API
 
   /// Installs (or replaces) the app-managed `llama` binary at `version`.
-  static func install(version: String) async throws {
-    logger.info("Installing llama \(version, privacy: .public)")
+  /// With `staged: true` the binary lands at `stagedPath` instead of the live
+  /// path, to be promoted at the next launch -- used for background updates so
+  /// the binary a running server spawns model instances from never changes
+  /// underneath it.
+  static func install(version: String, staged: Bool = false) async throws {
+    logger.info("Installing llama \(version, privacy: .public)\(staged ? " (staged)" : "")")
 
     let config = try metalConfig()
     try await ensureUnzstd(version: version)
@@ -74,10 +83,34 @@ enum LlamaInstaller {
       "\(bucketBase)/\(version)/\(arch)/\(os)/metal/\(config)/llama-app.zst")
     defer { try? FileManager.default.removeItem(at: zstURL) }
 
-    try decompressToLlama(zst: zstURL)
-    linkOnPath()
+    let dest = staged ? stagedPath : llamaPath
+    try decompress(zst: zstURL, to: dest)
+    if !staged { linkOnPath() }
 
-    logger.info("Installed llama \(version, privacy: .public) at \(llamaPath, privacy: .public)")
+    logger.info("Installed llama \(version, privacy: .public) at \(dest, privacy: .public)")
+  }
+
+  /// Promotes a staged binary into the live path if it matches `target`, else
+  /// discards it (the pin moved on since it was staged). Call at launch, before
+  /// the server starts. Runs a `version` subprocess, so call off the main
+  /// thread.
+  static func promoteStaged(target: LlamaVersion) {
+    let fm = FileManager.default
+    guard fm.isExecutableFile(atPath: stagedPath) else { return }
+
+    guard LlamaBinaries.readVersion(at: stagedPath) == target else {
+      logger.info("Discarding stale staged llama binary")
+      try? fm.removeItem(atPath: stagedPath)
+      return
+    }
+
+    guard rename(stagedPath, llamaPath) == 0 else {
+      logger.error("Couldn't promote staged llama binary: \(String(cString: strerror(errno)))")
+      try? fm.removeItem(atPath: stagedPath)
+      return
+    }
+    linkOnPath()
+    logger.info("Promoted staged llama binary \(target.tag, privacy: .public)")
   }
 
   // MARK: - Steps
@@ -110,10 +143,10 @@ enum LlamaInstaller {
   }
 
   /// Decompresses `zst` through the `unzstd` helper and atomically swaps the
-  /// result into `llamaPath`. The temp output lives in `installDir` so the final
+  /// result into `dest`. The temp output lives in `installDir` so the final
   /// `rename(2)` is a same-volume atomic replace -- a crash never leaves a
   /// half-written binary in place.
-  private static func decompressToLlama(zst: URL) throws {
+  private static func decompress(zst: URL, to dest: String) throws {
     let fm = FileManager.default
     try fm.createDirectory(atPath: installDir, withIntermediateDirectories: true)
 
@@ -149,7 +182,7 @@ enum LlamaInstaller {
       }
 
       try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tmpOut)
-      guard rename(tmpOut, llamaPath) == 0 else {
+      guard rename(tmpOut, dest) == 0 else {
         throw InstallError.installFailed("rename: \(String(cString: strerror(errno)))")
       }
     } catch {

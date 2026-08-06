@@ -47,25 +47,38 @@ final class LlamaInstallManager {
   private(set) var currentOrigin: LlamaBinaries.Origin = .managed
 
   /// Ensures a usable `llama` binary is available, applying the version policy:
-  /// install when missing, reconcile the managed binary to the pinned target
-  /// when it differs, or nudge when an unmanaged binary is below the floor.
-  /// Returns true if the server should start afterward (always, except a failed
-  /// install).
+  /// install when missing, stage the pinned target in the background when the
+  /// managed binary trails it, or nudge when an unmanaged binary is below the
+  /// floor. Returns true if the server should start afterward (always, except a
+  /// failed install when no binary exists at all).
   @discardableResult
   func ensureReady() async -> Bool {
-    switch await Task.detached(operation: { LlamaBinaries.installed() }).value {
+    switch await Task.detached(operation: {
+      // Promote a binary staged by a previous session first -- the server isn't
+      // running yet, so swapping the live path here is trivially safe.
+      LlamaInstaller.promoteStaged(target: LlamaBinaries.targetVersion)
+      return LlamaBinaries.installed()
+    }).value {
     case .missing:
       return await install()
 
     case .present(.managed, let version, _):
       // The app manages this one -- keep it at the pinned target. A nil version
       // (unreadable) fails open as ready, to avoid a reinstall loop.
-      if let version, version != LlamaBinaries.targetVersion {
-        return await install()
-      }
       currentVersion = version
       currentOrigin = .managed
       state = .idle
+      if let version, version != LlamaBinaries.targetVersion {
+        // The old binary is still usable (floor <= it), so don't hold the
+        // server hostage to the download: report ready now and stage the new
+        // binary in the background; the next launch promotes it (above). No
+        // in-session swap means no server restart under the user and no
+        // old-router/new-child version mixing. Before this, the first launch
+        // after an app update (which bumps the pinned target) had no server at
+        // all until the download finished -- a dead webui and erroring menu
+        // actions for as long as it took (#112).
+        stageTargetVersion()
+      }
       return true
 
     case .present(.unmanaged, let version, let path):
@@ -79,6 +92,29 @@ final class LlamaInstallManager {
         state = .idle
       }
       return true
+    }
+  }
+
+  /// Whether a background staging download is running, so a re-entered
+  /// readiness check (the menu's re-check) doesn't start a second one.
+  private var isStaging = false
+
+  /// Downloads the pinned target to the staged path in the background. Silent:
+  /// the in-use binary keeps working either way, so a failure just logs -- the
+  /// next launch retries.
+  private func stageTargetVersion() {
+    guard !isStaging else { return }
+    isStaging = true
+    Task {
+      do {
+        try await LlamaInstaller.install(version: LlamaBinaries.targetVersion.tag, staged: true)
+        logger.info(
+          "Staged llama \(LlamaBinaries.targetVersion.tag, privacy: .public) for the next launch")
+      } catch {
+        let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        logger.error("Staging llama update failed: \(message, privacy: .public)")
+      }
+      isStaging = false
     }
   }
 
