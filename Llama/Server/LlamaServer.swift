@@ -90,13 +90,21 @@ class LlamaServer {
   /// Webui URL with the given model preselected via the `?model=` query param
   /// the webui reads. Uses the resolved host so a custom network bind address
   /// (incl. 0.0.0.0 -> local IP) still works.
+  ///
+  /// `?load=true` makes the webui load the model on arrival instead of waiting
+  /// for the first message -- without it, picking a model in the app opens a
+  /// page that looks idle until you send something. Landed in engine b10318;
+  /// older builds ignore the unknown param, so passing it is safe below the pin.
   static func webuiUrl(modelId: String) -> URL? {
     var components = URLComponents()
     components.scheme = "http"
     components.host = resolvedHost
     components.port = port
     components.path = "/"
-    components.queryItems = [URLQueryItem(name: "model", value: modelId)]
+    components.queryItems = [
+      URLQueryItem(name: "model", value: modelId),
+      URLQueryItem(name: "load", value: "true"),
+    ]
     return components.url
   }
 
