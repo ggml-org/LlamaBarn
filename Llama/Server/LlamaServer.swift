@@ -31,9 +31,11 @@ class LlamaServer {
   /// Singleton instance for app-wide server management
   static let shared = LlamaServer()
 
-  /// Default port the server listens on -- matches llama.cpp's own default,
-  /// so URLs the app prints line up with a plain `llama serve`.
-  nonisolated static let defaultPort = 8080
+  /// Default port the server listens on. llama.cpp is moving its own default
+  /// from 8080 to 9931 (it already warns about the change on 8080); we move
+  /// ahead of it so URLs the app prints line up with a plain `llama serve`,
+  /// and so the switch breaks as few users as possible.
+  nonisolated static let defaultPort = 9931
 
   /// The effective port: the user's override if set, else the default.
   nonisolated static var port: Int { UserSettings.serverPort ?? defaultPort }

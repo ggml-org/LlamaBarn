@@ -20,7 +20,7 @@ Or download from [Releases](https://github.com/ggml-org/Llama-macOS/releases).
 
 ## How it works
 
-When you start Llama, it runs a local server at `http://localhost:8080/v1`.
+When you start Llama, it runs a local server at `http://localhost:9931/v1`.
 
 If you have llama.cpp installed, Llama uses it. Otherwise, it installs a prebuilt binary for your Mac. Models you've already installed via llama.cpp show up in the app automatically. You can install any GGUF model from Hugging Face, and Llama also recommends models that fit your Mac's hardware.
 
@@ -40,13 +40,13 @@ You can chat with any model in the built-in WebUI, connect other apps (coding ag
 List installed models:
 
 ```sh
-curl http://localhost:8080/v1/models
+curl http://localhost:9931/v1/models
 ```
 
 Send a message to a model:
 
 ```sh
-curl http://localhost:8080/v1/chat/completions \
+curl http://localhost:9931/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "ggml-org/gpt-oss-20b-GGUF:MXFP4",
