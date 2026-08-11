@@ -117,36 +117,32 @@ enum UserSettings {
     defaults.bool(forKey: Keys.useFullWorkingSet)
   }
 
-  /// The key combo that opens the global-input capture panel. Defaults to
-  /// ⌥Space; stored (only when customized) as a `[keyCode, modifiers]` dict of
-  /// the same Carbon values `GlobalHotkey.Combo` carries. The setter posts
+  /// The key combo that opens the global-input capture panel, or `nil` when no
+  /// shortcut is set -- the default. We ship no default combo on purpose: any
+  /// choice would silently claim a system-wide key from whatever the user
+  /// already has bound to it. Stored as a `[keyCode, modifiers]` dict of the
+  /// same Carbon values `GlobalHotkey.Combo` carries. The setter posts
   /// `LBGlobalInputShortcutDidChange` so the controller re-registers the
   /// hotkey immediately -- no relaunch needed.
-  static var globalInputShortcut: GlobalHotkey.Combo {
+  static var globalInputShortcut: GlobalHotkey.Combo? {
     get {
       guard let dict = defaults.dictionary(forKey: Keys.globalInputShortcut),
         let keyCode = dict["keyCode"] as? Int,
         let modifiers = dict["modifiers"] as? Int
-      else { return .optionSpace }
+      else { return nil }
       return GlobalHotkey.Combo(keyCode: keyCode, modifiers: modifiers)
     }
     set {
       guard newValue != globalInputShortcut else { return }
-      if newValue == .optionSpace {
-        defaults.removeObject(forKey: Keys.globalInputShortcut)
-      } else {
+      if let newValue {
         defaults.set(
           ["keyCode": newValue.keyCode, "modifiers": newValue.modifiers],
           forKey: Keys.globalInputShortcut)
+      } else {
+        defaults.removeObject(forKey: Keys.globalInputShortcut)
       }
       NotificationCenter.default.post(name: .LBGlobalInputShortcutDidChange, object: nil)
     }
-  }
-
-  /// Whether a non-default global-input shortcut is stored (drives the
-  /// settings row's restore-default affordance).
-  static var hasCustomGlobalInputShortcut: Bool {
-    defaults.dictionary(forKey: Keys.globalInputShortcut) != nil
   }
 
   /// Whether we've applied the one-time launch-at-login default (enabled on

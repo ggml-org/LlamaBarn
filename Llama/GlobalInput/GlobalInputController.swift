@@ -5,7 +5,7 @@ import os.log
 /// Owns the global-input feature: the system-wide hotkey, the floating capture
 /// panel, and the dispatch of a captured prompt to the web UI.
 ///
-/// Prototype scope: user-configurable hotkey (default ⌥Space), single panel
+/// Prototype scope: user-configurable hotkey (none by default), single panel
 /// reused across invocations, opens the web UI on submit. Hold a strong
 /// reference (AppDelegate does) for the hotkey to stay registered.
 @MainActor
@@ -32,7 +32,8 @@ final class GlobalInputController {
     // Drop the old registration first so a re-record of the same combo can't
     // collide with our own still-live hotkey.
     hotkey = nil
-    let combo = UserSettings.globalInputShortcut
+    // No shortcut set (the default) -- nothing to register.
+    guard let combo = UserSettings.globalInputShortcut else { return }
     hotkey = GlobalHotkey(combo: combo) { [weak self] in
       Task { @MainActor in self?.toggle() }
     }

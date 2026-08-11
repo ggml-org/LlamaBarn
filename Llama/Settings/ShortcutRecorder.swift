@@ -105,7 +105,8 @@ extension GlobalHotkey.Combo {
 /// capture panel instead of recording -- harmless, since re-recording the
 /// same combo would be a no-op anyway.
 struct ShortcutRecorder: View {
-  @Binding var combo: GlobalHotkey.Combo
+  /// `nil` means no shortcut is set -- the button then invites recording one.
+  @Binding var combo: GlobalHotkey.Combo?
 
   @State private var recording = false
   @State private var monitor: Any?
@@ -114,8 +115,8 @@ struct ShortcutRecorder: View {
     Button {
       recording ? stopRecording() : startRecording()
     } label: {
-      Text(recording ? "Press shortcut…" : combo.displayString)
-        .foregroundStyle(recording ? .secondary : .primary)
+      Text(recording ? "Press shortcut…" : (combo?.displayString ?? "Record shortcut"))
+        .foregroundStyle(recording || combo == nil ? .secondary : .primary)
     }
     .controlSize(.small)
     // If the row disappears mid-recording (window closed), drop the monitor.

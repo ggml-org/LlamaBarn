@@ -18,10 +18,6 @@ final class GlobalHotkey {
   struct Combo: Equatable {
     let keyCode: Int
     let modifiers: Int
-
-    /// ⌥Space -- Raycast's default. A key+modifier combo (not modifier-only),
-    /// so it sidesteps the macOS 15 regression where Option-only hotkeys break.
-    static let optionSpace = Combo(keyCode: kVK_Space, modifiers: optionKey)
   }
 
   private var hotKeyRef: EventHotKeyRef?

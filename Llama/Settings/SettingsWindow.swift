@@ -523,18 +523,21 @@ struct SettingsView: View {
         }
       }
 
-      // Global-input shortcut section.
+      // Global-input shortcut section. It belongs here rather than in General:
+      // the panel it opens only hands the prompt off to the web UI, so the
+      // setting is meaningless to someone who uses the server through the API
+      // or a third-party app.
       Section {
         SettingRow(
-          title: "Prompt shortcut",
-          description: "Opens the prompt panel from any app."
+          title: "Quick prompt",
+          description: "A keyboard shortcut that opens a prompt window from any app."
         ) {
           HStack(spacing: 6) {
-            // Only offer a reset when a custom shortcut is set.
-            if UserSettings.hasCustomGlobalInputShortcut {
+            // Resetting means clearing: no shortcut is the default.
+            if globalShortcut != nil {
               RestoreDefaultButton {
-                UserSettings.globalInputShortcut = .optionSpace
-                globalShortcut = .optionSpace
+                UserSettings.globalInputShortcut = nil
+                globalShortcut = nil
               }
             }
 
