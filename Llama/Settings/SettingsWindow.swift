@@ -236,37 +236,33 @@ struct SettingsView: View {
         }
       }
 
-      // Global-input shortcut section -- only shown while the feature itself
-      // is enabled (globalInputEnabled is a defaults-only flag for now, so a
-      // shortcut row would be dead weight for everyone else).
-      if UserSettings.globalInputEnabled {
-        Section {
-          SettingRow(
-            title: "Prompt shortcut",
-            description: "Opens the prompt panel from any app."
-          ) {
-            HStack(spacing: 6) {
-              // Only offer a reset when a custom shortcut is set.
-              if UserSettings.hasCustomGlobalInputShortcut {
-                RestoreDefaultButton {
-                  UserSettings.globalInputShortcut = .optionSpace
-                  globalShortcut = .optionSpace
-                }
+      // Global-input shortcut section.
+      Section {
+        SettingRow(
+          title: "Prompt shortcut",
+          description: "Opens the prompt panel from any app."
+        ) {
+          HStack(spacing: 6) {
+            // Only offer a reset when a custom shortcut is set.
+            if UserSettings.hasCustomGlobalInputShortcut {
+              RestoreDefaultButton {
+                UserSettings.globalInputShortcut = .optionSpace
+                globalShortcut = .optionSpace
               }
-
-              ShortcutRecorder(
-                combo: Binding(
-                  get: { globalShortcut },
-                  set: { newValue in
-                    // The setter posts the change notification that makes the
-                    // controller re-register the hotkey immediately.
-                    UserSettings.globalInputShortcut = newValue
-                    globalShortcut = newValue
-                  })
-              )
             }
-            .font(.callout)
+
+            ShortcutRecorder(
+              combo: Binding(
+                get: { globalShortcut },
+                set: { newValue in
+                  // The setter posts the change notification that makes the
+                  // controller re-register the hotkey immediately.
+                  UserSettings.globalInputShortcut = newValue
+                  globalShortcut = newValue
+                })
+            )
           }
+          .font(.callout)
         }
       }
 

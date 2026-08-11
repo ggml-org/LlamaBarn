@@ -40,7 +40,6 @@ enum UserSettings {
     static let hfToken = "hfToken"
     static let modelLastUsedDates = "modelLastUsedDates"
     static let useFullWorkingSet = "useFullWorkingSet"
-    static let globalInputEnabled = "globalInputEnabled"
     static let globalInputShortcut = "globalInputShortcut"
   }
 
@@ -118,20 +117,11 @@ enum UserSettings {
     defaults.bool(forKey: Keys.useFullWorkingSet)
   }
 
-  /// Whether the global-input capture panel (default ⌥Space) is enabled. Off unless
-  /// explicitly set, so the feature ships dormant for team testing before it's
-  /// advertised:
-  ///   `defaults write app.llama.Llama globalInputEnabled -bool true`
-  /// Read once at launch (registering the hotkey), so a change needs a relaunch.
-  static var globalInputEnabled: Bool {
-    defaults.bool(forKey: Keys.globalInputEnabled)
-  }
-
   /// The key combo that opens the global-input capture panel. Defaults to
   /// ⌥Space; stored (only when customized) as a `[keyCode, modifiers]` dict of
   /// the same Carbon values `GlobalHotkey.Combo` carries. The setter posts
   /// `LBGlobalInputShortcutDidChange` so the controller re-registers the
-  /// hotkey immediately -- no relaunch needed (unlike `globalInputEnabled`).
+  /// hotkey immediately -- no relaunch needed.
   static var globalInputShortcut: GlobalHotkey.Combo {
     get {
       guard let dict = defaults.dictionary(forKey: Keys.globalInputShortcut),

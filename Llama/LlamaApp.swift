@@ -143,15 +143,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     settingsWindowController = SettingsWindowController.shared
 
     // Register the global-input hotkey (⌥Space) and its capture panel -- a
-    // system-wide quick-capture that dispatches a prompt to the web UI. Ships
-    // dormant behind a defaults flag for team testing (see globalInputEnabled).
-    if UserSettings.globalInputEnabled {
-      globalInputController = GlobalInputController()
-    }
+    // system-wide quick-capture that dispatches a prompt to the web UI.
+    globalInputController = GlobalInputController()
 
     // Open the capture panel on demand (the "show global input" AppleScript
-    // command), creating the controller if the experiment flag left it dormant.
-    // Lets us bring up the panel while iterating on it without enabling the flag.
+    // command).
     globalInputObserver = NotificationCenter.default.addObserver(
       forName: .LBShowGlobalInput, object: nil, queue: .main
     ) { [weak self] _ in
