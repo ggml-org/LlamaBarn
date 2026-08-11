@@ -3,15 +3,14 @@ import Cocoa
 /// AppleScript command handler for "show global input"
 /// Usage: tell application "Llama" to show global input
 ///
-/// Opens the global-input capture panel on demand, so we can bring the panel up
-/// while iterating on it.
-/// DEBUG-only: a no-op in release builds -- it's a development affordance, not
-/// a supported scripting interface.
+/// Opens the global-input capture panel on demand. Lets people trigger the panel
+/// from their own launcher (Raycast, Keyboard Maestro, Shortcuts, ...) instead of
+/// taking over the ⌥Space hotkey.
+///
+/// Takes no arguments and returns nothing: showing the panel is all it can do.
 class ShowGlobalInputCommand: NSScriptCommand {
   override func performDefaultImplementation() -> Any? {
-    #if DEBUG
-      NotificationCenter.default.post(name: .LBShowGlobalInput, object: nil)
-    #endif
+    NotificationCenter.default.post(name: .LBShowGlobalInput, object: nil)
     return nil
   }
 }
