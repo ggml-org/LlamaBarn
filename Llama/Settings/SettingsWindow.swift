@@ -10,6 +10,14 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
   private var window: NSWindow?
   private var observer: NSObjectProtocol?
 
+  /// The selected sidebar section. Held here (rather than as SwiftUI state)
+  /// because the window title tracks it.
+  private let tabSelection = SettingsTabSelection()
+
+  /// Retained so the toolbar delegate can hand out a tracking separator for
+  /// this split view.
+  private var splitVC: NSSplitViewController?
+
   private override init() {
     super.init()
     // Listen for settings show requests
@@ -23,49 +31,105 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
   }
 
   func showSettings() {
-    // If window exists, just bring it to front
-    if let window, window.isVisible {
-      NSApp.setActivationPolicy(.regular)
-      window.makeKeyAndOrderFront(nil)
-      NSApp.activate(ignoringOtherApps: true)
-      return
+    // Build the window on first show; afterwards it's reused (and just
+    // brought back to the front by the tail of this method).
+    if window == nil {
+      observeTabChanges()
+
+      // Sidebar pane -- fixed width and non-collapsible: it's the window's
+      // only navigation, so there's nothing to gain from hiding it.
+      let sidebarHost = NSHostingController(rootView: SettingsSidebar(tabSelection: tabSelection))
+      let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarHost)
+      sidebarItem.canCollapse = false
+      sidebarItem.minimumThickness = 170
+      sidebarItem.maximumThickness = 170
+      sidebarItem.titlebarSeparatorStyle = .none
+
+      let detailHost = NSHostingController(rootView: SettingsDetail(tabSelection: tabSelection))
+      let detailItem = NSSplitViewItem(viewController: detailHost)
+      detailItem.titlebarSeparatorStyle = .none
+
+      // An AppKit NSSplitViewController (rather than SwiftUI's
+      // NavigationSplitView) is what gives a real full-height sidebar -- one
+      // that runs up under the titlebar with the traffic lights sitting on
+      // it, as in System Settings.
+      let svc = NSSplitViewController()
+      svc.addSplitViewItem(sidebarItem)
+      svc.addSplitViewItem(detailItem)
+      self.splitVC = svc
+
+      let window = NSWindow(contentViewController: svc)
+      window.setContentSize(NSSize(width: 700, height: 540))
+      window.styleMask = [.titled, .closable, .fullSizeContentView]
+      // The title names the selected section and renders in the detail pane's
+      // titlebar area, courtesy of the unified toolbar style.
+      window.title = tabSelection.tab.title
+      window.titleVisibility = .visible
+      window.titlebarSeparatorStyle = .none
+
+      // The toolbar itself is empty, but its tracking separator is what tells
+      // AppKit where the sidebar divider is -- without it the sidebar stops
+      // below the titlebar instead of extending through it.
+      let toolbar = NSToolbar(identifier: "SettingsToolbar")
+      toolbar.delegate = self
+      toolbar.displayMode = .iconOnly
+      window.toolbar = toolbar
+      window.toolbarStyle = .unified
+
+      window.isReleasedWhenClosed = false
+      window.center()
+      window.delegate = self
+      self.window = window
     }
-
-    // Create the SwiftUI content view
-    let contentView = SettingsView()
-
-    // Create the window. The contentRect size is just a placeholder: the
-    // hosting view resizes the window to fit the SwiftUI content, whose width
-    // is pinned by `.frame(width:)` and whose height is intrinsic (`.fixedSize()`).
-    let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 0, height: 0),
-      styleMask: [.titled, .closable],
-      backing: .buffered,
-      defer: false
-    )
-    window.title = "Settings"
-    window.contentView = NSHostingView(rootView: contentView)
-    // Size the window to its content *before* centering. macOS 15 (Sequoia)
-    // lays out NSHostingView-backed windows more lazily, so without this
-    // `center()` runs while the window is still the zero-size placeholder: it
-    // centers a 0-height rect and the later content growth expands the window
-    // upward from its bottom-left origin -- jamming it against the menu bar.
-    // Resolving constraints first gives `center()` the final size to work with.
-    window.updateConstraintsIfNeeded()
-    window.center()
-    window.isReleasedWhenClosed = false
-    window.delegate = self
-
-    self.window = window
 
     // Show window and activate app
     NSApp.setActivationPolicy(.regular)
-    window.makeKeyAndOrderFront(nil)
+    window?.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+  }
+
+  /// Keeps the window title in sync with the selected section. Observation
+  /// tracking is one-shot, so the callback re-arms it.
+  private func observeTabChanges() {
+    withObservationTracking {
+      _ = tabSelection.tab
+    } onChange: {
+      DispatchQueue.main.async { [weak self] in
+        guard let self else { return }
+        window?.title = tabSelection.tab.title
+        observeTabChanges()
+      }
+    }
   }
 
   func windowWillClose(_ notification: Notification) {
     NSApp.setActivationPolicy(.accessory)
+  }
+}
+
+// MARK: - Toolbar
+
+extension SettingsWindowController: NSToolbarDelegate {
+  func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+    [.sidebarTrackingSeparator]
+  }
+
+  func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+    [.sidebarTrackingSeparator]
+  }
+
+  func toolbar(
+    _ toolbar: NSToolbar,
+    itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+    willBeInsertedIntoToolbar flag: Bool
+  ) -> NSToolbarItem? {
+    guard itemIdentifier == .sidebarTrackingSeparator, let splitVC else { return nil }
+
+    return NSTrackingSeparatorToolbarItem(
+      identifier: itemIdentifier,
+      splitView: splitVC.splitView,
+      dividerIndex: 0
+    )
   }
 }
 
@@ -113,8 +177,66 @@ private struct RestoreDefaultButton: View {
   }
 }
 
+/// The settings window's top-level sections, one per sidebar item.
+enum SettingsTab: String, CaseIterable, Identifiable {
+  case general
+  case webUI
+
+  var id: Self { self }
+
+  var title: String {
+    switch self {
+    case .general: "General"
+    case .webUI: "Web UI"
+    }
+  }
+
+  var icon: String {
+    switch self {
+    case .general: "gearshape"
+    case .webUI: "macwindow"
+    }
+  }
+}
+
+/// The selected section, shared between the sidebar, the detail pane, and the
+/// window controller (which mirrors it into the window title).
+@Observable
+final class SettingsTabSelection {
+  var tab: SettingsTab = .general
+}
+
+/// The sidebar list -- one row per section.
+struct SettingsSidebar: View {
+  @Bindable var tabSelection: SettingsTabSelection
+
+  var body: some View {
+    List(SettingsTab.allCases, selection: $tabSelection.tab) { tab in
+      Label(tab.title, systemImage: tab.icon)
+    }
+    // Set explicitly: hosted in an NSSplitViewItem the list doesn't reliably
+    // inherit the sidebar look, and without it renders as a plain table.
+    .listStyle(.sidebar)
+  }
+}
+
+/// The detail pane -- shows the selected section's form.
+struct SettingsDetail: View {
+  var tabSelection: SettingsTabSelection
+
+  var body: some View {
+    SettingsView(tab: tabSelection.tab)
+      // Pull the grouped form up under the transparent titlebar, so its first
+      // card sits just below the title rather than a band of empty space.
+      .padding(.top, -20)
+  }
+}
+
 /// SwiftUI view for settings content.
 struct SettingsView: View {
+  /// The section to render.
+  var tab: SettingsTab = .general
+
   @State private var launchAtLogin = LaunchAtLogin.isEnabled
   @State private var sleepIdleTime = UserSettings.sleepIdleTime
   @State private var agentMode = UserSettings.agentMode
@@ -176,6 +298,15 @@ struct SettingsView: View {
   }
 
   var body: some View {
+    switch tab {
+    case .general: generalForm
+    case .webUI: webUIForm
+    }
+  }
+
+  /// The General tab -- everything that isn't specific to the web UI, plus the
+  /// metadata footer.
+  private var generalForm: some View {
     Form {
       // Launch at login section
       Section {
@@ -209,60 +340,6 @@ struct SettingsView: View {
                 sleepIdleTime = newValue
               })
           )
-        }
-      }
-
-      // Agent mode section
-      Section {
-        SettingRow(
-          title: "Agent mode",
-          description: "Lets models read and edit files and run commands on this Mac. Use with caution."
-        ) {
-          // The setting is written inside the binding (not `.onChange`) so the
-          // defaults value is current before SwiftUI recomputes the body --
-          // otherwise the server-command preview renders one toggle behind.
-          // The setter posts the settings-change notification, which restarts
-          // the server with/without `--agent`.
-          Toggle(
-            "",
-            isOn: Binding(
-              get: { agentMode },
-              set: { newValue in
-                UserSettings.agentMode = newValue
-                agentMode = newValue
-              })
-          )
-          .labelsHidden()
-        }
-      }
-
-      // Global-input shortcut section.
-      Section {
-        SettingRow(
-          title: "Prompt shortcut",
-          description: "Opens the prompt panel from any app."
-        ) {
-          HStack(spacing: 6) {
-            // Only offer a reset when a custom shortcut is set.
-            if UserSettings.hasCustomGlobalInputShortcut {
-              RestoreDefaultButton {
-                UserSettings.globalInputShortcut = .optionSpace
-                globalShortcut = .optionSpace
-              }
-            }
-
-            ShortcutRecorder(
-              combo: Binding(
-                get: { globalShortcut },
-                set: { newValue in
-                  // The setter posts the change notification that makes the
-                  // controller re-register the hotkey immediately.
-                  UserSettings.globalInputShortcut = newValue
-                  globalShortcut = newValue
-                })
-            )
-          }
-          .font(.callout)
         }
       }
 
@@ -416,11 +493,67 @@ struct SettingsView: View {
       }
     }
     .formStyle(.grouped)
-    .frame(width: 680)
-    // Width is pinned above; only the height hugs the content. (A plain
-    // `.fixedSize()` would also fix the width to ideal, which forces
-    // `maxWidth`-capped controls to their full cap instead of hugging.)
-    .fixedSize(horizontal: false, vertical: true)
+  }
+
+  /// The Web UI tab -- settings that shape the chat interface the server
+  /// serves: what models are allowed to do in it, and how to summon it.
+  private var webUIForm: some View {
+    Form {
+      // Agent mode section
+      Section {
+        SettingRow(
+          title: "Agent mode",
+          description: "Lets models read and edit files and run commands on this Mac. Use with caution."
+        ) {
+          // The setting is written inside the binding (not `.onChange`) so the
+          // defaults value is current before SwiftUI recomputes the body --
+          // otherwise the server-command preview renders one toggle behind.
+          // The setter posts the settings-change notification, which restarts
+          // the server with/without `--agent`.
+          Toggle(
+            "",
+            isOn: Binding(
+              get: { agentMode },
+              set: { newValue in
+                UserSettings.agentMode = newValue
+                agentMode = newValue
+              })
+          )
+          .labelsHidden()
+        }
+      }
+
+      // Global-input shortcut section.
+      Section {
+        SettingRow(
+          title: "Prompt shortcut",
+          description: "Opens the prompt panel from any app."
+        ) {
+          HStack(spacing: 6) {
+            // Only offer a reset when a custom shortcut is set.
+            if UserSettings.hasCustomGlobalInputShortcut {
+              RestoreDefaultButton {
+                UserSettings.globalInputShortcut = .optionSpace
+                globalShortcut = .optionSpace
+              }
+            }
+
+            ShortcutRecorder(
+              combo: Binding(
+                get: { globalShortcut },
+                set: { newValue in
+                  // The setter posts the change notification that makes the
+                  // controller re-register the hotkey immediately.
+                  UserSettings.globalInputShortcut = newValue
+                  globalShortcut = newValue
+                })
+            )
+          }
+          .font(.callout)
+        }
+      }
+    }
+    .formStyle(.grouped)
   }
 
   /// The app's marketing version from the bundle, e.g. `1.4.2`.
