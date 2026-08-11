@@ -178,7 +178,7 @@ private struct RestoreDefaultButton: View {
 }
 
 /// The settings window's top-level sections, one per sidebar item.
-enum SettingsTab: String, CaseIterable, Identifiable {
+enum SettingsTab: CaseIterable, Identifiable {
   case general
   case webUI
   case advanced
@@ -209,17 +209,110 @@ final class SettingsTabSelection {
   var tab: SettingsTab = .general
 }
 
-/// The sidebar list -- one row per section.
+/// The sidebar -- one row per section, with the open-source link pinned below.
 struct SettingsSidebar: View {
   @Bindable var tabSelection: SettingsTabSelection
 
+  /// Drives the link's hover fill -- the only thing marking it as pressable,
+  /// since at rest it's a bare label.
+  @State private var linkHovered = false
+
+  /// Height of the link's one-row list: a 32pt row (measured off the live view
+  /// hierarchy) plus the list's own vertical padding.
+  private static let linkListHeight: CGFloat = 40
+
+  /// The gap the list leaves between its last row and its bottom edge -- also
+  /// measured, and 2pt shy of the side inset below.
+  private static let linkListBottomPadding: CGFloat = 8
+
+  /// How far the list insets a row's selection fill from the pane edge, so the
+  /// link's hover fill lands on the same shape -- and, applied below the row
+  /// too, what keeps the link as far from the bottom edge as from the sides.
+  private static let rowFillInset: CGFloat = 10
+
+  /// The selection fill's corner radius. SwiftUI draws it as a shape rather
+  /// than a view, so it can't be read out of the hierarchy the way the row
+  /// metrics were; this was matched against the selected row by eye.
+  private static let rowFillRadius: CGFloat = 8
+
   var body: some View {
-    List(SettingsTab.allCases, selection: $tabSelection.tab) { tab in
-      Label(tab.title, systemImage: tab.icon)
+    VStack(spacing: 0) {
+      List(SettingsTab.allCases, selection: $tabSelection.tab) { tab in
+        Label(tab.title, systemImage: tab.icon)
+      }
+      // Set explicitly: hosted in an NSSplitViewItem the list doesn't reliably
+      // inherit the sidebar look, and without it renders as a plain table.
+      .listStyle(.sidebar)
+
+      // The repository link. It lives in the sidebar rather than at the foot of
+      // a tab because its job is to tell people who downloaded the app from the
+      // website that it's open source -- that only works if it's on screen
+      // whichever section they're looking at.
+      //
+      // It's a second one-row List rather than a button laid out by hand: the
+      // row metrics (height, content inset, the icon-to-title gap) then come
+      // from the same list machinery as the sections above, so the link lines up
+      // with them by construction. Restating those numbers by hand does not --
+      // they aren't API, and they drift with the OS.
+      List {
+        // Named for the destination, like the rows above -- "Open source" reads
+        // as a statement (or worse, as a verb) where every other label in the
+        // column is a noun. GitHub goes unsaid: the octocat names it, and the
+        // full string wraps at this width.
+        // A Button, not a tap gesture: it's what makes the row reachable by
+        // keyboard and announced as a control by VoiceOver. `.plain` keeps the
+        // label rendering exactly as the list drew it.
+        Button {
+          NSWorkspace.shared.open(URL(string: "https://github.com/ggml-org/Llama-macOS")!)
+        } label: {
+          Label {
+            Text("Source code")
+              .lineLimit(1)
+          } icon: {
+            Image(.gitHubMark)
+              .resizable()
+              .frame(width: 14, height: 14)
+          }
+          // The whole row is the target, not just the text and icon.
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+          // Guarded so a repeated enter event can't push the cursor twice and
+          // leave the stack unbalanced.
+          guard hovering != linkHovered else { return }
+          linkHovered = hovering
+          // A pointing hand is the other half of the "this is a link" cue; the
+          // rows above are selection, not navigation, so they don't get one.
+          if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+        // The window is reused rather than released, and closing it while the
+        // cursor sits on the link needn't deliver an exit event -- without this
+        // the pushed cursor would outlive the window, app-wide.
+        .onDisappear {
+          if linkHovered {
+            linkHovered = false
+            NSCursor.pop()
+          }
+        }
+        // The list's own selection shape, so hovering the link highlights it the
+        // way hovering a section row would.
+        .listRowBackground(
+          RoundedRectangle(cornerRadius: Self.rowFillRadius, style: .continuous)
+            .fill(Color.primary.opacity(linkHovered ? 0.07 : 0))
+            .padding(.horizontal, Self.rowFillInset)
+        )
+      }
+      .listStyle(.sidebar)
+      .scrollDisabled(true)
+      // One row's worth of list, so it doesn't claim the empty column above it.
+      .frame(height: Self.linkListHeight)
+      // The list leaves its own gap under the row; this tops it up to the gap
+      // the fill keeps at the sides, so the link isn't nearer the bottom edge
+      // than the side edges.
+      .padding(.bottom, Self.rowFillInset - Self.linkListBottomPadding)
     }
-    // Set explicitly: hosted in an NSSplitViewItem the list doesn't reliably
-    // inherit the sidebar look, and without it renders as a plain table.
-    .listStyle(.sidebar)
   }
 }
 
@@ -251,51 +344,6 @@ struct SettingsView: View {
   @State private var serverPort = LlamaServer.port
   @State private var showingServerPortSheet = false
 
-  /// Metadata footer -- the app's de-facto About: version info on the leading
-  /// edge, the open-source link on the trailing edge, echoing the form's
-  /// label-left / control-right grammar. Rendered as the form's last,
-  /// card-less section, so alignment and vertical rhythm come from the form's
-  /// own metrics rather than hand-tuned padding, and the elastic scroll moves
-  /// it together with the content.
-  private var footer: some View {
-    HStack {
-      HStack(spacing: 4) {
-        Text("Llama \(appVersion)")
-
-        // The engine version is read from the resolved binary at startup;
-        // omit the segment if none is installed (or it couldn't be read).
-        if let engine = LlamaInstallManager.shared.currentVersion {
-          Text("·")
-          Text("llama.cpp \(engine.tag)")
-        }
-      }
-
-      Spacer()
-
-      // A Button rather than a Link: on macOS, Link renders as a bare label
-      // with no pressed state, so it feels dead next to the window's other
-      // clickable controls. The button style below supplies the mouse-down dim.
-      Button {
-        NSWorkspace.shared.open(URL(string: "https://github.com/ggml-org/Llama-macOS")!)
-      } label: {
-        HStack(spacing: 5) {
-          // The octocat mark makes the link scannable without color.
-          Image(.gitHubMark)
-            .resizable()
-            .frame(width: 12, height: 12)
-
-          Text("Open source on GitHub")
-        }
-      }
-      .buttonStyle(PressableStyle())
-    }
-    // Same size as the row descriptions -- the footer is peer metadata, not
-    // fine print. The link inherits the secondary style too: accent blue
-    // would make the footer the loudest thing in the window.
-    .font(.system(size: 11))
-    .foregroundStyle(.secondary)
-  }
-
   var body: some View {
     switch tab {
     case .general: generalForm
@@ -304,8 +352,7 @@ struct SettingsView: View {
     }
   }
 
-  /// The General tab -- everything that isn't specific to the web UI, plus the
-  /// metadata footer.
+  /// The General tab -- everything that isn't specific to the web UI.
   private var generalForm: some View {
     Form {
       // Launch at login section
@@ -435,14 +482,6 @@ struct SettingsView: View {
           .font(.callout)
         }
       }
-
-      // The metadata footer, as a section with no card: clearing the row
-      // background leaves just the caption line, spaced and aligned by the
-      // form like any other section.
-      Section {
-        footer
-          .listRowBackground(Color.clear)
-      }
     }
     .formStyle(.grouped)
   }
@@ -541,11 +580,6 @@ struct SettingsView: View {
       }
     }
     .formStyle(.grouped)
-  }
-
-  /// The app's marketing version from the bundle, e.g. `1.4.2`.
-  private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
   }
 
   /// The shell command that starts the server, built from the current
