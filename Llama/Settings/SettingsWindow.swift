@@ -181,6 +181,7 @@ private struct RestoreDefaultButton: View {
 enum SettingsTab: String, CaseIterable, Identifiable {
   case general
   case webUI
+  case advanced
 
   var id: Self { self }
 
@@ -188,6 +189,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     switch self {
     case .general: "General"
     case .webUI: "Web UI"
+    case .advanced: "Advanced"
     }
   }
 
@@ -195,6 +197,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     switch self {
     case .general: "gearshape"
     case .webUI: "macwindow"
+    case .advanced: "wrench.and.screwdriver"
     }
   }
 }
@@ -247,10 +250,6 @@ struct SettingsView: View {
   // Effective server port; re-read after the edit sheet saves so the row updates.
   @State private var serverPort = LlamaServer.port
   @State private var showingServerPortSheet = false
-  // Whether the (informational) server-command section is expanded. Collapsed
-  // by default -- it's an advanced, read-only reference, so it shouldn't
-  // inflate the window height until a user opens it.
-  @State private var serverCommandExpanded = false
 
   /// Metadata footer -- the app's de-facto About: version info on the leading
   /// edge, the open-source link on the trailing edge, echoing the form's
@@ -301,6 +300,7 @@ struct SettingsView: View {
     switch tab {
     case .general: generalForm
     case .webUI: webUIForm
+    case .advanced: advancedForm
     }
   }
 
@@ -436,54 +436,6 @@ struct SettingsView: View {
         }
       }
 
-      // Server command section -- exposes the actual `llama serve` invocation
-      // behind the GUI. It's read-only, but reflects the settings above: change
-      // the port, idle timeout, or model directory and the command updates.
-      // Collapsed by default: it's advanced and informational, so the chevron
-      // doubles as a hint that this isn't a primary setting.
-      Section {
-        // Header row -- the entire row is the toggle target (a generous hit
-        // area, unlike a lone chevron), and the label stays flush-left so it
-        // lines up with every other row's title. The chevron sits on the
-        // trailing edge, rotating to point down when expanded.
-        Button {
-          serverCommandExpanded.toggle()
-        } label: {
-          HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-              Text("Server command")
-
-              Text("The command that starts the server, reflecting your settings above.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-              .font(.system(size: 12, weight: .semibold))
-              .foregroundStyle(.secondary)
-              .rotationEffect(.degrees(serverCommandExpanded ? 90 : 0))
-          }
-          // Extend the tappable region across the full row, gaps included.
-          .contentShape(Rectangle())
-        }
-        .buttonStyle(PressableStyle())
-
-        if serverCommandExpanded {
-          // The command itself: monospaced, wrapping, and selectable so a user
-          // can read or grab any part of it. Lightly syntax-highlighted to make
-          // the structure (env vars, flags, values) easier to scan. Its own row
-          // in the section (no panel of its own), so the form draws its native
-          // separator between the header and the command.
-          Text(highlightedCommand)
-            .font(.system(size: 11, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-      }
-
       // The metadata footer, as a section with no card: clearing the row
       // background leaves just the caption line, spaced and aligned by the
       // form like any other section.
@@ -554,6 +506,38 @@ struct SettingsView: View {
           }
           .font(.callout)
         }
+      }
+    }
+    .formStyle(.grouped)
+  }
+
+  /// The Advanced tab -- power-user surfaces that aren't settings to change.
+  private var advancedForm: some View {
+    Form {
+      // Server command section -- exposes the actual `llama serve` invocation
+      // behind the GUI. It's read-only, but reflects the other tabs' settings:
+      // change the port, idle timeout, or model directory and it updates.
+      // Shown expanded: this tab exists to be read, so hiding its one item
+      // behind a disclosure would just add a click.
+      Section {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Server command")
+
+          Text("The command that starts the server, reflecting your settings.")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        }
+
+        // The command itself: monospaced, wrapping, and selectable so a user
+        // can read or grab any part of it. Lightly syntax-highlighted to make
+        // the structure (env vars, flags, values) easier to scan. Its own row
+        // in the section (no panel of its own), so the form draws its native
+        // separator between the header and the command.
+        Text(highlightedCommand)
+          .font(.system(size: 11, design: .monospaced))
+          .textSelection(.enabled)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .fixedSize(horizontal: false, vertical: true)
       }
     }
     .formStyle(.grouped)
