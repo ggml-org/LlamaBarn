@@ -269,6 +269,13 @@ final class MenuController: NSObject, NSMenuDelegate {
       menu.addItem(NSMenuItem.viewItem(with: SeparatorView()))
     }
 
+    // Overrides stay ignored until the file is fixed, so this needs a standing
+    // surface -- the hint posted when it happened is long gone, and nothing
+    // else would tell the user their config isn't in effect.
+    if let option = UserModelOverrides.suspendedOption {
+      addOverridesIgnoredWarning(to: menu, option: option)
+    }
+
     // Show warning if custom cache directory is unavailable (e.g., external drive unplugged)
     if UserSettings.hasCustomHFCacheDirectory
       && !FileManager.default.fileExists(atPath: UserSettings.hfCacheDirectory.path)
@@ -725,6 +732,20 @@ final class MenuController: NSObject, NSMenuDelegate {
   // MARK: - Folder Warning
 
   /// Adds a warning when the custom models folder is unavailable (e.g., external drive unplugged)
+  /// Standing notice that `models.user.ini` is being ignored, naming the option
+  /// to fix. Clicking reveals the file, since fixing it means editing it.
+  private func addOverridesIgnoredWarning(to menu: NSMenu, option: String) {
+    let warningView = TextItemView(
+      text: "Unknown option ‘\(option)’. Ignoring \(UserModelOverrides.filename).",
+      style: .description,
+      onAction: {
+        NSWorkspace.shared.activateFileViewerSelecting([UserModelOverrides.fileURL])
+      }
+    )
+    menu.addItem(NSMenuItem.viewItem(with: warningView))
+    menu.addItem(NSMenuItem.viewItem(with: SeparatorView()))
+  }
+
   private func addFolderWarning(to menu: NSMenu) {
     let warningView = TextItemView(
       text: "Model directory not available. Check Settings.",

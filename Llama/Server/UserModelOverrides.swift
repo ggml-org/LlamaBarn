@@ -148,7 +148,7 @@ enum UserModelOverrides {
   /// last handed, which is exactly what the UI should be reporting.
   private(set) static var current: [Section] = []
 
-  /// Set when an override stopped the server from starting.
+  /// The option the server refused, when overrides are currently suspended.
   ///
   /// `llama serve` treats an unrecognized option as fatal for the whole preset
   /// file, so a single typo takes every model down -- and the app's own keys
@@ -156,7 +156,17 @@ enum UserModelOverrides {
   /// happens the server suspends overrides and retries, trading the user's
   /// config for an app that still runs. Cleared when the file changes, so
   /// fixing the typo is enough to get them back.
-  static var isSuspended = false
+  ///
+  /// The name is retained rather than just a flag because the menu keeps
+  /// showing it: the hint posted at the time is transient and easily missed,
+  /// but the config stays ignored until the file is fixed.
+  private(set) static var suspendedOption: String?
+
+  static var isSuspended: Bool { suspendedOption != nil }
+
+  static func suspend(dueTo option: String) {
+    suspendedOption = option
+  }
 
   /// The `ctx-size` a user pinned for `modelId`, if any.
   ///
@@ -208,7 +218,7 @@ enum UserModelOverrides {
     lastRawText = text
     if isSuspended {
       logger.info("\(filename) changed -- re-enabling overrides")
-      isSuspended = false
+      suspendedOption = nil
     }
   }
 

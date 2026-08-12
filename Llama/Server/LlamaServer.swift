@@ -183,17 +183,12 @@ class LlamaServer {
     }
   }
 
-  private func postHint(_ message: String) {
-    NotificationCenter.default.post(
-      name: .LBShowMenuHint, object: nil, userInfo: ["message": message])
-  }
-
-  /// Diagnostic from the last preset the server refused, if any.
+  /// The option name the server last refused, if any (e.g. `temperture`).
   ///
   /// Only user overrides can produce this -- the app's own keys are generated
   /// from a fixed set -- so capturing it turns an opaque "Process crashed" into
   /// the name of the key to fix.
-  private var presetRejection: String?
+  private var rejectedOption: String?
 
   /// Records `option 'x' not recognized in preset 'y'` from the server's stderr.
   ///
@@ -202,16 +197,18 @@ class LlamaServer {
   /// surfaces two ways -- as a startup failure when the process boots with the
   /// bad file, and as a 500 from the in-place reload when the file changes
   /// under a running server -- and the wording is identical, so one match
-  /// covers both. The 500 arrives wrapped in JSON, hence trimming at the
-  /// closing quote.
+  /// covers both.
+  ///
+  /// Keeps only the option name. The server's full sentence names the preset
+  /// too, which is jargon the app never shows and makes for a hint too wide to
+  /// read; the whole line is already in the log for anyone debugging.
   private func notePresetRejection(in message: String) {
     for line in message.components(separatedBy: .newlines)
     where line.contains("not recognized in preset") {
-      guard let start = line.range(of: "option '") else { continue }
-      let rest = line[start.lowerBound...]
-      let end = rest.firstIndex(of: "\"") ?? rest.endIndex
-      presetRejection = String(rest[..<end]).trimmingCharacters(
-        in: CharacterSet(charactersIn: " ,"))
+      guard let start = line.range(of: "option '"),
+        let end = line[start.upperBound...].firstIndex(of: "'")
+      else { continue }
+      rejectedOption = String(line[start.upperBound..<end])
     }
   }
 
@@ -222,13 +219,15 @@ class LlamaServer {
   /// `isSuspended` so a second failure reports honestly instead of looping.
   @discardableResult
   private func recoverFromPresetRejection() -> Bool {
-    guard let rejection = presetRejection, !UserModelOverrides.isSuspended else { return false }
+    guard let option = rejectedOption, !UserModelOverrides.isSuspended else { return false }
 
-    presetRejection = nil
-    UserModelOverrides.isSuspended = true
-    logger.error("Suspending user overrides after preset rejection: \(rejection, privacy: .public)")
+    rejectedOption = nil
+    UserModelOverrides.suspend(dueTo: option)
+    logger.error("Suspending user overrides -- unknown option '\(option, privacy: .public)'")
     ModelManager.shared.updateModelsFile()
-    postHint("Ignoring \(UserModelOverrides.filename) — \(rejection)")
+    // No transient notice here: the menu carries a standing row for as long as
+    // overrides stay suspended, which is the honest shape for a state that
+    // persists until the user edits the file.
     start()
     return true
   }
@@ -575,7 +574,10 @@ class LlamaServer {
           // The process died on a key from models.user.ini and we've restarted
           // without it -- a typo shouldn't leave the app with no server at all.
         } else {
-          self.state = .error(.launchFailed(self.presetRejection ?? "Process crashed"))
+          self.state = .error(
+            .launchFailed(
+              self.rejectedOption.map { "Unknown option ‘\($0)’ in \(UserModelOverrides.filename)" }
+                ?? "Process crashed"))
         }
       }
     }
