@@ -865,15 +865,9 @@ struct HFTokenSheet: View {
         Text("Hugging Face Token")
           .font(.headline)
 
-        HStack(spacing: 4) {
-          Text("Don't have one?")
-            .foregroundStyle(.secondary)
-          Link(
-            "Create here \u{2192}",
-            destination: URL(string: "https://huggingface.co/settings/tokens")!
-          )
-        }
-        .font(.caption)
+        Text("Used to download gated and private models.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
 
       TextEditor(text: $tokenText)
@@ -889,11 +883,18 @@ struct HFTokenSheet: View {
         )
 
       HStack {
-        // Validation hint
+        // Validation hint replaces the link once there's something to correct.
         if !trimmed.isEmpty && !UserSettings.isValidHFToken(trimmed) {
           Text("Invalid token format")
             .font(.caption)
             .foregroundStyle(.red)
+        } else {
+          // The sheet is modal, so it needs its own way out to the token page.
+          Link(
+            "Create a token \u{2197}",
+            destination: URL(string: "https://huggingface.co/settings/tokens")!
+          )
+          .font(.caption)
         }
 
         Spacer()
