@@ -65,6 +65,62 @@ enum UserModelOverrides {
     }
   }
 
+  /// Writes a commented, inert template if the file isn't there yet.
+  ///
+  /// Without this the feature is invisible: the file doesn't exist, nothing in
+  /// the app mentions it, and users only learn about it from a GitHub thread.
+  /// Seeding it means the answer to "can I set sampler params?" is a file
+  /// already sitting in a directory people look in.
+  ///
+  /// Seeds whenever absent, with no "already seeded" flag -- so deleting the
+  /// file brings the template back on next launch. The content is entirely
+  /// comments and has no effect on the server, so self-healing is a better
+  /// trade than persisting state to honour a deletion.
+  static func seedTemplateIfNeeded() {
+    let url = fileURL
+    guard !FileManager.default.fileExists(atPath: url.path) else { return }
+
+    do {
+      try FileManager.default.createDirectory(
+        at: configDir, withIntermediateDirectories: true)
+      try template.write(to: url, atomically: true, encoding: .utf8)
+      logger.info("Seeded \(filename) template at \(url.path)")
+    } catch {
+      // Non-fatal: overrides are opt-in, so a missing template costs
+      // discoverability, not function.
+      logger.error("Could not seed \(filename): \(error)")
+    }
+  }
+
+  /// The seeded file. All comments -- parsing it yields no sections.
+  private static let template = """
+    ; Custom settings for your models, applied on top of the ones the app picks.
+    ;
+    ; The app regenerates its own config from a scan of your model cache every
+    ; launch. This file is yours -- the app only ever reads it, so your edits
+    ; survive. Anything you set here wins, including context size.
+    ;
+    ; Use the same section headers the app uses (org/repo:QUANT). You only need
+    ; the keys you want to change:
+    ;
+    ;   [ggml-org/gemma-4-E4B-it-GGUF:Q8_0]
+    ;   temp = 0.7
+    ;   top-p = 0.8
+    ;   ctx-size = 32768
+    ;
+    ; A section for a model the app didn't find is passed through as-is, which
+    ; is how you point at weights or a draft model from another repo:
+    ;
+    ;   [unsloth/DeepSeek-V4-Flash-0731-GGUF:UD-Q2_K_XL]
+    ;   model = /path/to/DeepSeek-V4-Flash-UD-Q2_K_XL.gguf
+    ;   spec-type = draft-dspark
+    ;   spec-draft-model = /path/to/draft.gguf
+    ;
+    ; Keys are `llama serve` options without the leading dashes. Changes apply
+    ; the next time the model list is refreshed -- restart the app if unsure.
+
+    """
+
   /// Parses the user file, or returns an empty list if it's absent or unreadable.
   ///
   /// Absent is the overwhelmingly common case, so it isn't logged. Unreadable

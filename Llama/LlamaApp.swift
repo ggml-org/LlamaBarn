@@ -73,6 +73,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // cache below (ModelManager, the server, the menu).
     RenameMigration.runIfNeeded()
 
+    // Drop a commented template at ~/.config/llama/models.user.ini so the
+    // override file is discoverable. Must run before the first cache scan
+    // regenerates models.ini below.
+    UserModelOverrides.seedTemplateIfNeeded()
+
     // Enable visual debugging if LB_DEBUG_UI is set
     NSView.swizzleDebugBehavior()
 
