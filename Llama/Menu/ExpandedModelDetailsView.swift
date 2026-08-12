@@ -62,6 +62,18 @@ final class ExpandedModelDetailsView: ItemView {
       failedLabel.maximumNumberOfLines = 1
       failedLabel.lineBreakMode = .byTruncatingTail
       mainStack.addArrangedSubview(failedLabel)
+    } else if let overridden = UserModelOverrides.overriddenCtxSize(for: model.id) {
+      // A `ctx-size` in models.user.ini beats whatever the picker would pick,
+      // so showing the picker here would be a lie: the selection wouldn't
+      // match the running server, and clicking it would change nothing. Say
+      // where the value came from instead.
+      let overrideLabel = Theme.secondaryLabel()
+      overrideLabel.stringValue = "Context length \(overridden) — set in \(UserModelOverrides.filename)"
+      overrideLabel.textColor = Theme.Colors.textSecondary
+      overrideLabel.maximumNumberOfLines = 1
+      overrideLabel.lineBreakMode = .byTruncatingTail
+      overrideLabel.toolTip = "Remove ctx-size from \(UserModelOverrides.fileURL.path) to use the picker again."
+      mainStack.addArrangedSubview(overrideLabel)
     } else {
       // A "Context length" header, then the two-line segments below (tier
       // label over its projected memory cost, so each segment self-describes

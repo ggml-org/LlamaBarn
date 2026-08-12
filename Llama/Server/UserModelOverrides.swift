@@ -135,6 +135,23 @@ enum UserModelOverrides {
 
     """
 
+  /// The most recently parsed override file.
+  ///
+  /// Kept so UI can ask "is this key overridden?" without re-reading the file
+  /// per model on every menu open. Refreshed by `load()`, which runs on each
+  /// `models.ini` regeneration -- so it tracks the same content the server was
+  /// last handed, which is exactly what the UI should be reporting.
+  private(set) static var current: [Section] = []
+
+  /// The `ctx-size` a user pinned for `modelId`, if any.
+  ///
+  /// The context picker owns this key too, so when an override exists the
+  /// picker can't be allowed to imply it's in charge -- see its use site.
+  static func overriddenCtxSize(for modelId: String) -> String? {
+    current.first { $0.name == modelId }?
+      .pairs.first { $0.key == "ctx-size" }?.value
+  }
+
   /// Parses the user file, or returns an empty list if it's absent or unreadable.
   ///
   /// Absent is the overwhelmingly common case, so it isn't logged. Unreadable
@@ -142,17 +159,22 @@ enum UserModelOverrides {
   /// configured something and hasn't.
   static func load() -> [Section] {
     let url = fileURL
-    guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+    guard FileManager.default.fileExists(atPath: url.path) else {
+      current = []
+      return []
+    }
 
     guard let data = try? Data(contentsOf: url),
       let text = String(data: data, encoding: .utf8)
     else {
       logger.error("Could not read \(filename) at \(url.path)")
+      current = []
       return []
     }
 
     let sections = parse(text)
     logger.info("Loaded \(sections.count) override section(s) from \(filename)")
+    current = sections
     return sections
   }
 

@@ -236,6 +236,18 @@ extension Format {
         result.append(NSAttributedString(string: "estimating...", attributes: secondaryAttributes))
       } else if model.ctxBytesPer1kTokens < 0 {
         result.append(NSAttributedString(string: "4k ctx", attributes: secondaryAttributes))
+      } else if let overridden = UserModelOverrides.overriddenCtxSize(for: model.id) {
+        // The user pinned ctx-size in models.user.ini, so the effective tier
+        // below is not what the server is running. Show the real value; it
+        // needn't be one of our tiers, so format it only when it divides
+        // cleanly into k.
+        let label: String
+        if let value = Int(overridden), value % 1024 == 0 {
+          label = "\(value / 1024)k ctx"
+        } else {
+          label = "\(overridden) ctx"
+        }
+        result.append(NSAttributedString(string: label, attributes: secondaryAttributes))
       } else if let tier = model.effectiveCtxTier {
         // Show only the device-fit tier (e.g. "4k ctx"). The model's native max
         // and projected memory usage are available on the model page, so the
