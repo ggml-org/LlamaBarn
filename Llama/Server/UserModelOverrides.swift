@@ -148,12 +148,23 @@ enum UserModelOverrides {
   /// last handed, which is exactly what the UI should be reporting.
   private(set) static var current: [Section] = []
 
+  /// Set when an override stopped the server from starting.
+  ///
+  /// `llama serve` treats an unrecognized option as fatal for the whole preset
+  /// file, so a single typo takes every model down -- and the app's own keys
+  /// are always valid, meaning the culprit is necessarily a user key. When that
+  /// happens the server suspends overrides and retries, trading the user's
+  /// config for an app that still runs. Cleared when the file changes, so
+  /// fixing the typo is enough to get them back.
+  static var isSuspended = false
+
   /// The `ctx-size` a user pinned for `modelId`, if any.
   ///
   /// The context picker owns this key too, so when an override exists the
   /// picker can't be allowed to imply it's in charge -- see its use site.
   static func overriddenCtxSize(for modelId: String) -> String? {
-    current.first { $0.name == modelId }?
+    guard !isSuspended else { return nil }
+    return current.first { $0.name == modelId }?
       .pairs.first { $0.key == "ctx-size" }?.value
   }
 
@@ -166,6 +177,7 @@ enum UserModelOverrides {
     let url = fileURL
     guard FileManager.default.fileExists(atPath: url.path) else {
       current = []
+      noteContentChanged(to: nil)
       return
     }
 
@@ -174,11 +186,30 @@ enum UserModelOverrides {
     else {
       logger.error("Could not read \(filename) at \(url.path)")
       current = []
+      noteContentChanged(to: nil)
       return
     }
 
     current = parse(text)
+    noteContentChanged(to: text)
     logger.info("Loaded \(current.count) override section(s) from \(filename)")
+  }
+
+  /// Raw text as of the last read, so an edit can be distinguished from a reread.
+  private static var lastRawText: String?
+
+  /// Lifts a suspension once the file changes.
+  ///
+  /// Suspension is a response to specific bad content, so any edit deserves a
+  /// fresh attempt -- otherwise fixing the typo wouldn't bring overrides back
+  /// without a relaunch, and the user would have no way to tell.
+  private static func noteContentChanged(to text: String?) {
+    guard text != lastRawText else { return }
+    lastRawText = text
+    if isSuspended {
+      logger.info("\(filename) changed -- re-enabling overrides")
+      isSuspended = false
+    }
   }
 
   /// Minimal INI parse: `[section]` headers and `key = value` lines.
@@ -223,6 +254,10 @@ enum UserModelOverrides {
   /// app generated are appended verbatim -- that's what lets someone define a
   /// model the scan can't produce, such as a draft model from another repo.
   static func apply(to generated: [Section], overrides: [Section]) -> [Section] {
+    // A suspended file is one the server already rejected; applying it again
+    // would just reproduce the failure.
+    guard !isSuspended else { return generated }
+
     var merged = generated
     var indexByName: [String: Int] = [:]
     for (index, section) in merged.enumerated() {

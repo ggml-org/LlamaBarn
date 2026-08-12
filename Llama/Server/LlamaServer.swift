@@ -179,7 +179,58 @@ class LlamaServer {
 
     setHandler(for: errorPipe) { message in
       self.logger.error("llama-server error: \(message, privacy: .public)")
+      self.notePresetRejection(in: message)
     }
+  }
+
+  private func postHint(_ message: String) {
+    NotificationCenter.default.post(
+      name: .LBShowMenuHint, object: nil, userInfo: ["message": message])
+  }
+
+  /// Diagnostic from the last preset the server refused, if any.
+  ///
+  /// Only user overrides can produce this -- the app's own keys are generated
+  /// from a fixed set -- so capturing it turns an opaque "Process crashed" into
+  /// the name of the key to fix.
+  private var presetRejection: String?
+
+  /// Records `option 'x' not recognized in preset 'y'` from the server's stderr.
+  ///
+  /// `llama serve` rejects the whole preset file over one unknown option, so
+  /// this is fatal for every model, not just the section that carries it. It
+  /// surfaces two ways -- as a startup failure when the process boots with the
+  /// bad file, and as a 500 from the in-place reload when the file changes
+  /// under a running server -- and the wording is identical, so one match
+  /// covers both. The 500 arrives wrapped in JSON, hence trimming at the
+  /// closing quote.
+  private func notePresetRejection(in message: String) {
+    for line in message.components(separatedBy: .newlines)
+    where line.contains("not recognized in preset") {
+      guard let start = line.range(of: "option '") else { continue }
+      let rest = line[start.lowerBound...]
+      let end = rest.firstIndex(of: "\"") ?? rest.endIndex
+      presetRejection = String(rest[..<end]).trimmingCharacters(
+        in: CharacterSet(charactersIn: " ,"))
+    }
+  }
+
+  /// Drops user overrides and restarts, when the server rejected a user key.
+  ///
+  /// Returns whether recovery was started, so callers can fall through to their
+  /// normal failure handling when this wasn't an override problem. Guarded on
+  /// `isSuspended` so a second failure reports honestly instead of looping.
+  @discardableResult
+  private func recoverFromPresetRejection() -> Bool {
+    guard let rejection = presetRejection, !UserModelOverrides.isSuspended else { return false }
+
+    presetRejection = nil
+    UserModelOverrides.isSuspended = true
+    logger.error("Suspending user overrides after preset rejection: \(rejection, privacy: .public)")
+    ModelManager.shared.updateModelsFile()
+    postHint("Ignoring \(UserModelOverrides.filename) — \(rejection)")
+    start()
+    return true
   }
 
   private func setHandler(for pipe: Pipe, logMessage: @escaping (String) -> Void) {
@@ -520,8 +571,11 @@ class LlamaServer {
 
         if proc.terminationStatus == 0 {
           self.state = .idle
+        } else if self.recoverFromPresetRejection() {
+          // The process died on a key from models.user.ini and we've restarted
+          // without it -- a typo shouldn't leave the app with no server at all.
         } else {
-          self.state = .error(.launchFailed("Process crashed"))
+          self.state = .error(.launchFailed(self.presetRejection ?? "Process crashed"))
         }
       }
     }
@@ -586,8 +640,15 @@ class LlamaServer {
     logger.info("Reloading server model list in place")
     Task {
       if !(await api.reloadModels()) {
-        // Request failed (server wedged?) -- restart to get back to a good state.
-        await MainActor.run { self.reload() }
+        await MainActor.run {
+          // The common way a bad override surfaces: the file changed under a
+          // running server, and the router refused it. Recovering here avoids
+          // a restart into the same rejection.
+          if !self.recoverFromPresetRejection() {
+            // Request failed (server wedged?) -- restart to get back to a good state.
+            self.reload()
+          }
+        }
       }
     }
   }
