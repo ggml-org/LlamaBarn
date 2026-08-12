@@ -476,7 +476,17 @@ class ModelManager: NSObject, URLSessionDataDelegate {
   }
 
   private func generateModelsFileContent() -> String {
-    var content = ""
+    // User overrides are layered on top of everything the scan produces, so the
+    // generated values below are only ever defaults. See `UserModelOverrides`.
+    let merged = UserModelOverrides.apply(
+      to: generatedModelSections(), overrides: UserModelOverrides.load())
+    return merged.map { $0.serialized() }.joined()
+  }
+
+  /// The app's own view of `models.ini`, derived purely from the cache scan and
+  /// memory profiling -- before any user overrides are applied.
+  private func generatedModelSections() -> [UserModelOverrides.Section] {
+    var sections: [UserModelOverrides.Section] = []
 
     // Enable larger batch size for better performance on high-memory devices (>=32 GB RAM)
     let useLargeBatch = Double(SystemMemory.memoryMb) / 1024.0 >= 32.0
@@ -489,12 +499,12 @@ class ModelManager: NSObject, URLSessionDataDelegate {
       let modelPath = paths.modelFile
       let mmprojPath = paths.mmprojFile
 
-      content += "[\(model.id)]\n"
-      content += "model = \(modelPath)\n"
-      content += "ctx-size = \(tier.rawValue)\n"
+      var section = UserModelOverrides.Section(name: model.id, pairs: [])
+      section.set("model", modelPath)
+      section.set("ctx-size", "\(tier.rawValue)")
 
       if let mmprojPath {
-        content += "mmproj = \(mmprojPath)\n"
+        section.set("mmproj", mmprojPath)
       }
 
       // Wire up MTP speculative decoding -- a free speedup on the MoE builds
@@ -503,25 +513,25 @@ class ModelManager: NSObject, URLSessionDataDelegate {
       // embedded in the main weights (reused via its own MTP context, no draft
       // file). Sidecar wins when both look present.
       if let mtpSidecar = paths.mtpSidecarFile {
-        content += "spec-type = draft-mtp\n"
-        content += "spec-draft-model = \(mtpSidecar)\n"
+        section.set("spec-type", "draft-mtp")
+        section.set("spec-draft-model", mtpSidecar)
       } else if paths.usesMTP {
-        content += "spec-type = draft-mtp\n"
+        section.set("spec-type", "draft-mtp")
       }
       // Cap drafted tokens per step at 3 for MTP -- the value Georgi Gerganov
       // recommended; MTP heads only predict a few tokens ahead reliably, so
       // drafting deeper just wastes compute on tokens the target rejects.
       if paths.mtpSidecarFile != nil || paths.usesMTP {
-        content += "spec-draft-n-max = 3\n"
+        section.set("spec-draft-n-max", "3")
       }
 
       if useLargeBatch {
-        content += "ubatch-size = 2048\n"
+        section.set("ubatch-size", "2048")
       }
 
-      content += "\n"
+      sections.append(section)
     }
-    return content
+    return sections
   }
 
   /// Active mem-profile enrichment task. Cancelled on refresh to avoid stale updates.
