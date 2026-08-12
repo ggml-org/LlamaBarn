@@ -480,7 +480,7 @@ class ModelManager: NSObject, URLSessionDataDelegate {
     // generated values below are only ever defaults. See `UserModelOverrides`.
     let merged = UserModelOverrides.apply(
       to: generatedModelSections(), overrides: UserModelOverrides.load())
-    return merged.map { $0.serialized() }.joined()
+    return UserModelOverrides.generatedFileHeader + merged.map { $0.serialized() }.joined()
   }
 
   /// The app's own view of `models.ini`, derived purely from the cache scan and
