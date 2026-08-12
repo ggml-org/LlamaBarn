@@ -44,6 +44,18 @@ enum Format {
     }
   }
 
+  /// Formats a raw `ctx-size` from `models.user.ini` for display (e.g. "20k").
+  ///
+  /// Overrides are arbitrary -- they needn't be one of our tiers or even a
+  /// number -- but they should still read like every other context label, so
+  /// this reuses `tokens(_:)` rather than inventing a second unit. A
+  /// non-numeric value is passed through instead of guessing at one. Returns
+  /// the bare value; callers add whatever suffix their context needs.
+  static func ctxOverride(_ rawValue: String) -> String {
+    guard let value = Int(rawValue) else { return rawValue }
+    return tokens(value)
+  }
+
   // MARK: - Memory Formatting (binary: 1 GB = 1024 MB)
 
   /// Formats binary megabytes as gigabytes with one decimal (e.g., "3.1 GB" from 3174 MB).
@@ -238,16 +250,10 @@ extension Format {
         result.append(NSAttributedString(string: "4k ctx", attributes: secondaryAttributes))
       } else if let overridden = UserModelOverrides.overriddenCtxSize(for: model.id) {
         // The user pinned ctx-size in models.user.ini, so the effective tier
-        // below is not what the server is running. Show the real value; it
-        // needn't be one of our tiers, so format it only when it divides
-        // cleanly into k.
-        let label: String
-        if let value = Int(overridden), value % 1024 == 0 {
-          label = "\(value / 1024)k ctx"
-        } else {
-          label = "\(overridden) ctx"
-        }
-        result.append(NSAttributedString(string: label, attributes: secondaryAttributes))
+        // below is not what the server is running. Show the real value.
+        result.append(
+          NSAttributedString(
+            string: "\(Format.ctxOverride(overridden)) ctx", attributes: secondaryAttributes))
       } else if let tier = model.effectiveCtxTier {
         // Show only the device-fit tier (e.g. "4k ctx"). The model's native max
         // and projected memory usage are available on the model page, so the

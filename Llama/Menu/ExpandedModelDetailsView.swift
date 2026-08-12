@@ -41,6 +41,19 @@ final class ExpandedModelDetailsView: ItemView {
   // Disable hover highlight since this is an info container
   override var highlightEnabled: Bool { false }
 
+  /// A single-line secondary label used in place of the context picker when
+  /// there's nothing to pick -- memory still estimating, estimation failed, or
+  /// the value is pinned in `models.user.ini`.
+  private func makeInfoLabel(_ text: String, toolTip: String? = nil) -> NSTextField {
+    let label = Theme.secondaryLabel()
+    label.stringValue = text
+    label.textColor = Theme.Colors.textSecondary
+    label.maximumNumberOfLines = 1
+    label.lineBreakMode = .byTruncatingTail
+    label.toolTip = toolTip
+    return label
+  }
+
   private func setupLayout() {
     let mainStack = NSStackView()
     mainStack.orientation = .vertical
@@ -51,29 +64,21 @@ final class ExpandedModelDetailsView: ItemView {
     // instead of the picker (we don't have accurate memory estimates yet).
     // For failed estimation (-1), show a failure message with the 4k fallback.
     if model.ctxBytesPer1kTokens == 0 {
-      let estimatingLabel = Theme.secondaryLabel()
-      estimatingLabel.stringValue = "Estimating memory requirements..."
-      estimatingLabel.textColor = Theme.Colors.textSecondary
-      mainStack.addArrangedSubview(estimatingLabel)
+      mainStack.addArrangedSubview(makeInfoLabel("Estimating memory requirements..."))
     } else if model.ctxBytesPer1kTokens < 0 {
-      let failedLabel = Theme.secondaryLabel()
-      failedLabel.stringValue = "Could not estimate memory — using 4k context"
-      failedLabel.textColor = Theme.Colors.textSecondary
-      failedLabel.maximumNumberOfLines = 1
-      failedLabel.lineBreakMode = .byTruncatingTail
-      mainStack.addArrangedSubview(failedLabel)
+      mainStack.addArrangedSubview(
+        makeInfoLabel("Could not estimate memory — using 4k context"))
     } else if let overridden = UserModelOverrides.overriddenCtxSize(for: model.id) {
       // A `ctx-size` in models.user.ini beats whatever the picker would pick,
       // so showing the picker here would be a lie: the selection wouldn't
       // match the running server, and clicking it would change nothing. Say
       // where the value came from instead.
-      let overrideLabel = Theme.secondaryLabel()
-      overrideLabel.stringValue = "Context length \(overridden) — set in \(UserModelOverrides.filename)"
-      overrideLabel.textColor = Theme.Colors.textSecondary
-      overrideLabel.maximumNumberOfLines = 1
-      overrideLabel.lineBreakMode = .byTruncatingTail
-      overrideLabel.toolTip = "Remove ctx-size from \(UserModelOverrides.fileURL.path) to use the picker again."
-      mainStack.addArrangedSubview(overrideLabel)
+      mainStack.addArrangedSubview(
+        makeInfoLabel(
+          "Context length \(Format.ctxOverride(overridden)) — set in \(UserModelOverrides.filename)",
+          toolTip:
+            "Remove ctx-size from \((UserModelOverrides.fileURL.path as NSString).abbreviatingWithTildeInPath) to use the picker again."
+        ))
     } else {
       // A "Context length" header, then the two-line segments below (tier
       // label over its projected memory cost, so each segment self-describes
