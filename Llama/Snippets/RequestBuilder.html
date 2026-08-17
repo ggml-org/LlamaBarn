@@ -641,7 +641,16 @@ function caveats() {
   if (state.image) c.push("For a local file use <code>file://…</code> and start the server with <code>--media-path</code>.");
   if (!state.thinking && state.api === "chat") c.push("Models differ: some honour <code>reasoning_effort</code>, others only <code>chat_template_kwargs</code>. Both are sent.");
   if (!state.thinking && state.api === "anthropic") c.push("This endpoint ignores <code>thinking: {\"type\": \"disabled\"}</code> — <code>chat_template_kwargs</code> is the switch that works.");
-  if (state.stream) c.push("Response arrives as SSE <code>data:</code> lines terminated by <code>[DONE]</code>.");
+  if (state.stream) {
+    // Only chat completions terminates with [DONE]. The other two use named
+    // SSE events and end with their own terminal event -- checked against the
+    // server, not the docs.
+    c.push(state.api === "chat"
+      ? "Response arrives as SSE <code>data:</code> lines, terminated by <code>[DONE]</code>."
+      : state.api === "responses"
+        ? "Response arrives as SSE with named events, ending with <code>response.completed</code>."
+        : "Response arrives as SSE with named events, ending with <code>message_stop</code>.");
+  }
   return c;
 }
 
@@ -659,7 +668,7 @@ function optionEls(id) {
   const row = box.closest(".toggle");
   return { box, row, hint: row.querySelector(".hint") };
 }
-OPTION_IDS.forEach(id => (DEFAULT_HINTS[id] = optionEls(id).hint.textContent));
+OPTION_IDS.forEach(id => (DEFAULT_HINTS[id] = optionEls(id).hint.innerHTML));
 
 // Why an option can't be used right now, or null if it can. Two kinds of
 // reason, deliberately handled by one mechanism: the model may not be able to
@@ -669,6 +678,16 @@ OPTION_IDS.forEach(id => (DEFAULT_HINTS[id] = optionEls(id).hint.textContent));
 // and /v1/messages ignores response_format, both verified against the server.
 // Before this it was silently dropped from the body on those endpoints while
 // the notes still promised grammar-enforced output.
+// Some hints depend on the endpoint. Turning thinking off is the clearest
+// case: each API has its own switch, and the markup can only carry one.
+function hintFor(id) {
+  if (id === "thinking") {
+    if (state.api === "responses") return 'off sends <code>reasoning: { effort: "none" }</code>';
+    if (state.api === "anthropic") return 'off sends <code>chat_template_kwargs</code>';
+  }
+  return DEFAULT_HINTS[id];
+}
+
 function unavailableReason(id) {
   if (id === "image" && knowCapabilities && !visionModels.has(state.model)) {
     return "this model has no vision projector";
@@ -689,7 +708,7 @@ function applyAvailability() {
     const reason = unavailableReason(id);
     box.disabled = !!reason;
     row.classList.toggle("unavailable", !!reason);
-    hint.textContent = reason || DEFAULT_HINTS[id];
+    hint.innerHTML = reason || hintFor(id);
     if (reason && state[id]) {
       state[id] = false;
       box.checked = false;
