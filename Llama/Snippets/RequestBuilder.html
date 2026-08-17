@@ -42,10 +42,6 @@
   }
   header {
     padding: 20px 24px 16px;
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    flex-wrap: wrap;
     position: relative;
   }
   /* The rule is drawn inset to the header's own padding rather than as a
@@ -58,7 +54,6 @@
     height: 1px; background: var(--border);
   }
   header h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-  header p { margin: 0; color: var(--muted); font-size: 13px; }
   /* Full width, matching the OpenAI and Anthropic playgrounds this sits
      alongside in people's heads. The snippet itself never needs the room (85
      characters at its widest), but the response does: it wraps, so every
@@ -187,7 +182,6 @@
 
 <header>
   <h1>Build an API request</h1>
-  <p>Your models, on a real API. No key needed.</p>
 </header>
 
 <div class="layout">
