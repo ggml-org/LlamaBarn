@@ -169,6 +169,21 @@ extension ModelManager {
         // anyway so a late straggler doesn't resurrect state).
         guard self.activeDownloads[modelId] != nil else { return }
 
+        // This task is dead: drop it from the aggregate so a retry's replacement
+        // task is the only one left to tick off. Without this the dead id sits in
+        // `tasks` forever, `isEmpty` never becomes true, and the download is never
+        // retired — the model shows a stuck downloading row beside its installed
+        // one, long after the bytes have landed.
+        //
+        // Mutating the entry directly rather than via `updateActiveDownload` is
+        // deliberate. This can leave `tasks` empty (single-file model, or the last
+        // survivor failing), and that helper reads empty as "all files finished":
+        // it would drop the whole entry and report completion, which strands the
+        // retry (`scheduleRetry` re-checks `activeDownloads` and would bail) and
+        // fires a bogus completion for a download still missing bytes. Retiring
+        // the entry stays the business of completion and teardown.
+        self.activeDownloads[modelId]?.removeTask(with: taskId)
+
         // Transient network errors (timeout, connection lost, offline) are
         // resumable — the partial file is our resume state. Handle them inline
         // (retry or park as a paused row) rather than popping a modal.
