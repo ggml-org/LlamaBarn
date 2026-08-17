@@ -336,6 +336,28 @@ const BASE = CONFIG.baseUrl || "http://localhost:9931";
 // disabled -- better to offer an option that might fail than to hide one that
 // would have worked.
 const visionModels = new Set();
+
+// The options carry worked examples -- a weather schema, a get_weather tool, an
+// image -- and "Hello!" makes nonsense of all three: a greeting constrained to
+// {city, temp_c}, or a weather function the model has no reason to call. The
+// prompt follows whichever example is switched on, so the request reads as a
+// coherent whole, but only until you write your own; after that it's yours.
+const DEFAULT_PROMPT = "Hello!";
+let promptTouched = false;
+
+function suggestedPrompt() {
+  if (state.image) return "What is in this image?";
+  if (state.json || state.tools) return "What's the weather in Paris?";
+  return DEFAULT_PROMPT;
+}
+
+function syncPrompt() {
+  if (promptTouched) return;
+  const next = suggestedPrompt();
+  if (next === state.prompt) return;
+  state.prompt = next;
+  document.getElementById("prompt").value = next;
+}
 let knowCapabilities = false;
 
 const state = {
@@ -584,6 +606,7 @@ function applyCapabilities() {
   if (!canSeeImages && state.image) {
     state.image = false;
     box.checked = false;
+    syncPrompt();
   }
 }
 
@@ -612,11 +635,15 @@ seg("langSeg", "lang");
 ["thinking", "stream", "json", "image", "tools"].forEach(id => {
   document.getElementById(id).addEventListener("change", e => {
     state[id] = e.target.checked;
+    syncPrompt();
     render();
   });
 });
 document.getElementById("prompt").addEventListener("input", e => {
-  state.prompt = e.target.value; render();
+  state.prompt = e.target.value;
+  // From here on the prompt is the reader's, and options stop rewriting it.
+  promptTouched = true;
+  render();
 });
 // Enter sends, shift+Enter makes a newline. The prompt is a one-liner in
 // practice, and this is what every chat box has trained people to expect.
