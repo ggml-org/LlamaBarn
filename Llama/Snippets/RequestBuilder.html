@@ -590,15 +590,31 @@ response = ${call}(\n${pyArgs(buildBody(), "    ")}\n)
 print(${out})`;
 }
 
-// Render a body object as Python keyword arguments (JSON is close enough to
-// Python literals apart from the booleans).
+// Fields the Python SDKs don't declare as parameters. Passing one as a keyword
+// argument raises TypeError -- verified against openai 2.48 and anthropic
+// 0.122 -- so they go through extra_body, which is the documented channel for
+// sending fields the SDK doesn't know about. curl and the JavaScript SDKs take
+// them inline, so this split is Python's alone.
+const PY_EXTRA_BODY_KEYS = ["chat_template_kwargs"];
+
+function pyLiteral(v, indent) {
+  return JSON.stringify(v, null, 2)
+    .split("\n").map((l, i) => (i === 0 ? l : indent + l)).join("\n")
+    .replace(/\btrue\b/g, "True").replace(/\bfalse\b/g, "False").replace(/\bnull\b/g, "None");
+}
+
+// Render a body object as Python keyword arguments.
 function pyArgs(body, indent) {
-  return Object.entries(body).map(([k, v]) => {
-    const lit = JSON.stringify(v, null, 2)
-      .split("\n").map((l, i) => i === 0 ? l : indent + l).join("\n")
-      .replace(/\btrue\b/g, "True").replace(/\bfalse\b/g, "False");
-    return `${indent}${k}=${lit},`;
-  }).join("\n");
+  const extra = {};
+  const lines = [];
+  for (const [k, v] of Object.entries(body)) {
+    if (PY_EXTRA_BODY_KEYS.includes(k)) extra[k] = v;
+    else lines.push(`${indent}${k}=${pyLiteral(v, indent)},`);
+  }
+  if (Object.keys(extra).length) {
+    lines.push(`${indent}extra_body=${pyLiteral(extra, indent)},`);
+  }
+  return lines.join("\n");
 }
 
 function snippetJs() {
