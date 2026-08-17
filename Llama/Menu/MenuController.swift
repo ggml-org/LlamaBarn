@@ -653,7 +653,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     builderRow.onAction = { [weak builderRow] in
       // Opened through the row so the menu dismisses with the navigation --
       // same as Chat with model above.
-      guard let url = SnippetBuilder.stagePage(modelId: model.id) else { return }
+      guard let url = RequestBuilder.stagePage(modelId: model.id) else { return }
       builderRow?.openInBrowser(url)
     }
     menu.addItem(NSMenuItem.viewItem(with: builderRow))

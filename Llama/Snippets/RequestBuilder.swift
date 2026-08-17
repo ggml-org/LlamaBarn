@@ -1,7 +1,7 @@
 import AppKit
 import os.log
 
-/// The API snippet builder: a page that composes a request against the local
+/// The API request builder: a page that composes a request against the local
 /// server (thinking, streaming, structured output, images, tools), shows it as
 /// runnable curl / Python / JavaScript, and can send it in place.
 ///
@@ -14,8 +14,8 @@ import os.log
 /// The page ships as a bundled resource rather than being served, so opening
 /// it means staging a copy on disk with the app's config baked in and handing
 /// the browser a file URL.
-enum SnippetBuilder {
-  private static let log = Logger(subsystem: Logging.subsystem, category: "SnippetBuilder")
+enum RequestBuilder {
+  private static let log = Logger(subsystem: Logging.subsystem, category: "RequestBuilder")
 
   /// Where the staged page lives. A stable path (rather than a unique temp
   /// file per open) so repeated opens reuse the same URL: the browser treats
@@ -33,10 +33,10 @@ enum SnippetBuilder {
   /// reflects the request's `Origin`, including the `null` a file URL sends.
   @MainActor
   static func stagePage(modelId: String) -> URL? {
-    guard let source = Bundle.main.url(forResource: "SnippetBuilder", withExtension: "html"),
+    guard let source = Bundle.main.url(forResource: "RequestBuilder", withExtension: "html"),
       let page = try? String(contentsOf: source, encoding: .utf8)
     else {
-      log.error("SnippetBuilder.html missing from the bundle")
+      log.error("RequestBuilder.html missing from the bundle")
       return nil
     }
 
