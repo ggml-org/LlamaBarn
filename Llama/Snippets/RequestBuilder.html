@@ -613,15 +613,24 @@ const response = await ${call}(${JSON.stringify(buildBody(), null, 2)});
 console.log(${out});`;
 }
 
-// Minimal JSON-ish highlighting, enough to make the diff between options
-// visible at a glance.
+// One pass, not a chain of replaces. A string is matched atomically by the
+// first branch, so nothing inside it can be seen by the number branch later --
+// which is what coloured the 6 in "Qwen3.6" and the digits in every id and
+// fingerprint. Escaping happens first, so model output can't inject markup.
 function highlight(text) {
-  return text
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/("(?:[^"\\]|\\.)*")(\s*:)/g, '<span class="k">$1</span><span class="p">$2</span>')
-    .replace(/:\s*("(?:[^"\\]|\\.)*")/g, ': <span class="s">$1</span>')
-    .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="n">$1</span>')
-    .replace(/\b(true|false|null|True|False)\b/g, '<span class="n">$1</span>');
+  const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return esc.replace(
+    /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null|True|False|None)\b|(-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)/g,
+    (m, str, colon, lit, num) => {
+      if (str) {
+        return colon
+          ? `<span class="k">${str}</span><span class="p">${colon}</span>`
+          : `<span class="s">${str}</span>`;
+      }
+      if (lit || num) return `<span class="n">${lit || num}</span>`;
+      return m;
+    }
+  );
 }
 
 // Caveats the snippet itself can't express -- server flags, model support.
@@ -790,10 +799,14 @@ async function send() {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
+        // Plain text while it streams: re-highlighting the whole buffer on
+        // every chunk is quadratic, and the raw SSE lines are what the note
+        // above describes. Highlighted once it's complete.
         body.textContent = acc;
       }
+      body.innerHTML = highlight(acc);
     } else {
-      body.textContent = JSON.stringify(await r.json(), null, 2);
+      body.innerHTML = highlight(JSON.stringify(await r.json(), null, 2));
     }
     watching = false;
     status.textContent = `${r.status} · ${Math.round(performance.now() - t0)} ms`;
