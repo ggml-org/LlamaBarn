@@ -644,6 +644,19 @@ final class MenuController: NSObject, NSMenuDelegate {
       curlRow?.flashConfirmation()
     }
     menu.addItem(NSMenuItem.viewItem(with: curlRow))
+    // Where the curl row stops: it proves the API works, this composes an
+    // actual request against it. Sits directly after, as the next step in the
+    // same workflow -- the options it exposes (thinking, structured output,
+    // images, tools) are the ones whose syntax isn't guessable from the
+    // OpenAI docs.
+    let builderRow = ActionItemView(title: "Build a request", symbol: "slider.horizontal.3") {}
+    builderRow.onAction = { [weak builderRow] in
+      // Opened through the row so the menu dismisses with the navigation --
+      // same as Chat with model above.
+      guard let url = SnippetBuilder.stagePage(modelId: model.id) else { return }
+      builderRow?.openInBrowser(url)
+    }
+    menu.addItem(NSMenuItem.viewItem(with: builderRow))
     // The HF model card is where the id pays off -- license, description, the
     // org's other quants. Every managed model is HF-backed, so the id maps
     // straight to a repo URL.
