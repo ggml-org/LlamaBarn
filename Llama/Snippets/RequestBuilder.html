@@ -127,10 +127,11 @@
   .toggle input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; flex: none; }
   .toggle .body { min-width: 0; }
   .toggle .name { display: block; cursor: pointer; }
-  /* A hint only appears where it says something the snippet can't show: what
-     comes back over the wire, or the name of the concept. Restating the
-     parameter is redundant -- ticking the box shows it. The element is always
-     present so an unavailable option can explain itself in the same place. */
+  /* Every option carries a line saying what it IS, not what it sends. The
+     snippet already shows the parameter, and a description of the wire format
+     has to be rewritten per endpoint and can fall out of step with it; what
+     the option means is the same on all three. An unavailable option borrows
+     the line to explain itself. */
   .toggle .hint { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
   .toggle .hint:empty { display: none; }
   .toggle code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
@@ -280,7 +281,7 @@
         <input type="checkbox" id="thinking" checked>
         <span class="body">
           <label class="name" for="thinking">Thinking</label>
-          <span class="hint"></span>
+          <span class="hint">the model reasons before answering</span>
         </span>
       </div>
 
@@ -288,7 +289,7 @@
         <input type="checkbox" id="stream">
         <span class="body">
           <label class="name" for="stream">Stream</label>
-          <span class="hint">server-sent events, token by token</span>
+          <span class="hint">tokens arrive as they're generated</span>
         </span>
       </div>
 
@@ -296,7 +297,7 @@
         <input type="checkbox" id="json">
         <span class="body">
           <label class="name" for="json">Structured output</label>
-          <span class="hint"></span>
+          <span class="hint">the reply is constrained to a schema</span>
         </span>
       </div>
 
@@ -304,7 +305,7 @@
         <input type="checkbox" id="image">
         <span class="body">
           <label class="name" for="image">Image input</label>
-          <span class="hint"></span>
+          <span class="hint">send a picture along with the text</span>
         </span>
       </div>
 
@@ -312,7 +313,7 @@
         <input type="checkbox" id="tools">
         <span class="body">
           <label class="name" for="tools">Tools</label>
-          <span class="hint">function calling</span>
+          <span class="hint">let the model call a function</span>
         </span>
       </div>
     </div>
