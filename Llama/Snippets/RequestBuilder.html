@@ -127,7 +127,12 @@
   .toggle input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; flex: none; }
   .toggle .body { min-width: 0; }
   .toggle .name { display: block; cursor: pointer; }
+  /* A hint only appears where it says something the snippet can't show: what
+     comes back over the wire, or the name of the concept. Restating the
+     parameter is redundant -- ticking the box shows it. The element is always
+     present so an unavailable option can explain itself in the same place. */
   .toggle .hint { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+  .toggle .hint:empty { display: none; }
   .toggle code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
   /* An option the selected model can't do is dimmed and disabled, not hidden:
      hiding it would make the capability undiscoverable and make the list jump
@@ -275,7 +280,7 @@
         <input type="checkbox" id="thinking" checked>
         <span class="body">
           <label class="name" for="thinking">Thinking</label>
-          <span class="hint">off sends <code>reasoning_effort: "none"</code></span>
+          <span class="hint"></span>
         </span>
       </div>
 
@@ -283,7 +288,7 @@
         <input type="checkbox" id="stream">
         <span class="body">
           <label class="name" for="stream">Stream</label>
-          <span class="hint">sets <code>stream: true</code> — SSE, token by token</span>
+          <span class="hint">server-sent events, token by token</span>
         </span>
       </div>
 
@@ -291,7 +296,7 @@
         <input type="checkbox" id="json">
         <span class="body">
           <label class="name" for="json">Structured output</label>
-          <span class="hint">sets <code>response_format</code> to a JSON schema</span>
+          <span class="hint"></span>
         </span>
       </div>
 
@@ -299,7 +304,7 @@
         <input type="checkbox" id="image">
         <span class="body">
           <label class="name" for="image">Image input</label>
-          <span class="hint">typed content parts — needs a vision model</span>
+          <span class="hint"></span>
         </span>
       </div>
 
@@ -307,7 +312,7 @@
         <input type="checkbox" id="tools">
         <span class="body">
           <label class="name" for="tools">Tools</label>
-          <span class="hint">adds <code>tools</code> — function calling</span>
+          <span class="hint">function calling</span>
         </span>
       </div>
     </div>
@@ -678,16 +683,6 @@ OPTION_IDS.forEach(id => (DEFAULT_HINTS[id] = optionEls(id).hint.innerHTML));
 // and /v1/messages ignores response_format, both verified against the server.
 // Before this it was silently dropped from the body on those endpoints while
 // the notes still promised grammar-enforced output.
-// Some hints depend on the endpoint. Turning thinking off is the clearest
-// case: each API has its own switch, and the markup can only carry one.
-function hintFor(id) {
-  if (id === "thinking") {
-    if (state.api === "responses") return 'off sends <code>reasoning: { effort: "none" }</code>';
-    if (state.api === "anthropic") return 'off sends <code>chat_template_kwargs</code>';
-  }
-  return DEFAULT_HINTS[id];
-}
-
 function unavailableReason(id) {
   if (id === "image" && knowCapabilities && !visionModels.has(state.model)) {
     return "this model has no vision projector";
@@ -708,7 +703,7 @@ function applyAvailability() {
     const reason = unavailableReason(id);
     box.disabled = !!reason;
     row.classList.toggle("unavailable", !!reason);
-    hint.innerHTML = reason || hintFor(id);
+    hint.innerHTML = reason || DEFAULT_HINTS[id];
     if (reason && state[id]) {
       state[id] = false;
       box.checked = false;
