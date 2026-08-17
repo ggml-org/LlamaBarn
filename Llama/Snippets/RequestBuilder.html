@@ -113,6 +113,11 @@
   .toggle .name { display: block; cursor: pointer; }
   .toggle .hint { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
   .toggle code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
+  /* An option the selected model can't do is dimmed and disabled, not hidden:
+     hiding it would make the capability undiscoverable and make the list jump
+     as you switch models. The hint says why. */
+  .toggle.unavailable { opacity: 0.55; }
+  .toggle.unavailable .name { cursor: default; }
 
   /* snippet */
   .snippet-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-height: 24px; }
@@ -274,11 +279,11 @@
         </span>
       </div>
 
-      <div class="toggle">
+      <div class="toggle" id="imageRow">
         <input type="checkbox" id="image">
         <span class="body">
           <label class="name" for="image">Image input</label>
-          <span class="hint">typed content parts — needs a vision model</span>
+          <span class="hint" id="imageHint">typed content parts — needs a vision model</span>
         </span>
       </div>
 
@@ -326,6 +331,13 @@
 const CONFIG = window.LLAMA_CONFIG || {};
 const BASE = CONFIG.baseUrl || "http://localhost:9931";
 
+// Models with a vision projector, learned from /v1/models. `knowCapabilities`
+// stays false when the server can't be reached, in which case nothing is
+// disabled -- better to offer an option that might fail than to hide one that
+// would have worked.
+const visionModels = new Set();
+let knowCapabilities = false;
+
 const state = {
   api: "chat",
   lang: "curl",
@@ -343,7 +355,23 @@ async function loadModels() {
   const sel = document.getElementById("model");
   try {
     const r = await fetch(BASE + "/v1/models");
-    const ids = (await r.json()).data.map(m => m.id).sort();
+    const models = (await r.json()).data;
+    // A model can take images only if a projector is configured for it, which
+    // the server reports as --mmproj in the launch args it would use. There's
+    // no capabilities field to read; this is the available signal, and it
+    // answers the right question -- not "could this architecture do vision"
+    // but "can this model accept an image right now".
+    models.forEach(m => {
+      if ((m.status?.args || []).includes("--mmproj")) visionModels.add(m.id);
+    });
+    // Only trust the signal if the field we read is actually there. status.args
+    // is an undocumented shape; if it ever goes away we'd otherwise conclude
+    // that no model supports vision and disable the option for all of them --
+    // silently removing a feature that works. Failing to "unknown" instead
+    // means the worst case is that we stop gating, which is recoverable by the
+    // server's own error message.
+    knowCapabilities = models.some(m => Array.isArray(m.status?.args));
+    const ids = models.map(m => m.id).sort();
     sel.innerHTML = ids.map(id => `<option>${id}</option>`).join("");
     if (ids.includes(state.model)) sel.value = state.model;
     else state.model = sel.value;
@@ -542,7 +570,25 @@ function currentSnippet() {
   return { curl: snippetCurl, python: snippetPython, js: snippetJs }[state.lang]();
 }
 
+// Reflects the selected model's capabilities into the options list.
+function applyCapabilities() {
+  const canSeeImages = !knowCapabilities || visionModels.has(state.model);
+  const box = document.getElementById("image");
+  box.disabled = !canSeeImages;
+  document.getElementById("imageRow").classList.toggle("unavailable", !canSeeImages);
+  document.getElementById("imageHint").textContent = canSeeImages
+    ? "typed content parts — needs a vision model"
+    : "this model has no vision projector";
+  // Switching from a vision model to one without would otherwise leave a
+  // request that 500s on the server.
+  if (!canSeeImages && state.image) {
+    state.image = false;
+    box.checked = false;
+  }
+}
+
 function render() {
+  applyCapabilities();
   document.getElementById("snippet").innerHTML = highlight(currentSnippet());
   document.getElementById("endpointPath").textContent = path();
   const c = caveats();
