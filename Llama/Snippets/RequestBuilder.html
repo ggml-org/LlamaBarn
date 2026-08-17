@@ -464,13 +464,6 @@ function scenario() {
 // the server is.
 const IMAGE_URL = "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/media/llama0-logo.png";
 
-function userContent() {
-  if (!state.image) return state.prompt;
-  return [
-    { type: "text", text: state.prompt },
-    { type: "image_url", image_url: { url: IMAGE_URL } },
-  ];
-}
 
 function buildBody() {
   const b = { model: state.model };
@@ -508,7 +501,10 @@ function buildBody() {
   }
 
   // OpenAI chat completions
-  b.messages = [{ role: "user", content: userContent() }];
+  b.messages = [{ role: "user", content: state.image
+    ? [{ type: "text", text: state.prompt },
+       { type: "image_url", image_url: { url: IMAGE_URL } }]
+    : state.prompt }];
   if (state.stream) b.stream = true;
   if (!state.thinking) {
     // Two independent paths: reasoning_effort is the request-level switch,
@@ -528,16 +524,20 @@ function path() {
   return { chat: "/v1/chat/completions", responses: "/v1/responses", anthropic: "/v1/messages" }[state.api];
 }
 
-// --- snippet rendering -----------------------------------------------------
-function jsonLines(obj, indent) {
-  return JSON.stringify(obj, null, 2).split("\n").map(l => indent + l).join("\n");
-}
 
 function snippetCurl() {
   const hdr = state.api === "anthropic"
     ? `  -H "Content-Type: application/json" \\\n  -H "anthropic-version: 2023-06-01" \\\n`
     : `  -H "Content-Type: application/json" \\\n`;
   return `curl ${BASE}${path()} \\\n${hdr}  -d '${JSON.stringify(buildBody(), null, 2).split("\n").map((l,i)=> i===0?l:"  "+l).join("\n")}'`;
+}
+
+// Which client method to call and what to print, shared by the Python and
+// JavaScript snippets -- the OpenAI SDKs name these the same way.
+function openaiNames() {
+  return state.api === "responses"
+    ? { call: "client.responses.create", out: "response.output_text" }
+    : { call: "client.chat.completions.create", out: "response.choices[0].message" };
 }
 
 function snippetPython() {
@@ -549,8 +549,7 @@ client = anthropic.Anthropic(base_url="${BASE}", api_key="no-key")
 message = client.messages.create(\n${pyArgs(buildBody(), "    ")}\n)
 print(message.content)`;
   }
-  const call = state.api === "responses" ? "client.responses.create" : "client.chat.completions.create";
-  const out = state.api === "responses" ? "response.output_text" : "response.choices[0].message";
+  const { call, out } = openaiNames();
   return `from openai import OpenAI
 
 client = OpenAI(base_url="${BASE}/v1", api_key="no-key")
@@ -576,11 +575,10 @@ function snippetJs() {
 
 const client = new Anthropic({ baseURL: "${BASE}", apiKey: "no-key" });
 
-const message = await client.messages.create(${jsonLines(buildBody(), "").replace(/^\{/, "{")});
+const message = await client.messages.create(${JSON.stringify(buildBody(), null, 2)});
 console.log(message.content);`;
   }
-  const call = state.api === "responses" ? "client.responses.create" : "client.chat.completions.create";
-  const out = state.api === "responses" ? "response.output_text" : "response.choices[0].message";
+  const { call, out } = openaiNames();
   return `import OpenAI from "openai";
 
 const client = new OpenAI({ baseURL: "${BASE}/v1", apiKey: "no-key" });
@@ -605,7 +603,7 @@ function caveats() {
   const c = [];
   // No --jinja note: the app always starts the server with it, so tool calling
   // works out of the box here (unlike a hand-rolled llama-server).
-  if (state.image) c.push("Needs a vision model. For a local file use <code>file://…</code> and start the server with <code>--media-path</code>.");
+  if (state.image) c.push("For a local file use <code>file://…</code> and start the server with <code>--media-path</code>.");
   if (!state.thinking && state.api === "chat") c.push("Models differ: some honour <code>reasoning_effort</code>, others only <code>chat_template_kwargs</code>. Both are sent.");
   if (!state.thinking && state.api === "anthropic") c.push("This endpoint ignores <code>thinking: {\"type\": \"disabled\"}</code> — <code>chat_template_kwargs</code> is the switch that works.");
   if (state.json) c.push("Schema-constrained output is enforced by a grammar, so the reply always parses.");
