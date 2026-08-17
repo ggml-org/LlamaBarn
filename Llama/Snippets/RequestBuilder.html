@@ -342,9 +342,10 @@ const visionModels = new Set();
 // nonsense of them: a greeting constrained to {city, temp_c}, or a weather
 // function the model has no reason to call.
 function syncPrompt() {
-  if (state.image) state.prompt = "What is in this image?";
-  else if (state.json || state.tools) state.prompt = "What's the weather in Paris?";
-  else state.prompt = "Hello!";
+  // A bare request has nothing to be about, so it stays a greeting; once an
+  // option brings an example along, the prompt comes from that scenario.
+  const carriesExample = state.image || state.json || state.tools;
+  state.prompt = carriesExample ? scenario().prompt : "Hello!";
 }
 let knowCapabilities = false;
 
@@ -401,24 +402,60 @@ async function loadModels() {
 // Each option maps to the parameter(s) it actually needs. This mapping is the
 // whole point of the tool: none of it is guessable from the OpenAI docs.
 
-const SCHEMA = {
-  type: "object",
-  properties: { city: { type: "string" }, temp_c: { type: "number" } },
-  required: ["city", "temp_c"],
-};
-
-const TOOL = {
-  type: "function",
-  function: {
-    name: "get_weather",
-    description: "Get the current weather for a city",
-    parameters: {
+// The examples come as a set. Each option carries one -- a prompt, a schema, a
+// tool -- and they have to describe the same situation or the request reads as
+// nonsense: an image prompt answered against a weather schema, or a weather
+// function with nothing to act on. So a scenario is picked first, and every
+// example is drawn from it.
+//
+// Which scenario: images if the request carries one, weather otherwise. Images
+// win because an image in the body is the more specific fact -- a weather
+// question can be asked about anything, but a picture has to be the subject.
+const SCENARIOS = {
+  weather: {
+    prompt: "What's the weather in Paris?",
+    schemaName: "weather",
+    schema: {
       type: "object",
-      properties: { city: { type: "string" } },
-      required: ["city"],
+      properties: { city: { type: "string" }, temp_c: { type: "number" } },
+      required: ["city", "temp_c"],
+    },
+    tool: {
+      name: "get_weather",
+      description: "Get the current weather for a city",
+      parameters: {
+        type: "object",
+        properties: { city: { type: "string" } },
+        required: ["city"],
+      },
+    },
+  },
+  image: {
+    prompt: "What is in this image?",
+    schemaName: "image_description",
+    schema: {
+      type: "object",
+      properties: {
+        description: { type: "string" },
+        main_colors: { type: "array", items: { type: "string" } },
+      },
+      required: ["description", "main_colors"],
+    },
+    tool: {
+      name: "tag_image",
+      description: "Attach descriptive labels to an image",
+      parameters: {
+        type: "object",
+        properties: { labels: { type: "array", items: { type: "string" } } },
+        required: ["labels"],
+      },
     },
   },
 };
+
+function scenario() {
+  return state.image ? SCENARIOS.image : SCENARIOS.weather;
+}
 
 // Verified to fetch and describe correctly end to end. Wikimedia was the
 // obvious source and is the wrong one: it 400s any request without a browser
@@ -451,9 +488,9 @@ function buildBody() {
     // switches only chat_template_kwargs is passed through to this endpoint.
     if (!state.thinking) b.chat_template_kwargs = { enable_thinking: false };
     if (state.tools) b.tools = [{
-      name: TOOL.function.name,
-      description: TOOL.function.description,
-      input_schema: TOOL.function.parameters,
+      name: scenario().tool.name,
+      description: scenario().tool.description,
+      input_schema: scenario().tool.parameters,
     }];
     return b;
   }
@@ -466,7 +503,7 @@ function buildBody() {
       : state.prompt;
     if (state.stream) b.stream = true;
     if (!state.thinking) b.reasoning = { effort: "none" };
-    if (state.tools) b.tools = [{ type: "function", ...TOOL.function }];
+    if (state.tools) b.tools = [{ type: "function", ...scenario().tool }];
     return b;
   }
 
@@ -481,9 +518,9 @@ function buildBody() {
     b.chat_template_kwargs = { enable_thinking: false };
   }
   if (state.json) {
-    b.response_format = { type: "json_schema", json_schema: { name: "weather", schema: SCHEMA } };
+    b.response_format = { type: "json_schema", json_schema: { name: scenario().schemaName, schema: scenario().schema } };
   }
-  if (state.tools) b.tools = [TOOL];
+  if (state.tools) b.tools = [{ type: "function", function: scenario().tool }];
   return b;
 }
 
