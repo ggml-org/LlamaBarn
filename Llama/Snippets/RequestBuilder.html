@@ -681,7 +681,33 @@ async function send() {
   const status = document.getElementById("status");
   panel.classList.add("show");
   status.className = "status";
-  status.textContent = "running…";
+  // Neutral until the watcher below knows which it is -- claiming "running"
+  // first would be wrong for the seconds a large model spends loading, and
+  // /v1/models is itself slower to answer while that happens.
+  status.textContent = "sending…";
+  // A first request against an unloaded model spends most of its time loading
+  // weights, which can be many seconds and looks like a hang. The server
+  // reports load state per model, so say which of the two is happening --
+  // something a static note next to the button can't do.
+  let watching = true;
+  (async () => {
+    try {
+      while (watching) {
+        const r = await fetch(BASE + "/v1/models");
+        const m = (await r.json()).data.find(x => x.id === state.model);
+        if (!watching) return;
+        if (m?.status?.value === "loaded") {
+          status.textContent = "running…";
+          return;
+        }
+        status.textContent = "loading model…";
+        await new Promise(done => setTimeout(done, 1200));
+      }
+    } catch {
+      // The request itself reports failures; this is only a nicety.
+      if (watching) status.textContent = "running…";
+    }
+  })();
   body.textContent = "";
   // Bring the (previously hidden) response into view once, rather than
   // following it as it streams -- one nudge on request, then it's the
@@ -714,8 +740,10 @@ async function send() {
     } else {
       body.textContent = JSON.stringify(await r.json(), null, 2);
     }
+    watching = false;
     status.textContent = `${r.status} · ${Math.round(performance.now() - t0)} ms`;
   } catch (err) {
+    watching = false;
     status.className = "status err";
     status.textContent = "failed";
     body.textContent = String(err) + "\n\nIs the server running on " + BASE + "?";
