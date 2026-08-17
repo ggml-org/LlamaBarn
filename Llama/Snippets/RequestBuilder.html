@@ -382,7 +382,12 @@ const TOOL = {
   },
 };
 
-const IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/320px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg";
+// Verified to fetch and describe correctly end to end. Wikimedia was the
+// obvious source and is the wrong one: it 400s any request without a browser
+// user agent, so the server can't fetch it and the snippet fails when pasted.
+// This lives in the repo the engine itself comes from, so it's as stable as
+// the server is.
+const IMAGE_URL = "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/media/llama0-logo.png";
 
 function userContent() {
   if (!state.image) return state.prompt;
