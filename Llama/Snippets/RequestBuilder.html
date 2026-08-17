@@ -274,11 +274,11 @@
         </span>
       </div>
 
-      <div class="toggle" id="imageRow">
+      <div class="toggle">
         <input type="checkbox" id="image">
         <span class="body">
           <label class="name" for="image">Image input</label>
-          <span class="hint" id="imageHint">typed content parts — needs a vision model</span>
+          <span class="hint">typed content parts — needs a vision model</span>
         </span>
       </div>
 
@@ -617,26 +617,58 @@ function currentSnippet() {
   return { curl: snippetCurl, python: snippetPython, js: snippetJs }[state.lang]();
 }
 
-// Reflects the selected model's capabilities into the options list.
-function applyCapabilities() {
-  const canSeeImages = !knowCapabilities || visionModels.has(state.model);
-  const box = document.getElementById("image");
-  box.disabled = !canSeeImages;
-  document.getElementById("imageRow").classList.toggle("unavailable", !canSeeImages);
-  document.getElementById("imageHint").textContent = canSeeImages
-    ? "typed content parts — needs a vision model"
-    : "this model has no vision projector";
-  // Switching from a vision model to one without would otherwise leave a
-  // request that 500s on the server.
-  if (!canSeeImages && state.image) {
-    state.image = false;
-    box.checked = false;
-    syncPrompt();
+const OPTION_IDS = ["thinking", "stream", "json", "image", "tools"];
+
+// The markup owns each option's normal hint; an unavailable option borrows the
+// line to say why instead.
+const DEFAULT_HINTS = {};
+function optionEls(id) {
+  const box = document.getElementById(id);
+  const row = box.closest(".toggle");
+  return { box, row, hint: row.querySelector(".hint") };
+}
+OPTION_IDS.forEach(id => (DEFAULT_HINTS[id] = optionEls(id).hint.textContent));
+
+// Why an option can't be used right now, or null if it can. Two kinds of
+// reason, deliberately handled by one mechanism: the model may not be able to
+// (no vision projector) or the endpoint may not support it at all.
+//
+// Structured output really is chat-only -- /v1/responses ignores text.format
+// and /v1/messages ignores response_format, both verified against the server.
+// Before this it was silently dropped from the body on those endpoints while
+// the notes still promised grammar-enforced output.
+function unavailableReason(id) {
+  if (id === "image" && knowCapabilities && !visionModels.has(state.model)) {
+    return "this model has no vision projector";
   }
+  if (id === "json" && state.api !== "chat") {
+    return "only on the OpenAI chat endpoint";
+  }
+  return null;
+}
+
+// Dims what can't be used, says why, and unticks anything that just became
+// unavailable -- otherwise switching model or endpoint would leave a request
+// that fails, or one that quietly ignores an option you can still see ticked.
+function applyAvailability() {
+  let cleared = false;
+  for (const id of OPTION_IDS) {
+    const { box, row, hint } = optionEls(id);
+    const reason = unavailableReason(id);
+    box.disabled = !!reason;
+    row.classList.toggle("unavailable", !!reason);
+    hint.textContent = reason || DEFAULT_HINTS[id];
+    if (reason && state[id]) {
+      state[id] = false;
+      box.checked = false;
+      cleared = true;
+    }
+  }
+  if (cleared) syncPrompt();
 }
 
 function render() {
-  applyCapabilities();
+  applyAvailability();
   document.getElementById("snippet").innerHTML = highlight(currentSnippet());
   document.getElementById("endpointPath").textContent = path();
   const c = caveats();
