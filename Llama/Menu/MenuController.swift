@@ -635,6 +635,12 @@ final class MenuController: NSObject, NSMenuDelegate {
       copyRow?.flashConfirmation()
     }
     menu.addItem(NSMenuItem.viewItem(with: copyRow))
+    // Braces rather than sliders: sliders read as "adjust settings", and with
+    // a context-length picker right above, that invites reading this row as
+    // model settings. Braces say code, and say it at the same visual weight
+    // as the outline glyphs either side -- </> was tried and is three strokes
+    // and much wider, so it pulls the eye to the middle of the menu. They are
+    // also honest about what the page builds: a JSON body.
     // "API" earns its place: it's the word people scan for when they want to
     // use a model from their own code, and it was previously carried by the
     // word "curl" in the row this replaced. Without it the model page says
@@ -644,7 +650,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     // implied they were for different things -- which taught exactly the wrong
     // lesson, since the builder exists to answer the questions the bare curl
     // left you with (how do I turn thinking off, add a schema, send an image).
-    let builderRow = ActionItemView(title: "Build an API request", symbol: "slider.horizontal.3") {}
+    let builderRow = ActionItemView(title: "Build an API request", symbol: "curlybraces") {}
     builderRow.onAction = { [weak builderRow] in
       // Opened through the row so the menu dismisses with the navigation --
       // same as Chat with model above.
