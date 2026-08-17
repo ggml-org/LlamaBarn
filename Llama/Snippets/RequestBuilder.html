@@ -138,6 +138,9 @@
   /* snippet */
   .snippet-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-height: 24px; }
   .snippet-head .endpoint { flex: 1; margin: 0; }
+  /* Send leads: it's the primary action, and this row reads as the end of the
+     request rather than as a toolbar. */
+  .under-actions { display: flex; gap: 8px; margin-top: 12px; }
   .snippet-head .section-title { margin: 0; flex: 1; }
   .endpoint {
     margin: 0; font-size: 12px; color: var(--muted);
@@ -146,8 +149,11 @@
   .endpoint span { font-weight: 600; color: var(--accent); }
   .endpoint code { font-family: inherit; }
   .endpoint .dim { opacity: 0.6; }
+  /* Full size again. These were compressed to fit the 24px header row that
+     lines the code block up with the first control in the sidebar; below the
+     block they no longer set that height, so the constraint is gone. */
   button.action {
-    font: inherit; font-size: 12px; padding: 1px 10px; border-radius: 5px;
+    font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 6px;
     border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer;
   }
   button.action:hover { border-color: var(--muted); }
@@ -315,11 +321,16 @@
          an SDK snippet, which buries them in a method name. -->
     <div class="snippet-head">
       <p class="endpoint"><span>POST</span> <code id="endpointPath"></code> <code class="dim" id="endpointBase"></code></p>
-      <button class="action" id="copy">Copy</button>
-      <button class="action primary" id="send">Send</button>
     </div>
     <pre id="snippet"></pre>
+    <!-- Notes belong with the request they qualify, so they sit above the
+         actions rather than after them; below, they would separate Send from
+         the response that renders directly beneath it. -->
     <p class="note" id="caveat"></p>
+    <div class="under-actions">
+      <button class="action primary" id="send">Send</button>
+      <button class="action" id="copy">Copy</button>
+    </div>
 
     <div id="response">
       <div class="snippet-head">
@@ -621,7 +632,6 @@ function caveats() {
   if (state.image) c.push("For a local file use <code>file://…</code> and start the server with <code>--media-path</code>.");
   if (!state.thinking && state.api === "chat") c.push("Models differ: some honour <code>reasoning_effort</code>, others only <code>chat_template_kwargs</code>. Both are sent.");
   if (!state.thinking && state.api === "anthropic") c.push("This endpoint ignores <code>thinking: {\"type\": \"disabled\"}</code> — <code>chat_template_kwargs</code> is the switch that works.");
-  if (state.json) c.push("Schema-constrained output is enforced by a grammar, so the reply always parses.");
   if (state.stream) c.push("Response arrives as SSE <code>data:</code> lines terminated by <code>[DONE]</code>.");
   return c;
 }
