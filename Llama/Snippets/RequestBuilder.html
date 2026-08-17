@@ -248,11 +248,6 @@
     </div>
 
     <div class="group">
-      <label class="title" for="prompt">Prompt</label>
-      <textarea id="prompt" rows="2">Hello!</textarea>
-    </div>
-
-    <div class="group">
       <span class="section-title">Options</span>
 
       <div class="toggle">
@@ -337,26 +332,19 @@ const BASE = CONFIG.baseUrl || "http://localhost:9931";
 // would have worked.
 const visionModels = new Set();
 
-// The options carry worked examples -- a weather schema, a get_weather tool, an
-// image -- and "Hello!" makes nonsense of all three: a greeting constrained to
-// {city, temp_c}, or a weather function the model has no reason to call. The
-// prompt follows whichever example is switched on, so the request reads as a
-// coherent whole, but only until you write your own; after that it's yours.
-const DEFAULT_PROMPT = "Hello!";
-let promptTouched = false;
-
-function suggestedPrompt() {
-  if (state.image) return "What is in this image?";
-  if (state.json || state.tools) return "What's the weather in Paris?";
-  return DEFAULT_PROMPT;
-}
-
+// The prompt is derived, not entered -- the same reasoning as the schema and
+// the tool definition, which are also fixed examples you read rather than
+// edit. This page shows the SHAPE of a request; the prompt is content, and
+// it's already visible in the snippet. Chat with model, one row up in the
+// menu, is where you bring your own wording.
+//
+// It follows whichever example is switched on, because the alternative made
+// nonsense of them: a greeting constrained to {city, temp_c}, or a weather
+// function the model has no reason to call.
 function syncPrompt() {
-  if (promptTouched) return;
-  const next = suggestedPrompt();
-  if (next === state.prompt) return;
-  state.prompt = next;
-  document.getElementById("prompt").value = next;
+  if (state.image) state.prompt = "What is in this image?";
+  else if (state.json || state.tools) state.prompt = "What's the weather in Paris?";
+  else state.prompt = "Hello!";
 }
 let knowCapabilities = false;
 
@@ -638,20 +626,6 @@ seg("langSeg", "lang");
     syncPrompt();
     render();
   });
-});
-document.getElementById("prompt").addEventListener("input", e => {
-  state.prompt = e.target.value;
-  // From here on the prompt is the reader's, and options stop rewriting it.
-  promptTouched = true;
-  render();
-});
-// Enter sends, shift+Enter makes a newline. The prompt is a one-liner in
-// practice, and this is what every chat box has trained people to expect.
-document.getElementById("prompt").addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
 });
 document.getElementById("model").addEventListener("change", e => {
   state.model = e.target.value; render();
