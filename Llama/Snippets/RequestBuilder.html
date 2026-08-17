@@ -11,13 +11,14 @@
     --border: #e2e1de;
     --text: #1c1b19;
     --muted: #6b6862;
-    /* The CSS system accent. In practice Chrome reports a fixed system blue
-       rather than tracking the accent chosen in System Settings, so this is
-       effectively "the platform's blue" -- which is what we want, and which
-       matches the app's own tinted controls in their default state.
-       AccentColorText is the foreground the system pairs with it; used rather
-       than white because a browser that does track the OS accent could hand
-       us a hue white doesn't sit on. */
+    /* The CSS system accent. Chrome deliberately reports a fixed blue here
+       rather than the accent from System Settings: the real value is exposed
+       only to installed web apps, because an arbitrary user-chosen colour is
+       a fingerprinting vector. In a plain tab -- which is how this page is
+       always opened -- that makes this "the platform's blue", which is what
+       we want, and which matches the app's tinted controls in their default
+       state. Safari may well hand back the actual accent; AccentColorText is
+       used for text on top rather than white so that case stays legible. */
     --accent: AccentColor;
     --on-accent: AccentColorText;
     /* Failure states get their own colour rather than the accent. They carry
