@@ -147,7 +147,8 @@
   /* Send leads: it's the primary action, and this row reads as the end of the
      request rather than as a toolbar. */
   .under-actions { display: flex; gap: 8px; margin-top: 12px; }
-  .snippet-head .section-title { margin: 0; flex: 1; }
+  .snippet-head .section-title { margin: 0; }
+  .snippet-head .filler { flex: 1; }
   .endpoint {
     margin: 0; font-size: 12px; color: var(--muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -186,6 +187,7 @@
      ~5900px and leave every other line stranded in white space. Widening the
      page cannot fix that ratio; wrapping does. */
   #responseBody { white-space: pre-wrap; overflow-wrap: anywhere; }
+  #responseBody:not(:has(span)) { color: var(--muted); }
 
   /* Offline banner -- tinted rather than loud: the page still does something
      useful without a server (the snippet is just text you can copy). */
@@ -342,6 +344,7 @@
       <div class="snippet-head">
         <span class="section-title">Response</span>
         <span class="status" id="status"></span>
+        <span class="filler"></span>
       </div>
       <pre id="responseBody"></pre>
     </div>
@@ -776,10 +779,18 @@ async function send() {
   const status = document.getElementById("status");
   panel.classList.add("show");
   status.className = "status";
-  // Neutral until the watcher below knows which it is -- claiming "running"
+  status.textContent = "";
+  // Progress shows inside the response block rather than in the header. It is
+  // transient, and a first request against an unloaded model can sit for many
+  // seconds -- long enough to read as broken if you came from a cloud API and
+  // the only sign of life is a caption at the far edge of a wide window. Here
+  // it's where the reply is about to land, which is where you're looking.
+  // Neutral until the watcher knows which phase it is: claiming "running"
   // first would be wrong for the seconds a large model spends loading, and
   // /v1/models is itself slower to answer while that happens.
-  status.textContent = "sending…";
+  let placeholder = true;
+  const progress = (text) => { if (placeholder) body.textContent = text; };
+  progress("sending…");
   // A first request against an unloaded model spends most of its time loading
   // weights, which can be many seconds and looks like a hang. The server
   // reports load state per model, so say which of the two is happening --
@@ -792,18 +803,17 @@ async function send() {
         const m = (await r.json()).data.find(x => x.id === state.model);
         if (!watching) return;
         if (m?.status?.value === "loaded") {
-          status.textContent = "running…";
+          progress("running…");
           return;
         }
-        status.textContent = "loading model…";
+        progress("loading model…");
         await new Promise(done => setTimeout(done, 1200));
       }
     } catch {
       // The request itself reports failures; this is only a nicety.
-      if (watching) status.textContent = "running…";
+      progress("running…");
     }
   })();
-  body.textContent = "";
   // Bring the (previously hidden) response into view once, rather than
   // following it as it streams -- one nudge on request, then it's the
   // reader's page to scroll.
@@ -829,6 +839,7 @@ async function send() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        placeholder = false;
         acc += dec.decode(value, { stream: true });
         // Plain text while it streams: re-highlighting the whole buffer on
         // every chunk is quadratic, and the raw SSE lines are what the note
@@ -837,12 +848,14 @@ async function send() {
       }
       body.innerHTML = highlight(acc);
     } else {
+      placeholder = false;
       body.innerHTML = highlight(JSON.stringify(await r.json(), null, 2));
     }
     watching = false;
     status.textContent = `${r.status} · ${Math.round(performance.now() - t0)} ms`;
   } catch (err) {
     watching = false;
+    placeholder = false;
     status.className = "status err";
     status.textContent = "failed";
     body.textContent = String(err) + "\n\nIs the server running on " + BASE + "?";
