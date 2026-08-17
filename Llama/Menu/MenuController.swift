@@ -635,12 +635,16 @@ final class MenuController: NSObject, NSMenuDelegate {
       copyRow?.flashConfirmation()
     }
     menu.addItem(NSMenuItem.viewItem(with: copyRow))
+    // "API" earns its place: it's the word people scan for when they want to
+    // use a model from their own code, and it was previously carried by the
+    // word "curl" in the row this replaced. Without it the model page says
+    // nothing about the API at all.
     // The API entry point for this model. It replaced a Copy curl command row
     // that sat here: the builder produces that same curl, and having both
     // implied they were for different things -- which taught exactly the wrong
     // lesson, since the builder exists to answer the questions the bare curl
     // left you with (how do I turn thinking off, add a schema, send an image).
-    let builderRow = ActionItemView(title: "Build a request", symbol: "slider.horizontal.3") {}
+    let builderRow = ActionItemView(title: "Build an API request", symbol: "slider.horizontal.3") {}
     builderRow.onAction = { [weak builderRow] in
       // Opened through the row so the menu dismisses with the navigation --
       // same as Chat with model above.
