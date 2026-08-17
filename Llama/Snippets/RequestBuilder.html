@@ -11,7 +11,19 @@
     --border: #e2e1de;
     --text: #1c1b19;
     --muted: #6b6862;
-    --accent: #c2551f;
+    /* The CSS system accent. In practice Chrome reports a fixed system blue
+       rather than tracking the accent chosen in System Settings, so this is
+       effectively "the platform's blue" -- which is what we want, and which
+       matches the app's own tinted controls in their default state.
+       AccentColorText is the foreground the system pairs with it; used rather
+       than white because a browser that does track the OS accent could hand
+       us a hue white doesn't sit on. */
+    --accent: AccentColor;
+    --on-accent: AccentColorText;
+    /* Failure states get their own colour rather than the accent. They carry
+       a meaning the accent doesn't, and an accent that varies by platform or
+       preference could render "failed" in something reassuring. */
+    --danger: #b3261e;
     --code-bg: #faf9f7;
     --key: #8a5cbf;
     --str: #3d7a4e;
@@ -25,7 +37,7 @@
       --border: #302e2a;
       --text: #ece9e3;
       --muted: #9a958c;
-      --accent: #e8823f;
+      --danger: #f28177;
       --code-bg: #131210;
       --key: #c6a0ec;
       --str: #8fce9f;
@@ -130,7 +142,7 @@
     border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer;
   }
   button.action:hover { border-color: var(--muted); }
-  button.action.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.action.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   pre {
     margin: 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
     padding: 14px 16px; overflow-x: auto;
@@ -143,7 +155,7 @@
   #response { margin-top: 20px; display: none; }
   #response.show { display: block; }
   .status { color: var(--muted); font-size: 12.5px; }
-  .status.err { color: var(--accent); }
+  .status.err { color: var(--danger); }
 
   /* The response wraps; the snippet above does not. They are different kinds
      of content: the snippet is code you copy, and it measures 85 characters
@@ -158,8 +170,8 @@
      useful without a server (the snippet is just text you can copy). */
   #offline {
     width: calc(100% - 48px); margin: 16px auto 0; padding: 10px 14px;
-    border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
     border-radius: 7px; font-size: 13px; display: flex; gap: 7px; flex-wrap: wrap;
   }
   #offline[hidden] { display: none; }
