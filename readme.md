@@ -56,6 +56,32 @@ curl http://localhost:9931/v1/chat/completions \
 
 See complete API reference in the llama.cpp server [docs](https://github.com/ggml-org/llama.cpp/tree/master/tools/server#api-endpoints).
 
+## Custom model settings
+
+The app configures each model for your Mac and writes that config to `models.ini`, which it regenerates on every launch. To change a setting, or add one the app doesn't set, edit `~/.config/llama/models.user.ini` instead -- the app only reads that file, and merges it into the config it generates.
+
+Use the same section header the app uses (`org/repo:QUANT`), and list only the keys you want to change. Keys are `llama serve` options without the leading dashes.
+
+```ini
+[ggml-org/gemma-4-E4B-it-GGUF:Q8_0]
+temp = 0.7
+ctx-size = 32768
+cache-type-k = q4_1
+```
+
+A section for a model the app didn't find is passed through as-is, which is how you point at weights or a draft model from another repo.
+
+```ini
+[unsloth/DeepSeek-V4-Flash-0731-GGUF:UD-Q2_K_XL]
+model = /path/to/DeepSeek-V4-Flash-UD-Q2_K_XL.gguf
+spec-type = draft-dspark
+spec-draft-model = /path/to/draft.gguf
+```
+
+Anything you set here wins over the app's own value, including settings derived from how much memory your Mac has. If a key can't be applied, the app ignores the file and the menu says which option was at fault.
+
+A commented template is written to this path on first launch.
+
 ## Experimental settings
 
 **Expose to network** — By default, the server is only accessible from your Mac (`localhost`). This option allows connections from other devices on your local network. Only enable this if you understand the security risks.
