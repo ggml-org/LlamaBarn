@@ -40,8 +40,8 @@ class ModelManager: NSObject, URLSessionDataDelegate {
   }
 
   /// Entries with on-disk `.partial` bytes but no in-flight transfer.
-  /// `updateDownloadedModels` excludes ids that are installed or actively
-  /// downloading at refresh time.
+  /// `apply(_:)` excludes ids that are installed or actively downloading at
+  /// refresh time.
   var pausedModels: [Model] {
     pausedDownloads.values.map(\.model)
   }
@@ -113,8 +113,6 @@ class ModelManager: NSObject, URLSessionDataDelegate {
       }
     }
     pathMonitor.start(queue: DispatchQueue.global(qos: .utility))
-
-    refreshDownloadedModels()
   }
 
   /// Reacts to a network-path change. On the offline→online edge, resumes any
@@ -538,79 +536,113 @@ class ModelManager: NSObject, URLSessionDataDelegate {
   /// Active mem-profile enrichment task. Cancelled on refresh to avoid stale updates.
   private var memProfileTask: Task<Void, Never>?
 
+  /// Everything one cache scan produces, ready to be applied to state.
+  private struct ScanResult {
+    var models: [Model]
+    var resolvedPaths: [String: ResolvedPaths]
+    var needsProfile: [(id: String, path: String)]
+    var paused: [(model: Model, bytesOnDisk: Int64)]
+  }
+
+  /// The scan itself: pure disk work, no state touched, so it can run on the
+  /// main actor at launch or off it for every later refresh.
+  nonisolated private static func scan(cacheDir hfCacheDir: URL) -> ScanResult {
+    let discovered = HFCache.scanForSideloaded(cacheDir: hfCacheDir)
+
+    // Apply cached mem-profile when available; queue the rest for async probing.
+    var resolvedPaths: [String: ResolvedPaths] = [:]
+    var models: [Model] = []
+    var needsProfile: [(id: String, path: String)] = []
+    for (entry, paths) in discovered {
+      var entry = entry
+      if let cached = MemProfileCache.get(modelId: entry.id) {
+        entry.ctxBytesPer1kTokens = cached.ctxBytesPer1kTokens
+        entry.residentBytes = cached.residentBytes
+      } else {
+        needsProfile.append((id: entry.id, path: paths.modelFile))
+      }
+      resolvedPaths[entry.id] = paths
+      models.append(entry)
+    }
+
+    // Garbage-collect partial dirs whose target is now installed.
+    let installedIds = Set(models.map(\.id))
+    HFCache.cleanInstalledPartials(cacheDir: hfCacheDir, installedIds: installedIds)
+
+    // Rehydrate paused rows for downloads interrupted in a previous session:
+    // decode each on-disk placeholder back into a `Model` and pair it with its
+    // current bytes-on-disk. No network resolve needed — the placeholder
+    // carries the full `Model`.
+    let pausedEntries = HFCache.scanPlaceholders(cacheDir: hfCacheDir).compactMap {
+      url -> (model: Model, bytesOnDisk: Int64)? in
+      guard let data = try? Data(contentsOf: url),
+        let model = try? JSONDecoder().decode(Model.self, from: data)
+      else { return nil }
+      return (model, HFCache.partialBytes(cacheDir: hfCacheDir, modelId: model.id))
+    }
+
+    return ScanResult(
+      models: models, resolvedPaths: resolvedPaths, needsProfile: needsProfile,
+      paused: pausedEntries)
+  }
+
   /// Scans the HF cache for installed models. Every model is treated as a
   /// sideloaded discovery — metadata comes from the repo dir + filename.
   func refreshDownloadedModels() {
-    #if DEBUG
-      // DEBUG fixture: replace the real cache scan with a large, realistic list
-      // so the long-list UI can be worked on without downloading any weights.
-      // Skips mem-profiling, models.ini, and the server reload entirely.
-      if SimulatedModels.isEnabled {
-        downloadedModels = SimulatedModels.all.sorted(by: Model.displayOrder(_:_:))
-        resolvedPaths = [:]
-        NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
-        return
-      }
-    #endif
+    if applySimulatedModelsIfEnabled() { return }
 
     let hfCacheDir = UserSettings.hfCacheDirectory
 
     // Move directory reading to background queue to avoid blocking main thread
     Task.detached { [weak self] in
-      let discovered = HFCache.scanForSideloaded(cacheDir: hfCacheDir)
-
-      // Apply cached mem-profile when available; queue the rest for async probing.
-      var resolvedPaths: [String: ResolvedPaths] = [:]
-      var models: [Model] = []
-      var needsProfile: [(id: String, path: String)] = []
-      for (entry, paths) in discovered {
-        var entry = entry
-        if let cached = MemProfileCache.get(modelId: entry.id) {
-          entry.ctxBytesPer1kTokens = cached.ctxBytesPer1kTokens
-          entry.residentBytes = cached.residentBytes
-        } else {
-          needsProfile.append((id: entry.id, path: paths.modelFile))
-        }
-        resolvedPaths[entry.id] = paths
-        models.append(entry)
-      }
-
-      // Garbage-collect partial dirs whose target is now installed.
-      let installedIds = Set(models.map(\.id))
-      HFCache.cleanInstalledPartials(cacheDir: hfCacheDir, installedIds: installedIds)
-
-      // Rehydrate paused rows for downloads interrupted in a previous session:
-      // decode each on-disk placeholder back into a `Model` and pair it with its
-      // current bytes-on-disk. No network resolve needed — the placeholder
-      // carries the full `Model`.
-      let pausedEntries = HFCache.scanPlaceholders(cacheDir: hfCacheDir).compactMap {
-        url -> (model: Model, bytesOnDisk: Int64)? in
-        guard let data = try? Data(contentsOf: url),
-          let model = try? JSONDecoder().decode(Model.self, from: data)
-        else { return nil }
-        return (model, HFCache.partialBytes(cacheDir: hfCacheDir, modelId: model.id))
-      }
-
-      let allDownloaded = models
-      let finalResolved = resolvedPaths
-      let pendingProfile = needsProfile
-
+      let result = Self.scan(cacheDir: hfCacheDir)
       guard let self else { return }
-      await MainActor.run {
-        self.updateDownloadedModels(
-          allDownloaded, resolved: finalResolved, pending: pendingProfile, paused: pausedEntries)
-      }
+      await MainActor.run { self.apply(result) }
     }
   }
 
-  private func updateDownloadedModels(
-    _ models: [Model],
-    resolved: [String: ResolvedPaths],
-    pending: [(id: String, path: String)] = [],
-    paused: [(model: Model, bytesOnDisk: Int64)] = []
-  ) {
-    downloadedModels = models.sorted(by: Model.displayOrder(_:_:))
-    resolvedPaths = resolved
+  /// Scans on the calling (main) thread and applies the result before
+  /// returning, so `models.ini` is on disk by the time this call ends.
+  ///
+  /// Launch uses this rather than the async refresh above. `llama serve` reads
+  /// `models.ini` exactly once, at start, so it has to be current *before* the
+  /// server is spawned -- otherwise the session runs on the previous launch's
+  /// config, which is how an edit to `models.user.ini` used to need two
+  /// restarts to take effect. Sequencing that with an async scan means the
+  /// launch has to wait on it, and a menu-bar app with nothing on screen gets
+  /// suspended mid-launch: measured, the server sat unstarted for 24s after the
+  /// scan had already landed. Blocking is what keeps the process running, and
+  /// the ordering falls out of plain statement order.
+  ///
+  /// Costs roughly a second of launch on a large cache -- the menu bar icon
+  /// appears that much later. Worth it for a server that starts on the config
+  /// the user actually has.
+  func scanNow() {
+    if applySimulatedModelsIfEnabled() { return }
+    apply(Self.scan(cacheDir: UserSettings.hfCacheDirectory))
+  }
+
+  /// DEBUG fixture: replaces the real cache scan with a large, realistic list so
+  /// the long-list UI can be worked on without downloading any weights. Skips
+  /// mem-profiling, models.ini, and the server reload entirely. Returns true
+  /// when it took over.
+  private func applySimulatedModelsIfEnabled() -> Bool {
+    #if DEBUG
+      if SimulatedModels.isEnabled {
+        downloadedModels = SimulatedModels.all.sorted(by: Model.displayOrder(_:_:))
+        resolvedPaths = [:]
+        NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
+        return true
+      }
+    #endif
+    return false
+  }
+
+  /// Folds a finished scan into state: model list, paused rows, `models.ini`,
+  /// and the async mem-profile probes for anything without a cached profile.
+  private func apply(_ result: ScanResult) {
+    downloadedModels = result.models.sorted(by: Model.displayOrder(_:_:))
+    resolvedPaths = result.resolvedPaths
     // Drop paused entries that are now installed or actively downloading, then
     // fold in the rehydrated on-disk placeholders. The merge is idempotent: a
     // download paused this session has both an in-memory entry and a placeholder
@@ -618,7 +650,7 @@ class ModelManager: NSObject, URLSessionDataDelegate {
     let excluded = Set(downloadedModels.map(\.id))
       .union(activeDownloads.keys)
     pausedDownloads = pausedDownloads.filter { !excluded.contains($0.key) }
-    for entry in paused where !excluded.contains(entry.model.id) {
+    for entry in result.paused where !excluded.contains(entry.model.id) {
       // Preserve an existing entry's resumeOnReconnect flag — placeholders know
       // nothing about connectivity, and clobbering the flag here would stop a
       // connectivity-parked download from auto-resuming when a refresh lands
@@ -634,8 +666,8 @@ class ModelManager: NSObject, URLSessionDataDelegate {
     NotificationCenter.default.post(name: .LBModelDownloadedListDidChange, object: self)
 
     // Kick off async mem-profile probing for models without cached results
-    if !pending.isEmpty {
-      enrichWithMemProfiles(pending)
+    if !result.needsProfile.isEmpty {
+      enrichWithMemProfiles(result.needsProfile)
     }
   }
 

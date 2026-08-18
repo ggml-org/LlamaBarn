@@ -138,8 +138,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       userDriverDelegate: self
     )
 
-    // Initialize the shared model library manager to scan for existing models
-    _ = ModelManager.shared
+    // Scan the model cache and write models.ini, before anything reads either.
+    // Synchronous on purpose: the server reads models.ini once at start, so it
+    // has to be current first, and `scanNow()` explains why that ordering can't
+    // be arranged with an async scan.
+    ModelManager.shared.scanNow()
 
     // Create the AppKit-based status bar menu (installed models only for now)
     menuController = MenuController()
@@ -189,22 +192,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       // input" AppleScript command -- see CLAUDE.md -- rather than gating on the
       // experiment flag here.)
       //
-      // The installed-models scan is async, so opening on a fixed delay races it
-      // and shows an empty Installed section until you reopen. Wait for the scan:
-      // open now if the list is already populated, otherwise on the first
-      // list-change notification (a one-shot observer) -- which the scan posts on
-      // completion even when it finds nothing, so a fresh machine still opens.
-      let openMenu: () -> Void = { [weak self] in self?.menuController?.openMenu() }
-      if !ModelManager.shared.downloadedModels.isEmpty {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: openMenu)
-      } else {
-        var token: NSObjectProtocol?
-        token = NotificationCenter.default.addObserver(
-          forName: .LBModelDownloadedListDidChange, object: nil, queue: .main
-        ) { _ in
-          if let token { NotificationCenter.default.removeObserver(token) }
-          openMenu()
-        }
+      // No race to handle: the scan above is synchronous, so the model list is
+      // already populated by the time this runs.
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        self?.menuController?.openMenu()
       }
     #endif
 
