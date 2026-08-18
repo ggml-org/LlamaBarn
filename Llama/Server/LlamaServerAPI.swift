@@ -57,6 +57,21 @@ struct LlamaServerAPI {
   // is picked up without recreating the client.
   private var baseUrl: String { "http://localhost:\(LlamaServer.port)" }
 
+  /// A session that never caches.
+  ///
+  /// Every endpoint here either reports live server state or has a side effect
+  /// (`?reload=1`), so a cached response is always wrong -- and a cached 200 is
+  /// worse than an error, because the caller reads it as "the server did the
+  /// thing". `llama serve` sends no cache headers at all, which leaves the
+  /// decision to CFNetwork's heuristics; the shared cache has been seen holding
+  /// entries for these URLs. Opting out is cheaper than relying on that
+  /// heuristic staying favourable.
+  private static let session: URLSession = {
+    let config = URLSessionConfiguration.default
+    config.urlCache = nil
+    return URLSession(configuration: config)
+  }()
+
   /// Sends a GET request and returns the response data.
   private func get(endpoint: String, timeout: TimeInterval = 2.0) async -> Data? {
     guard let url = URL(string: "\(baseUrl)/\(endpoint)") else { return nil }
@@ -65,7 +80,7 @@ struct LlamaServerAPI {
     request.timeoutInterval = timeout
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await Self.session.data(for: request)
       guard let httpResponse = response as? HTTPURLResponse,
         httpResponse.statusCode == 200
       else { return nil }
@@ -86,7 +101,7 @@ struct LlamaServerAPI {
     request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
     do {
-      let (_, response) = try await URLSession.shared.data(for: request)
+      let (_, response) = try await Self.session.data(for: request)
       return (response as? HTTPURLResponse)?.statusCode == 200
     } catch {
       return false
