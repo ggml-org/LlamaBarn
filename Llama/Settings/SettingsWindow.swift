@@ -324,6 +324,7 @@ struct SettingsView: View {
   // Effective server port; re-read after the edit sheet saves so the row updates.
   @State private var serverPort = LlamaServer.port
   @State private var showingServerPortSheet = false
+  @State private var exposeToNetwork = UserSettings.exposeToNetwork
 
   var body: some View {
     switch tab {
@@ -405,6 +406,30 @@ struct SettingsView: View {
         }
       }
 
+      // Network exposure section
+      Section {
+        SettingRow(
+          title: "Allow network access",
+          description:
+            "Other devices on your network can reach the server. It has no password -- only turn this on for a network you trust."
+        ) {
+          // Written inside the binding (not `.onChange`) so the defaults value
+          // is current before SwiftUI recomputes the body -- otherwise the
+          // server-command preview renders one toggle behind. The setter posts
+          // the change notification, which restarts the server on the new host.
+          Toggle(
+            "",
+            isOn: Binding(
+              get: { exposeToNetwork },
+              set: { newValue in
+                UserSettings.exposeToNetwork = newValue
+                exposeToNetwork = newValue
+              })
+          )
+          .labelsHidden()
+        }
+      }
+
       // Optional HF access token section
       Section {
         SettingRow(
@@ -475,7 +500,8 @@ struct SettingsView: View {
       Section {
         SettingRow(
           title: "Agent mode",
-          description: "Lets models read and edit files and run commands on this Mac. Use with caution."
+          description:
+            "Lets models read and edit files and run commands on this Mac. With network access on, that applies to anyone on the network too."
         ) {
           // The setting is written inside the binding (not `.onChange`) so the
           // defaults value is current before SwiftUI recomputes the body --
@@ -569,7 +595,7 @@ struct SettingsView: View {
   /// changes -- the actual spec is sourced from `LlamaServer` so it stays in
   /// lockstep with what `start()` runs.
   private var serverCommand: String {
-    _ = (serverPort, sleepIdleTime, hfCacheDir, agentMode)  // establish SwiftUI dependencies
+    _ = (serverPort, sleepIdleTime, hfCacheDir, agentMode, exposeToNetwork)  // establish SwiftUI dependencies
     return LlamaServer.buildLaunchSpec()?.displayCommand ?? "llama not installed"
   }
 

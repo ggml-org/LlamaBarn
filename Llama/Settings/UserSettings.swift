@@ -177,6 +177,30 @@ enum UserSettings {
     return nil
   }
 
+  /// Whether the server is reachable from other machines -- the toggle form of
+  /// `networkBindAddress`, for the Settings UI.
+  ///
+  /// Reading is just "is a bind address set". Writing keeps a hand-set IP
+  /// string intact when turning on, so someone who pinned a single interface
+  /// via `defaults` doesn't get widened to `0.0.0.0` by a round-trip through
+  /// the toggle. Turning off clears the key entirely, string included -- the
+  /// alternative (remembering it) would leave the app holding state the user
+  /// can't see.
+  static var exposeToNetwork: Bool {
+    get {
+      networkBindAddress != nil
+    }
+    set {
+      guard newValue != exposeToNetwork else { return }
+      if newValue {
+        defaults.set(true, forKey: Keys.exposeToNetwork)
+      } else {
+        defaults.removeObject(forKey: Keys.exposeToNetwork)
+      }
+      NotificationCenter.default.post(name: .LBUserSettingsDidChange, object: nil)
+    }
+  }
+
   /// Valid range for a user-set server port. The lower bound is 1024 because
   /// ports below that are privileged and llama serve (running as the user)
   /// can't bind them -- restricting here avoids a confusing bind failure.

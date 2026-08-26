@@ -84,17 +84,10 @@ A commented template is written to this path on first launch.
 
 ## Experimental settings
 
-**Expose to network** — By default, the server is only accessible from your Mac (`localhost`). This option allows connections from other devices on your local network. Only enable this if you understand the security risks.
+**Bind to a specific address** — "Allow network access" in Settings binds the server to all interfaces (`0.0.0.0`). The server has no password, so only enable it on a network you trust. To bind one address instead (e.g. for Tailscale), set it by hand.
 
 ```sh
-# bind to all interfaces (0.0.0.0)
-defaults write app.llama.Llama exposeToNetwork -bool YES
-
-# or bind to a specific IP (e.g., for Tailscale)
 defaults write app.llama.Llama exposeToNetwork -string "100.x.x.x"
-
-# disable (default)
-defaults delete app.llama.Llama exposeToNetwork
 ```
 
 **Custom server arguments** — Extra CLI arguments appended to the `llama serve` command, for server flags the app doesn't expose (e.g. `--api-key`). They come after the app's own flags, so where the server honors the later occurrence they can override the app's settings. Takes effect on the next server start.
