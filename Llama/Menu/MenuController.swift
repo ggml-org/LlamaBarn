@@ -21,7 +21,16 @@ final class MenuController: NSObject, NSMenuDelegate {
 
   /// Web catalog the Discover "Browse models" link points at — more models live
   /// here. Matches the empty-state browse link.
-  private static let browseCatalogUrl = URL(string: "https://llama.app/models")!
+  ///
+  /// `ref` marks the visit as coming from the app. A link opened from a native
+  /// app carries no referrer, so without it these arrivals are indistinguishable
+  /// from people typing the address in. Analytics reads `ref` as the traffic
+  /// source with no setup on the site.
+  ///
+  /// Named per platform, not per app: a Windows build wants its own value, and
+  /// renaming this one later would split the series where it's most worth
+  /// comparing.
+  private static let browseCatalogUrl = URL(string: "https://llama.app/models?ref=llama-macos")!
 
   /// Featured catalog suggestions for the Discover section. Fetched from the
   /// remote catalog on launch (and on menu-open if still empty); empty when the
