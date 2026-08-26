@@ -213,10 +213,6 @@ final class SettingsTabSelection {
 struct SettingsSidebar: View {
   @Bindable var tabSelection: SettingsTabSelection
 
-  /// Drives the link's hover fill -- the only thing marking it as pressable,
-  /// since at rest it's a bare label.
-  @State private var linkHovered = false
-
   /// Height of the link's one-row list: a 32pt row (measured off the live view
   /// hierarchy) plus the list's own vertical padding.
   private static let linkListHeight: CGFloat = 40
@@ -225,15 +221,11 @@ struct SettingsSidebar: View {
   /// measured, and 2pt shy of the side inset below.
   private static let linkListBottomPadding: CGFloat = 8
 
-  /// How far the list insets a row's selection fill from the pane edge, so the
-  /// link's hover fill lands on the same shape -- and, applied below the row
-  /// too, what keeps the link as far from the bottom edge as from the sides.
-  private static let rowFillInset: CGFloat = 10
-
-  /// The selection fill's corner radius. SwiftUI draws it as a shape rather
-  /// than a view, so it can't be read out of the hierarchy the way the row
-  /// metrics were; this was matched against the selected row by eye.
-  private static let rowFillRadius: CGFloat = 8
+  /// How far the list insets a row's selection fill from the pane edge. The
+  /// link row draws no fill of its own, but the sections above do -- matching
+  /// it below the link keeps the column as far from the bottom edge as from
+  /// the sides.
+  private static let rowSideInset: CGFloat = 10
 
   var body: some View {
     VStack(spacing: 0) {
@@ -273,36 +265,25 @@ struct SettingsSidebar: View {
               .resizable()
               .frame(width: 14, height: 14)
           }
-          // The whole row is the target, not just the text and icon.
-          .frame(maxWidth: .infinity, alignment: .leading)
+          // The whole row is the target, not just the text and icon -- height
+          // included, so the band above and below the label clicks too.
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+          // Trailing arrow: the row leaves the app, unlike every other row in
+          // the column, which switches section. It carries that on its own --
+          // the row draws no hover fill, so there's no highlight to say it.
+          .overlay(alignment: .trailing) {
+            Image(systemName: "arrow.up.forward")
+              .imageScale(.small)
+              // A sidebar list insets its leading edge more than its trailing
+              // one (the leading inset is the icon column's allowance), so the
+              // arrow would otherwise sit nearer the edge than the octocat
+              // does. Measured off the live view, the two sides differ by
+              // about this much.
+              .padding(.trailing, 8)
+          }
           .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovering in
-          // Guarded so a repeated enter event can't push the cursor twice and
-          // leave the stack unbalanced.
-          guard hovering != linkHovered else { return }
-          linkHovered = hovering
-          // A pointing hand is the other half of the "this is a link" cue; the
-          // rows above are selection, not navigation, so they don't get one.
-          if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
-        // The window is reused rather than released, and closing it while the
-        // cursor sits on the link needn't deliver an exit event -- without this
-        // the pushed cursor would outlive the window, app-wide.
-        .onDisappear {
-          if linkHovered {
-            linkHovered = false
-            NSCursor.pop()
-          }
-        }
-        // The list's own selection shape, so hovering the link highlights it the
-        // way hovering a section row would.
-        .listRowBackground(
-          RoundedRectangle(cornerRadius: Self.rowFillRadius, style: .continuous)
-            .fill(Color.primary.opacity(linkHovered ? 0.07 : 0))
-            .padding(.horizontal, Self.rowFillInset)
-        )
       }
       .listStyle(.sidebar)
       .scrollDisabled(true)
@@ -311,7 +292,7 @@ struct SettingsSidebar: View {
       // The list leaves its own gap under the row; this tops it up to the gap
       // the fill keeps at the sides, so the link isn't nearer the bottom edge
       // than the side edges.
-      .padding(.bottom, Self.rowFillInset - Self.linkListBottomPadding)
+      .padding(.bottom, Self.rowSideInset - Self.linkListBottomPadding)
     }
   }
 }
