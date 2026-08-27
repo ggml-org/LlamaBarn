@@ -11,6 +11,7 @@ final class HeaderView: ItemView {
   private let statusLabel = Theme.secondaryLabel()
   private let linkLabel = Theme.secondaryLabel()
   private let copyButton = NSButton()
+  private let qrButton = NSButton()
   private let webUiLabel = Theme.secondaryLabel()
   private let restartLabel = Theme.secondaryLabel()
 
@@ -71,6 +72,13 @@ final class HeaderView: ItemView {
     copyButton.target = self
     copyButton.action = #selector(copyUrl)
 
+    // QR Button Configuration -- only useful once the server is bound off this
+    // machine, so `refresh()` hides it for a localhost bind.
+    Theme.configure(qrButton, symbol: "qrcode", tooltip: "Show QR code", pointSize: 11)
+    qrButton.target = self
+    qrButton.action = #selector(showQRCode)
+    qrButton.isHidden = true
+
     // WebUI Label Configuration
     let webUiClick = NSClickGestureRecognizer(target: self, action: #selector(openWebUi))
     webUiLabel.addGestureRecognizer(webUiClick)
@@ -94,6 +102,8 @@ final class HeaderView: ItemView {
     statusStackView.addArrangedSubview(linkLabel)
     statusStackView.addArrangedSubview(NSView.spacer(width: 4))
     statusStackView.addArrangedSubview(copyButton)
+    statusStackView.addArrangedSubview(NSView.spacer(width: 4))
+    statusStackView.addArrangedSubview(qrButton)
     statusStackView.addArrangedSubview(NSView.spacer(width: 8))
     statusStackView.addArrangedSubview(NSView.flexibleSpacer())
     statusStackView.addArrangedSubview(webUiLabel)
@@ -132,6 +142,7 @@ final class HeaderView: ItemView {
       statusLabel.isHidden = false
       linkLabel.isHidden = true
       copyButton.isHidden = true
+      qrButton.isHidden = true
       webUiLabel.isHidden = true
       restartLabel.isHidden = false
       needsDisplay = true
@@ -162,6 +173,8 @@ final class HeaderView: ItemView {
     linkLabel.attributedStringValue = attrTitle
     linkLabel.isHidden = false
     copyButton.isHidden = false
+    // A QR code for `localhost` would point the phone at itself.
+    qrButton.isHidden = host == "localhost"
     webUiLabel.isHidden = false
     restartLabel.isHidden = true
 
@@ -190,6 +203,15 @@ final class HeaderView: ItemView {
     if let url = webUiUrl {
       openInBrowser(url)
     }
+  }
+
+  @objc private func showQRCode() {
+    guard let webUiUrl else { return }
+    // The menu owns the status item the popover anchors to, and a popover
+    // can't show while the menu's tracking loop is running -- so hand it off
+    // and let the menu present it once it has closed.
+    NotificationCenter.default.post(
+      name: .LBShowServerQR, object: nil, userInfo: ["url": webUiUrl])
   }
 
   @objc private func copyUrl() {
