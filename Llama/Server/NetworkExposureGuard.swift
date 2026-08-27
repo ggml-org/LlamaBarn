@@ -36,13 +36,11 @@ final class NetworkExposureGuard {
 
   /// Turns exposure off if the current network isn't the one it was granted on.
   private func check() {
-    guard UserSettings.exposeToNetwork else { return }
-
-    // A hand-set bind address (e.g. a Tailscale IP) is deliberately pinned to
-    // an interface rather than to a physical network, and is reachable only
-    // over that overlay -- moving between wifi networks doesn't widen it, so
-    // there's nothing to withdraw.
-    guard UserSettings.networkBindAddress == "0.0.0.0" else { return }
+    // Only `.localNetwork` is scoped to a place. A Tailscale (or other
+    // hand-set) bind follows an interface, not a network: it's reachable over
+    // that overlay wherever you are and invisible on the local wifi, so
+    // changing networks neither widens it nor makes it mean something else.
+    guard UserSettings.networkAccess == .localNetwork else { return }
 
     guard let granted = UserSettings.exposeToNetworkFingerprint else {
       // Enabled before this existed, or with no default route at the time.
@@ -59,7 +57,7 @@ final class NetworkExposureGuard {
     guard current != granted else { return }
 
     logger.notice("joined a different network -- turning network access off")
-    UserSettings.exposeToNetwork = false
+    UserSettings.setNetworkAccess(.off)
     NotificationCenter.default.post(
       name: .LBShowMenuHint, object: nil,
       userInfo: ["message": "Network access turned off — new network"])

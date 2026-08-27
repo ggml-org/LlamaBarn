@@ -64,11 +64,33 @@ class LlamaServer {
     return result == 0
   }
 
+  /// The address the server will actually bind, which is the configured one
+  /// only while the machine still holds it.
+  ///
+  /// A specific address can stop existing between launches -- Tailscale logged
+  /// out, a VPN down, a hand-set IP from another network. `llama serve` would
+  /// fail to bind and the app would look broken, for a setting the user can't
+  /// see is now stale. Falling back to loopback keeps the server working, and
+  /// it fails in the safe direction: less reachable than asked for, never
+  /// more. It's also self-healing -- the address comes back, the next start
+  /// uses it again.
+  ///
+  /// `0.0.0.0` isn't an interface address and always binds, so it's taken as-is.
+  nonisolated static var effectiveBindAddress: String? {
+    guard let configured = UserSettings.networkBindAddress else { return nil }
+    guard configured != "0.0.0.0" else { return configured }
+    guard localIPv4Addresses().values.contains(configured) else {
+      logger.notice("configured bind address is not on any interface -- using loopback")
+      return nil
+    }
+    return configured
+  }
+
   /// Returns the host string for server URLs.
   /// If network bind address is set, uses that (resolving 0.0.0.0 to the actual local IP).
   /// Otherwise defaults to "localhost".
   static var resolvedHost: String {
-    if let bindAddr = UserSettings.networkBindAddress {
+    if let bindAddr = effectiveBindAddress {
       return bindAddr == "0.0.0.0"
         ? (getLocalIpAddress() ?? "0.0.0.0")
         : bindAddr
@@ -110,6 +132,9 @@ class LlamaServer {
   private var startTask: Task<Void, Never>?
   private var healthCheckTask: Task<Void, Error>?
   private let logger = Logger(subsystem: Logging.subsystem, category: "LlamaServer")
+  /// Static counterpart, for the type-level helpers (bind-address resolution).
+  nonisolated private static let logger = Logger(
+    subsystem: Logging.subsystem, category: "LlamaServer")
   private let api = LlamaServerAPI()
 
   enum ServerState: Equatable {
@@ -363,7 +388,7 @@ class LlamaServer {
     ]
 
     // Bind to custom address if network exposure is enabled
-    if let bindAddress = UserSettings.networkBindAddress {
+    if let bindAddress = effectiveBindAddress {
       arguments.append(contentsOf: ["--host", bindAddress])
     }
 
@@ -793,7 +818,7 @@ class LlamaServer {
   /// `en1` on one plugged into Ethernet. Read from the dynamic store rather
   /// than assumed, because which interface that is varies per machine -- the
   /// old hardcoded `en0` was wrong on any Mac whose primary link isn't Wi-Fi.
-  private static func primaryInterfaceName() -> String? {
+  nonisolated private static func primaryInterfaceName() -> String? {
     guard let store = SCDynamicStoreCreate(nil, "app.llama.Llama" as CFString, nil, nil),
       let info = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString)
         as? [String: Any]
@@ -808,7 +833,7 @@ class LlamaServer {
   /// non-loopback IPv4 so a machine with no default route (an isolated LAN,
   /// or Wi-Fi off with only a VPN up) still shows something reachable rather
   /// than the unusable `0.0.0.0`.
-  static func getLocalIpAddress() -> String? {
+  nonisolated static func getLocalIpAddress() -> String? {
     let addresses = localIPv4Addresses()
     if let primary = primaryInterfaceName(), let match = addresses[primary] {
       return match
@@ -819,7 +844,8 @@ class LlamaServer {
   }
 
   /// Non-loopback IPv4 addresses, keyed by interface name.
-  private static func localIPv4Addresses() -> [String: String] {
+  /// Not private: `TailscaleInterface` picks its overlay address out of this.
+  nonisolated static func localIPv4Addresses() -> [String: String] {
     var ifaddr: UnsafeMutablePointer<ifaddrs>?
 
     // Get linked list of all network interfaces (returns 0 on success)

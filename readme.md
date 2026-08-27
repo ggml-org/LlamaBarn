@@ -82,12 +82,20 @@ Anything you set here wins over the app's own value, including settings derived 
 
 A commented template is written to this path on first launch.
 
+## Network access
+
+By default the server is reachable only from your Mac. "Allow network access" in Settings changes that, and what it offers depends on your setup.
+
+`Tailscale` — binds the server to your Tailscale address. Your other devices reach it from anywhere, Tailscale authenticates and encrypts the connection, and the server stays invisible on whatever network you're on. This is the option to use on a laptop. Shown only when Tailscale is installed and signed in.
+
+`This network` — binds all interfaces (`0.0.0.0`), so anything on your current network can reach it. The server has no password, so use it only on a network you trust, and never together with agent mode on a network you don't own.
+
 ## Experimental settings
 
-**Bind to a specific address** — "Allow network access" in Settings binds the server to all interfaces (`0.0.0.0`). The server has no password, so only enable it on a network you trust. To bind one address instead (e.g. for Tailscale), set it by hand.
+**Bind to a specific address** — to pin the server to one address the app doesn't offer, set it by hand. The app leaves it alone, and falls back to localhost whenever the address isn't on any interface.
 
 ```sh
-defaults write app.llama.Llama exposeToNetwork -string "100.x.x.x"
+defaults write app.llama.Llama exposeToNetwork -string "192.168.1.50"
 ```
 
 **Custom server arguments** — Extra CLI arguments appended to the `llama serve` command, for server flags the app doesn't expose (e.g. `--api-key`). They come after the app's own flags, so where the server honors the later occurrence they can override the app's settings. Takes effect on the next server start.

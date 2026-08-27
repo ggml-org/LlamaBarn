@@ -4,7 +4,7 @@ import SystemConfiguration
 
 /// Identifies *which* network the Mac is currently attached to.
 ///
-/// Exists for one job: network access (`UserSettings.exposeToNetwork`) is a
+/// Exists for one job: local-network access (`UserSettings.networkAccess`) is a
 /// single global switch, but consent to it isn't global. Someone turns it on
 /// at home to reach the server from their phone, shuts the lid, and opens it
 /// on café wifi -- where the same switch now offers an unauthenticated server

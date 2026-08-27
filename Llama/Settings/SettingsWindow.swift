@@ -324,7 +324,11 @@ struct SettingsView: View {
   // Effective server port; re-read after the edit sheet saves so the row updates.
   @State private var serverPort = LlamaServer.port
   @State private var showingServerPortSheet = false
-  @State private var exposeToNetwork = UserSettings.exposeToNetwork
+  @State private var networkAccess = UserSettings.networkAccess
+  // Resolved once per window: the Settings window is rebuilt on each reopen,
+  // so installing or signing out of Tailscale is picked up the next time it's
+  // opened rather than needing a live watch.
+  @State private var tailscaleAddress = TailscaleInterface.address()
 
   var body: some View {
     switch tab {
@@ -406,27 +410,10 @@ struct SettingsView: View {
         }
       }
 
-      // Network exposure section
+      // Network access section
       Section {
-        SettingRow(
-          title: "Allow network access",
-          description:
-            "Other devices on your network can reach the server. It has no password -- only turn this on for a network you trust."
-        ) {
-          // Written inside the binding (not `.onChange`) so the defaults value
-          // is current before SwiftUI recomputes the body -- otherwise the
-          // server-command preview renders one toggle behind. The setter posts
-          // the change notification, which restarts the server on the new host.
-          Toggle(
-            "",
-            isOn: Binding(
-              get: { exposeToNetwork },
-              set: { newValue in
-                UserSettings.exposeToNetwork = newValue
-                exposeToNetwork = newValue
-              })
-          )
-          .labelsHidden()
+        SettingRow(title: "Allow network access", description: networkAccessDescription) {
+          networkAccessControl
         }
       }
 
@@ -589,13 +576,72 @@ struct SettingsView: View {
     .formStyle(.grouped)
   }
 
+  /// The control for network access: a three-way picker when Tailscale is
+  /// available, otherwise the plain on/off it would collapse to anyway. A
+  /// hand-set address gets neither -- it was configured outside the app, so
+  /// the app reports it rather than offering to overwrite it.
+  @ViewBuilder private var networkAccessControl: some View {
+    if case .custom(let address) = networkAccess {
+      Text(address)
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    } else if let tailscaleAddress {
+      PillPicker(
+        options: [
+          (UserSettings.NetworkAccess.off, "Off"),
+          (.tailscale, "Tailscale"),
+          (.localNetwork, "This network"),
+        ],
+        selection: networkAccessBinding
+      )
+      .help("Tailscale: \(tailscaleAddress)")
+    } else {
+      Toggle(
+        "",
+        isOn: Binding(
+          get: { networkAccess == .localNetwork },
+          set: { networkAccessBinding.wrappedValue = $0 ? .localNetwork : .off })
+      )
+      .labelsHidden()
+    }
+  }
+
+  /// Writes through to defaults before updating the mirror, so the
+  /// server-command preview on the Advanced tab doesn't render one change
+  /// behind. The setter posts the change notification, which restarts the
+  /// server on the new host.
+  private var networkAccessBinding: Binding<UserSettings.NetworkAccess> {
+    Binding(
+      get: { networkAccess },
+      set: { newValue in
+        UserSettings.setNetworkAccess(newValue)
+        networkAccess = UserSettings.networkAccess
+      })
+  }
+
+  /// Says what the current choice actually means. Worth varying: the warning
+  /// that matters for `.localNetwork` (no password, anyone on this wifi) is
+  /// simply untrue of Tailscale, which authenticates every device itself.
+  private var networkAccessDescription: String {
+    switch networkAccess {
+    case .off:
+      return "Only this Mac can reach the server."
+    case .tailscale:
+      return "Reachable from your Tailscale devices, anywhere. Stays invisible on the network you're on."
+    case .localNetwork:
+      return "Anyone on your current network can reach the server. It has no password -- only turn this on for a network you trust."
+    case .custom:
+      return "Bound to an address set outside the app."
+    }
+  }
+
   /// The shell command that starts the server, built from the current
   /// settings. Reads the `@State` mirrors of the relevant settings (port, idle
   /// timeout, model directory) so SwiftUI recomputes this whenever one of them
   /// changes -- the actual spec is sourced from `LlamaServer` so it stays in
   /// lockstep with what `start()` runs.
   private var serverCommand: String {
-    _ = (serverPort, sleepIdleTime, hfCacheDir, agentMode, exposeToNetwork)  // establish SwiftUI dependencies
+    _ = (serverPort, sleepIdleTime, hfCacheDir, agentMode, networkAccess)  // establish SwiftUI dependencies
     return LlamaServer.buildLaunchSpec()?.displayCommand ?? "llama not installed"
   }
 

@@ -178,32 +178,64 @@ enum UserSettings {
     return nil
   }
 
-  /// Whether the server is reachable from other machines -- the toggle form of
-  /// `networkBindAddress`, for the Settings UI.
+  /// Who can reach the server -- the Settings-facing reading of
+  /// `networkBindAddress`.
   ///
-  /// Reading is just "is a bind address set". Writing keeps a hand-set IP
-  /// string intact when turning on, so someone who pinned a single interface
-  /// via `defaults` doesn't get widened to `0.0.0.0` by a round-trip through
-  /// the toggle. Turning off clears the key entirely, string included -- the
-  /// alternative (remembering it) would leave the app holding state the user
-  /// can't see.
-  static var exposeToNetwork: Bool {
-    get {
-      networkBindAddress != nil
+  /// The two exposed cases are not two flavours of the same thing. `.tailscale`
+  /// is reachable from the user's own devices anywhere and invisible on the
+  /// local wifi; `.localNetwork` is the reverse -- everyone on this wifi, and
+  /// only while you're on it. Tailscale also authenticates and encrypts, which
+  /// this server cannot, so where both are possible it's the better answer.
+  enum NetworkAccess: Hashable {
+    /// Loopback only. The default.
+    case off
+    /// Bound to this Mac's Tailscale address.
+    case tailscale
+    /// Bound to `0.0.0.0` -- anyone on the current network.
+    case localNetwork
+    /// A hand-set address (`defaults write ... -string`) that isn't the
+    /// current Tailscale one. Not offered in the UI, but represented so the
+    /// UI never reports "off" while the server is in fact bound somewhere.
+    case custom(String)
+  }
+
+  static var networkAccess: NetworkAccess {
+    guard let address = networkBindAddress else { return .off }
+    if address == "0.0.0.0" { return .localNetwork }
+    if TailscaleInterface.isCurrentAddress(address) { return .tailscale }
+    return .custom(address)
+  }
+
+  /// Applies a choice from the UI. `.custom` is deliberately not settable --
+  /// it exists to describe what's already there, not to be chosen.
+  static func setNetworkAccess(_ access: NetworkAccess) {
+    guard access != networkAccess else { return }
+
+    switch access {
+    case .off:
+      defaults.removeObject(forKey: Keys.exposeToNetwork)
+      exposeToNetworkFingerprint = nil
+
+    case .localNetwork:
+      defaults.set(true, forKey: Keys.exposeToNetwork)
+      // Remember which network this was agreed to on, so joining a different
+      // one can withdraw it (see `NetworkIdentity`).
+      exposeToNetworkFingerprint = NetworkIdentity.currentFingerprint()
+
+    case .tailscale:
+      // Only reachable from a UI that found an address to offer; if Tailscale
+      // went away in between, do nothing rather than store a dead address.
+      guard let address = TailscaleInterface.address() else { return }
+      defaults.set(address, forKey: Keys.exposeToNetwork)
+      // A Tailscale bind isn't tied to a place, so there's no network to scope
+      // it to -- see `NetworkExposureGuard`.
+      exposeToNetworkFingerprint = nil
+
+    case .custom:
+      return
     }
-    set {
-      guard newValue != exposeToNetwork else { return }
-      if newValue {
-        defaults.set(true, forKey: Keys.exposeToNetwork)
-        // Remember which network this was agreed to on, so joining a different
-        // one can withdraw it (see `NetworkIdentity`).
-        exposeToNetworkFingerprint = NetworkIdentity.currentFingerprint()
-      } else {
-        defaults.removeObject(forKey: Keys.exposeToNetwork)
-        exposeToNetworkFingerprint = nil
-      }
-      NotificationCenter.default.post(name: .LBUserSettingsDidChange, object: nil)
-    }
+
+    NotificationCenter.default.post(name: .LBUserSettingsDidChange, object: nil)
   }
 
   /// Fingerprint of the network `exposeToNetwork` was last switched on for.
