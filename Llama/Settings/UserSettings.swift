@@ -189,7 +189,9 @@ enum UserSettings {
   enum NetworkAccess: Hashable {
     /// Loopback only. The default.
     case off
-    /// Bound to this Mac's Tailscale address.
+    /// Bound to a Tailscale address. Stays this case while Tailscale is
+    /// signed out and the address is gone: it records what the user chose,
+    /// and the server falls back to loopback on its own until it returns.
     case tailscale
     /// Bound to `0.0.0.0` -- anyone on the current network.
     case localNetwork
@@ -202,7 +204,7 @@ enum UserSettings {
   static var networkAccess: NetworkAccess {
     guard let address = networkBindAddress else { return .off }
     if address == "0.0.0.0" { return .localNetwork }
-    if TailscaleInterface.isCurrentAddress(address) { return .tailscale }
+    if TailscaleInterface.isTailscaleAddress(address) { return .tailscale }
     return .custom(address)
   }
 

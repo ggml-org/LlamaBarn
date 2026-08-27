@@ -325,10 +325,6 @@ struct SettingsView: View {
   @State private var serverPort = LlamaServer.port
   @State private var showingServerPortSheet = false
   @State private var networkAccess = UserSettings.networkAccess
-  // Resolved once per window: the Settings window is rebuilt on each reopen,
-  // so installing or signing out of Tailscale is picked up the next time it's
-  // opened rather than needing a live watch.
-  @State private var tailscaleAddress = TailscaleInterface.address()
 
   var body: some View {
     switch tab {
@@ -576,6 +572,14 @@ struct SettingsView: View {
     .formStyle(.grouped)
   }
 
+  /// This Mac's Tailscale address, re-read on every render rather than
+  /// captured: signing in, signing out, or switching tailnets while this
+  /// window is open all change the answer, and a stale one makes the row
+  /// describe a state the server isn't in.
+  private var tailscaleAddress: String? {
+    TailscaleInterface.address()
+  }
+
   /// The control for network access: a three-way picker when Tailscale is
   /// available, otherwise the plain on/off it would collapse to anyway. A
   /// hand-set address gets neither -- it was configured outside the app, so
@@ -585,7 +589,7 @@ struct SettingsView: View {
       Text(address)
         .font(.callout)
         .foregroundStyle(.secondary)
-    } else if let tailscaleAddress {
+    } else if tailscaleAddress != nil || networkAccess == .tailscale {
       PillPicker(
         options: [
           (UserSettings.NetworkAccess.off, "Off"),
@@ -594,7 +598,7 @@ struct SettingsView: View {
         ],
         selection: networkAccessBinding
       )
-      .help("Tailscale: \(tailscaleAddress)")
+      .help(tailscaleAddress.map { "Tailscale: \($0)" } ?? "Tailscale is not available")
     } else {
       Toggle(
         "",
@@ -626,6 +630,11 @@ struct SettingsView: View {
     switch networkAccess {
     case .off:
       return "Only this Mac can reach the server."
+    case .tailscale where tailscaleAddress == nil:
+      // Selected, but there's no address to bind: the server has fallen back
+      // to loopback on its own. Say so rather than describing what the setting
+      // would do if Tailscale were running.
+      return "Tailscale isn't running, so only this Mac can reach the server for now."
     case .tailscale:
       return "Reachable from your Tailscale devices, anywhere. Stays invisible on the network you're on."
     case .localNetwork:

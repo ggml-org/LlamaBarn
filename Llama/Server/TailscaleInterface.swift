@@ -13,6 +13,16 @@ import Foundation
 /// We only surface it when it's already installed and logged in. The app
 /// doesn't advertise, prompt for, or install Tailscale.
 enum TailscaleInterface {
+  /// Whether an address looks like Tailscale's, by range alone.
+  ///
+  /// Used to classify an address we already stored, where the question is what
+  /// the user chose rather than what exists right now -- a Tailscale bind
+  /// stays a Tailscale bind while Tailscale is signed out. Detection of a
+  /// *live* address is stricter (see `address()`).
+  static func isTailscaleAddress(_ ip: String) -> Bool {
+    isCGNAT(ip)
+  }
+
   /// Tailscale hands out addresses from the CGNAT range, 100.64.0.0/10.
   private static func isCGNAT(_ ip: String) -> Bool {
     let parts = ip.split(separator: ".").compactMap { Int($0) }
@@ -35,8 +45,8 @@ enum TailscaleInterface {
       .first
   }
 
-  /// Whether `address` is one this Mac currently holds -- used to tell a
-  /// stored Tailscale bind from some other hand-set address.
+  /// Whether `address` is the one this Mac holds right now. False for a
+  /// stored address that has gone stale -- signed out, or a different tailnet.
   static func isCurrentAddress(_ address: String) -> Bool {
     self.address() == address
   }

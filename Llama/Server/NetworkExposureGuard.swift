@@ -34,8 +34,37 @@ final class NetworkExposureGuard {
     check()
   }
 
+  /// Withdraws a Tailscale bind whose address this Mac no longer holds.
+  ///
+  /// The stored address goes stale when the tailnet changes -- switching
+  /// between a work and a personal account is enough. It's tempting to just
+  /// re-point at the new address, since the user asked for "Tailscale" rather
+  /// than for a number. But a different tailnet is a different set of people:
+  /// following the switch would move the server from your own devices onto,
+  /// say, your employer's network without asking. That's the same consent that
+  /// changing wifi breaks, so it gets the same answer -- turn it off, say so,
+  /// and let re-enabling be a decision.
+  ///
+  /// The server has already fallen back to loopback by itself
+  /// (`effectiveBindAddress`); this is what stops the setting from going on
+  /// claiming otherwise.
+  private func withdrawStaleTailscaleBind() {
+    guard case .tailscale = UserSettings.networkAccess,
+      let stored = UserSettings.networkBindAddress,
+      !TailscaleInterface.isCurrentAddress(stored)
+    else { return }
+
+    logger.notice("stored Tailscale address is no longer held -- turning network access off")
+    UserSettings.setNetworkAccess(.off)
+    NotificationCenter.default.post(
+      name: .LBShowMenuHint, object: nil,
+      userInfo: ["message": "Network access turned off — Tailscale changed"])
+  }
+
   /// Turns exposure off if the current network isn't the one it was granted on.
   private func check() {
+    withdrawStaleTailscaleBind()
+
     // Only `.localNetwork` is scoped to a place. A Tailscale (or other
     // hand-set) bind follows an interface, not a network: it's reachable over
     // that overlay wherever you are and invisible on the local wifi, so
