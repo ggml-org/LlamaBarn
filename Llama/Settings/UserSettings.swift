@@ -31,6 +31,7 @@ enum UserSettings {
     static let hasSeenWelcome = "hasSeenWelcome"
     static let hasSetDefaultLaunchAtLogin = "hasSetDefaultLaunchAtLogin"
     static let exposeToNetwork = "exposeToNetwork"
+    static let exposeToNetworkFingerprint = "exposeToNetworkFingerprint"
     static let serverPort = "serverPort"
     static let sleepIdleTime = "sleepIdleTime"
     static let selectedCtxTiers = "selectedCtxTiers"
@@ -194,10 +195,30 @@ enum UserSettings {
       guard newValue != exposeToNetwork else { return }
       if newValue {
         defaults.set(true, forKey: Keys.exposeToNetwork)
+        // Remember which network this was agreed to on, so joining a different
+        // one can withdraw it (see `NetworkIdentity`).
+        exposeToNetworkFingerprint = NetworkIdentity.currentFingerprint()
       } else {
         defaults.removeObject(forKey: Keys.exposeToNetwork)
+        exposeToNetworkFingerprint = nil
       }
       NotificationCenter.default.post(name: .LBUserSettingsDidChange, object: nil)
+    }
+  }
+
+  /// Fingerprint of the network `exposeToNetwork` was last switched on for.
+  /// Nil when exposure is off, or when it was turned on with no default route
+  /// to identify (in which case there's nothing to compare against later).
+  static var exposeToNetworkFingerprint: String? {
+    get {
+      defaults.string(forKey: Keys.exposeToNetworkFingerprint)
+    }
+    set {
+      if let newValue {
+        defaults.set(newValue, forKey: Keys.exposeToNetworkFingerprint)
+      } else {
+        defaults.removeObject(forKey: Keys.exposeToNetworkFingerprint)
+      }
     }
   }
 

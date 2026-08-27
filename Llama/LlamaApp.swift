@@ -30,6 +30,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   private var menuController: MenuController?
   private var settingsWindowController: SettingsWindowController?
   private var globalInputController: GlobalInputController?
+  private var networkExposureGuard: NetworkExposureGuard?
   private var updatesObserver: NSObjectProtocol?
   private var recheckCLIObserver: NSObjectProtocol?
   private var globalInputObserver: NSObjectProtocol?
@@ -149,6 +150,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Initialize settings window controller (listens for LBShowSettings notifications)
     settingsWindowController = SettingsWindowController.shared
+
+    // Scope network access to the network it was granted on, so the setting
+    // doesn't follow the laptop onto someone else's wifi.
+    networkExposureGuard = NetworkExposureGuard()
+    networkExposureGuard?.start()
 
     // Register the global-input hotkey (⌥Space) and its capture panel -- a
     // system-wide quick-capture that dispatches a prompt to the web UI.
