@@ -281,6 +281,7 @@ extension Format {
     id: String,
     color: NSColor,
     hasVision: Bool = false,
+    hasMTP: Bool = false,
     showTags: Bool = false,
     font: NSFont = Theme.Fonts.primary
   ) -> NSAttributedString {
@@ -319,6 +320,14 @@ extension Format {
       result.append(NSAttributedString(string: " "))
       result.append(chip(quant, style: .rounded, nameFont: font))
     }
+    // MTP (multi-token prediction) reads as a chip rather than a glyph: unlike
+    // vision, it has no obvious symbol, and it sits with the other chips
+    // because it's the same kind of fact — something the weights carry. Same
+    // `.rounded` style as quant, so it can't out-shout the metadata around it.
+    if hasMTP {
+      result.append(NSAttributedString(string: " "))
+      result.append(chip("MTP", style: .rounded, nameFont: font))
+    }
     if showTags && !parsed.tags.isEmpty {
       // Tags render as bare extra-dimmed text, no pill: they're name residue,
       // so they get the least visual weight of the three chip kinds. Dimmer
@@ -342,6 +351,7 @@ extension Format {
           "eyeglasses", pointSize: Theme.Fonts.primary.pointSize,
           color: Theme.Colors.textTertiary))
     }
+
 
     // Disable letter-spacing tightening before truncation (see Theme.noTighteningParagraphStyle).
     result.addAttribute(

@@ -632,27 +632,7 @@ enum HFCache {
     case .none: ctxWindow = 131_072  // header unparseable -- fall back
     }
 
-    let entry = Model(
-      id: modelId,
-      family: parsed.name,
-      ctxWindow: ctxWindow,
-      fileSize: totalFileSize,
-      // ctxBytesPer1kTokens stays 0 until the async MemProfile probe runs.
-      downloadUrl: URL(string: "file:///")!,
-      org: parsed.org
-    )
-
-    // Build resolved paths
     let mainFilePath = snapshotDir.appendingPathComponent(filename).path
-    let additionalParts: [String]
-    if let shardFiles, shardFiles.count > 1 {
-      // Additional shards = everything except the first shard
-      additionalParts = shardFiles.dropFirst().map {
-        snapshotDir.appendingPathComponent($0).path
-      }
-    } else {
-      additionalParts = []
-    }
 
     // A sidecar MTP head (`mtp-….gguf`) shipped beside the main weights, if any,
     // quant-matched to the main. Present takes precedence over an embedded head.
@@ -667,6 +647,30 @@ enum HFCache {
     let hasEmbeddedHead =
       GGUFMetadata.hasEmbeddedMTPHead(path: mainFilePath)
       ?? fileHasMTPHead(URL(fileURLWithPath: filename).lastPathComponent)
+
+    let entry = Model(
+      id: modelId,
+      family: parsed.name,
+      ctxWindow: ctxWindow,
+      fileSize: totalFileSize,
+      // ctxBytesPer1kTokens stays 0 until the async MemProfile probe runs.
+      downloadUrl: URL(string: "file:///")!,
+      // Either shape counts as MTP for the row's marker; `ResolvedPaths` below
+      // keeps them apart because they produce different `models.ini` lines.
+      hasMTPHead: mtpSidecar != nil || hasEmbeddedHead,
+      org: parsed.org
+    )
+
+    // Build resolved paths
+    let additionalParts: [String]
+    if let shardFiles, shardFiles.count > 1 {
+      // Additional shards = everything except the first shard
+      additionalParts = shardFiles.dropFirst().map {
+        snapshotDir.appendingPathComponent($0).path
+      }
+    } else {
+      additionalParts = []
+    }
 
     let paths = ResolvedPaths(
       modelFile: mainFilePath,

@@ -286,6 +286,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
       id: model.id,
       color: textColor,
       hasVision: model.hasVisionSupport,
+      hasMTP: model.hasMTPSupport,
       showTags: showTags
     )
 

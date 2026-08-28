@@ -41,6 +41,12 @@ struct Model: Identifiable, Codable {
   /// download it and hand it to llama-server as the speculative draft model.
   /// Pre-download placeholders carry this when the resolver attaches one.
   let mtpUrl: URL?
+  /// Whether this model runs with MTP speculative decoding — either an
+  /// embedded head in the main weights or a quant-matched `mtp-….gguf`
+  /// sidecar on disk. Set by the cache scan, which is the only place both
+  /// forms are visible (see `HFCache.buildSideloadedEntry`); the deeplink
+  /// path leaves it false and carries the sidecar in `mtpUrl` instead.
+  let hasMTPHead: Bool
   /// HF org parsed from the repo dir (e.g. "bartowski"). Shown in the row to
   /// disambiguate repos that share a base name across orgs.
   let org: String
@@ -56,6 +62,7 @@ struct Model: Identifiable, Codable {
     additionalParts: [URL]? = nil,
     mmprojUrl: URL? = nil,
     mtpUrl: URL? = nil,
+    hasMTPHead: Bool = false,
     org: String
   ) {
     self.id = id
@@ -68,6 +75,7 @@ struct Model: Identifiable, Codable {
     self.additionalParts = additionalParts
     self.mmprojUrl = mmprojUrl
     self.mtpUrl = mtpUrl
+    self.hasMTPHead = hasMTPHead
     self.org = org
   }
 
@@ -131,6 +139,14 @@ struct Model: Identifiable, Codable {
   /// Vision support is implied by an attached mmproj sidecar.
   var hasVisionSupport: Bool {
     mmprojUrl != nil
+  }
+
+  /// MTP speculative decoding, in either of its two shapes: a draft-head
+  /// sidecar (`mtpUrl`, the deeplink path's view) or a head detected on disk
+  /// by the cache scan (`hasMTPHead`). Mirrors `hasVisionSupport` — one
+  /// capability question the row can ask without reaching for `ResolvedPaths`.
+  var hasMTPSupport: Bool {
+    mtpUrl != nil || hasMTPHead
   }
 
   /// All remote URLs this model needs to download (main + shards + mmproj).
