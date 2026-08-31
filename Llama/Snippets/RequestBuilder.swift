@@ -28,9 +28,12 @@ enum RequestBuilder {
   /// Stages the page with `modelId` preselected and returns its URL, or nil if
   /// the resource is missing or can't be written.
   ///
-  /// Fetches from the page run cross-origin (a file URL's origin is opaque),
-  /// which works because the server sends permissive CORS headers -- it
-  /// reflects the request's `Origin`, including the `null` a file URL sends.
+  /// Fetches from the page run cross-origin (a file URL's origin is opaque).
+  /// They work only while the server's CORS default is in play, which reflects
+  /// any `Origin` including the `null` a file URL sends. Agent mode narrows
+  /// that to localhost origins (`--agent` implies `--cors-origins localhost`
+  /// upstream), which `null` isn't -- so with agent mode on the model list and
+  /// Send fail and the page says so. Copy is unaffected either way.
   @MainActor
   static func stagePage(modelId: String) -> URL? {
     guard let source = Bundle.main.url(forResource: "RequestBuilder", withExtension: "html"),

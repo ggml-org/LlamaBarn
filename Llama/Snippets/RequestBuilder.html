@@ -209,9 +209,13 @@
      will fail. Above the header, not below it -- this header is content (a
      title), not persistent chrome, and a condition affecting the whole page
      shouldn't read as subordinate to the page's own title. Sitting first
-     also keeps it clear of the columns' vertical divider. -->
+     also keeps it clear of the columns' vertical divider.
+     Both the title and the detail are filled in by loadModels: a server
+     that's down and a server that's up but refusing this page are different
+     problems with different fixes, and naming the wrong one sends people
+     looking for a server that's already running. -->
 <div id="offline" hidden>
-  <strong>Can't reach the server</strong>
+  <strong id="offlineTitle"></strong>
   <span id="offlineDetail"></span>
 </div>
 
@@ -426,8 +430,30 @@ async function loadModels() {
     document.getElementById("offline").hidden = true;
   } catch {
     sel.innerHTML = `<option>${state.model}</option>`;
-    document.getElementById("offlineDetail").textContent =
-      `Nothing is listening at ${BASE}. The model list is a placeholder and Send will fail; the snippet still copies.`;
+    // A failed fetch is opaque -- "nothing is listening" and "the browser
+    // blocked the response" throw the same error. Ask again in no-cors mode
+    // to tell them apart: that resolves (with a response we can't read)
+    // whenever something answers, and rejects only when nothing does.
+    let reachable = false;
+    try {
+      await fetch(BASE + "/v1/models", { mode: "no-cors" });
+      reachable = true;
+    } catch {}
+    if (reachable) {
+      // The server is up and refusing us on CORS grounds. In practice there's
+      // one cause: agent mode makes the server reflect only localhost origins,
+      // and this page is opened from a file:// URL, whose origin is `null`.
+      // Naming the setting is the difference between a dead end and a fix.
+      document.getElementById("offlineTitle").textContent =
+        "Agent mode is blocking this page";
+      document.getElementById("offlineDetail").textContent =
+        "Turn it off to use Send and the real model list. The snippet still copies.";
+    } else {
+      document.getElementById("offlineTitle").textContent =
+        "Can't reach the server";
+      document.getElementById("offlineDetail").textContent =
+        `Nothing is listening at ${BASE}. The model list is a placeholder and Send will fail; the snippet still copies.`;
+    }
     document.getElementById("offline").hidden = false;
   }
   render();
