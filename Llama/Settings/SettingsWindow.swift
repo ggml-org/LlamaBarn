@@ -160,6 +160,33 @@ private struct SettingRow<Control: View>: View {
   }
 }
 
+/// A one-line caution shown under a settings row when *another* setting makes
+/// this one riskier than it reads on its own.
+///
+/// Its own element rather than a sentence appended to the description: a
+/// description is a stable definition of the setting, so one that mutates
+/// leaves the reader unsure whether they misremembered it. Something that
+/// appears and disappears is self-evidently conditional.
+///
+/// The text always names the other setting first, which is what keeps the
+/// cause attached to the effect -- a caution that opens with the consequence
+/// reads as a fact about the app rather than about a switch you can flip.
+private struct SettingCaution: View {
+  let text: String
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 4) {
+      Image(systemName: "exclamationmark.triangle.fill")
+        .font(.system(size: 9))
+
+      Text(text)
+        .font(.system(size: 11))
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .foregroundStyle(.orange)
+  }
+}
+
 /// A borderless circular-arrow button that resets a setting to its default.
 /// Centralizes the reset affordance's glyph, styling, and tooltip so they
 /// stay consistent across rows; call sites supply only the reset action and
@@ -692,9 +719,13 @@ struct SettingsView: View {
     Form {
       // Agent mode section
       Section {
+        // Row and caution share one Form row: as two children of the Section
+        // the grouped style would rule a separator between them, which the
+        // network tab's caution (nested inside its option) doesn't get.
+        VStack(alignment: .leading, spacing: 6) {
         SettingRow(
           title: "Agent mode",
-          description: agentModeDescription
+          description: "Lets models read and edit files and run commands on this Mac."
         ) {
           // The setting is written inside the binding (not `.onChange`) so the
           // defaults value is current before SwiftUI recomputes the body --
@@ -711,6 +742,11 @@ struct SettingsView: View {
               })
           )
           .labelsHidden()
+        }
+
+          if let caution = agentModeCaution {
+            SettingCaution(text: caution)
+          }
         }
       }
 
@@ -849,6 +885,14 @@ struct SettingsView: View {
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+
+          // Only on the option that actually exposes the Mac, and only when
+          // agent mode makes that exposure mean file access rather than chat.
+          if option == .localNetwork, agentMode {
+            SettingCaution(
+              text: "Agent mode is on, so anyone who connects could read and edit files on this Mac.")
+              .padding(.top, 2)
+          }
         }
 
         Spacer(minLength: 0)
@@ -860,24 +904,39 @@ struct SettingsView: View {
     .opacity(disabled ? 0.5 : 1)
   }
 
-  /// Agent mode's description, which reports the network access setting
-  /// rather than stating a conditional the reader would have to go and
-  /// resolve on another tab. The two settings compound: agent mode decides
-  /// what a model may do on this Mac, network access decides who gets to ask.
-  /// Neither row owns that fact, so each says what's true given the other.
-  ///
-  /// Tailscale doesn't earn a warning -- it reaches your own devices, which
-  /// is who the capability was for.
-  private var agentModeDescription: String {
-    let base = "Lets models read and edit files and run commands on this Mac."
+  /// Whether the server is reachable by people other than this Mac's user, so
+  /// agent mode's powers are theirs too. Tailscale is deliberately excluded:
+  /// it reaches your own devices, which is who the capability was for.
+  private var exposedBeyondThisMac: Bool {
     switch networkAccess {
-    case .localNetwork:
-      return base + " Anyone on your current network can reach the server, so agent mode applies to them too."
-    case .custom:
-      return base + " Agent mode applies to anything that can reach the server."
-    case .off, .tailscale:
-      return base
+    case .localNetwork, .custom: return true
+    case .off, .tailscale: return false
     }
+  }
+
+  /// The caution for the agent mode row, or nil when the server is reachable
+  /// only from this Mac.
+  ///
+  /// Deliberately not gated on `agentMode`: the point is to inform the
+  /// decision to turn it on, so it has to be readable before the click -- the
+  /// same reason the network access options describe themselves rather than
+  /// only the chosen one. "Could" rather than "can" is what lets one sentence
+  /// serve both states of the toggle.
+  ///
+  /// Both halves earn their place: naming the setting keeps the cause
+  /// attached, and naming the people is what makes it a warning rather than a
+  /// status line.
+  private var agentModeCaution: String? {
+    guard exposedBeyondThisMac else { return nil }
+
+    let who =
+      if case .custom = networkAccess {
+        "anything that can reach the server"
+      } else {
+        "anyone on your current network"
+      }
+
+    return "Network access is on, so \(who) could do this too."
   }
 
   /// The address `option` binds, or nil when there's nothing true to print
@@ -911,10 +970,6 @@ struct SettingsView: View {
       return "Requires Tailscale to be running."
     case .tailscale:
       return "Reachable from your Tailscale devices, anywhere. Stays invisible on the network you're on."
-    case .localNetwork where agentMode:
-      // The exposure is the same; what it grants isn't. Say what agent mode
-      // makes it mean rather than leaving the reader to combine two tabs.
-      return "Anyone on your current network can reach the server. It has no password -- and with agent mode on, that means reading and editing files on this Mac."
     case .localNetwork:
       return "Anyone on your current network can reach the server. It has no password -- only turn this on for a network you trust."
     case .custom:
