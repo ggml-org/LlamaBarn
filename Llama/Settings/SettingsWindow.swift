@@ -889,8 +889,9 @@ struct SettingsView: View {
           // Only on the option that actually exposes the Mac, and only when
           // agent mode makes that exposure mean file access rather than chat.
           if option == .localNetwork, agentMode {
-            SettingCaution(
-              text: "Agent mode is on, so anyone who connects could read and edit files on this Mac.")
+            // "Would", not "gets": this shows on the option whether or not it's
+            // selected, so it has to be true of a choice not yet made.
+            SettingCaution(text: "Agent mode is on, so anyone who connects would get file access.")
               .padding(.top, 2)
           }
         }
