@@ -831,9 +831,11 @@ struct SettingsView: View {
               Text(bind)
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.secondary)
-                // No vertical padding: at 11pt with padding the chip stood
-                // taller than the label's line and stretched the row.
+                // The chip does set the row height at this padding, by a
+                // point or so. Deliberate: the address is cramped without it,
+                // and the rows stay even because every option has one.
                 .padding(.horizontal, 4)
+                .padding(.vertical, 1)
                 // A quiet fill rather than an outline: the port row above
                 // renders its value in a bordered control that *is* clickable,
                 // and an outlined chip here would borrow that affordance for
