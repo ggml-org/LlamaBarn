@@ -180,24 +180,30 @@ private struct RestoreDefaultButton: View {
 /// The settings window's top-level sections, one per sidebar item.
 enum SettingsTab: CaseIterable, Identifiable {
   case general
+  case network
+  case downloads
   case webUI
-  case advanced
+  case command
 
   var id: Self { self }
 
   var title: String {
     switch self {
     case .general: "General"
+    case .network: "Network"
+    case .downloads: "Downloads"
     case .webUI: "Web UI"
-    case .advanced: "Advanced"
+    case .command: "Command"
     }
   }
 
   var icon: String {
     switch self {
     case .general: "gearshape"
+    case .network: "network"
+    case .downloads: "arrow.down.circle"
     case .webUI: "macwindow"
-    case .advanced: "wrench.and.screwdriver"
+    case .command: "terminal"
     }
   }
 }
@@ -297,265 +303,21 @@ struct SettingsSidebar: View {
   }
 }
 
-/// The detail pane -- shows the selected section's form.
-struct SettingsDetail: View {
-  var tabSelection: SettingsTabSelection
-
+/// The Command tab -- the `llama serve` invocation the GUI produces.
+///
+/// It lives in its own tab rather than under Network, Downloads or Web UI because
+/// it reflects settings from all of them: port and network access, the idle
+/// timeout, the model directory, agent mode. Any subject label would imply a
+/// scope the command doesn't have. Named for what it holds rather than for who it's
+/// for: "Advanced" describes a disposition, and nothing else here is filed
+/// that way.
+struct ServerCommandView: View {
   var body: some View {
-    SettingsView(tab: tabSelection.tab)
-      // Pull the grouped form up under the transparent titlebar, so its first
-      // card sits just below the title rather than a band of empty space.
-      .padding(.top, -20)
-  }
-}
-
-/// SwiftUI view for settings content.
-struct SettingsView: View {
-  /// The section to render.
-  var tab: SettingsTab = .general
-
-  @State private var launchAtLogin = LaunchAtLogin.isEnabled
-  @State private var sleepIdleTime = UserSettings.sleepIdleTime
-  @State private var agentMode = UserSettings.agentMode
-  @State private var hfCacheDir = UserSettings.hfCacheDirectory
-  @State private var globalShortcut = UserSettings.globalInputShortcut
-  @State private var hfToken = UserSettings.hfToken ?? ""
-  @State private var showingHFTokenSheet = false
-  // Effective server port; re-read after the edit sheet saves so the row updates.
-  @State private var serverPort = LlamaServer.port
-  @State private var showingServerPortSheet = false
-  @State private var networkAccess = UserSettings.networkAccess
-
-  var body: some View {
-    switch tab {
-    case .general: generalForm
-    case .webUI: webUIForm
-    case .advanced: advancedForm
-    }
-  }
-
-  /// The General tab -- everything that isn't specific to the web UI.
-  private var generalForm: some View {
     Form {
-      // Launch at login section
       Section {
-        SettingRow(
-          title: "Launch at login",
-          description: "Sits idle in the menu bar, using minimal memory."
-        ) {
-          Toggle("", isOn: $launchAtLogin)
-            .labelsHidden()
-            .onChange(of: launchAtLogin) { _, newValue in
-              _ = LaunchAtLogin.setEnabled(newValue)
-            }
-        }
-      }
-
-      // Sleep idle time section
-      Section {
-        SettingRow(
-          title: "Unload when idle",
-          description: "Auto-unloads model when not in use."
-        ) {
-          // The setting is written inside the binding (not `.onChange`) so the
-          // defaults value is current before SwiftUI recomputes the body --
-          // otherwise the server-command preview renders one change behind.
-          PillPicker(
-            options: UserSettings.SleepIdleTime.allCases.map { ($0, $0.displayName) },
-            selection: Binding(
-              get: { sleepIdleTime },
-              set: { newValue in
-                UserSettings.sleepIdleTime = newValue
-                sleepIdleTime = newValue
-              })
-          )
-        }
-      }
-
-      // Server port section
-      Section {
-        SettingRow(
-          title: "Server port",
-          description: "The port the server listens on. Default \(String(LlamaServer.defaultPort))."
-        ) {
-          HStack(spacing: 6) {
-            // Only offer a reset when a custom port is set.
-            if UserSettings.serverPort != nil {
-              RestoreDefaultButton {
-                // nil resets to the default; the setter restarts the server once.
-                UserSettings.serverPort = nil
-                serverPort = LlamaServer.port
-              }
-            }
-
-            Button {
-              showingServerPortSheet = true
-            } label: {
-              Text(String(serverPort))
-            }
-            .controlSize(.small)
-          }
-          .font(.callout)
-        }
-      }
-      .sheet(isPresented: $showingServerPortSheet) {
-        ServerPortSheet(currentPort: serverPort) { newPort in
-          // nil resets to the default; the setter restarts the server once.
-          UserSettings.serverPort = newPort
-          serverPort = LlamaServer.port
-        }
-      }
-
-      // Network access section
-      Section {
-        SettingRow(title: "Allow network access", description: networkAccessDescription) {
-          networkAccessControl
-        }
-      }
-
-      // Optional HF access token section
-      Section {
-        SettingRow(
-          title: "Hugging Face Token",
-          description: "Authenticate model downloads; optional."
-        ) {
-          Button {
-            showingHFTokenSheet = true
-          } label: {
-            if hfToken.isEmpty {
-              Text("Set")
-            } else {
-              Text(truncatedToken(hfToken))
-            }
-          }
-          .font(.callout)
-          .controlSize(.small)
-        }
-      }
-      .sheet(isPresented: $showingHFTokenSheet) {
-        HFTokenSheet(currentToken: hfToken) { newToken in
-          hfToken = newToken
-          UserSettings.hfToken = newToken.isEmpty ? nil : newToken
-        }
-      }
-      // HF cache directory section
-      Section {
-        SettingRow(
-          title: "Model directory",
-          description: "Where downloaded models are stored."
-        ) {
-          HStack(spacing: 6) {
-            // Only offer a reset when a custom directory is set.
-            if UserSettings.hasCustomHFCacheDirectory {
-              RestoreDefaultButton {
-                UserSettings.hfCacheDirectory = UserSettings.defaultHFCacheDirectory
-                hfCacheDir = UserSettings.hfCacheDirectory
-                ModelManager.shared.refreshDownloadedModels()
-              }
-            }
-
-            // One button opens the picker; it shows the current path (already
-            // middle-truncated by `abbreviatedPath`) next to a folder icon.
-            Button {
-              chooseCacheFolder()
-            } label: {
-              HStack(spacing: 6) {
-                Text(abbreviatedPath(hfCacheDir))
-                  .lineLimit(1)
-
-                Image(systemName: "folder")
-              }
-            }
-            .controlSize(.small)
-          }
-          .font(.callout)
-        }
-      }
-    }
-    .formStyle(.grouped)
-  }
-
-  /// The Web UI tab -- settings that shape the chat interface the server
-  /// serves: what models are allowed to do in it, and how to summon it.
-  private var webUIForm: some View {
-    Form {
-      // Agent mode section
-      Section {
-        SettingRow(
-          title: "Agent mode",
-          description:
-            "Lets models read and edit files and run commands on this Mac. With network access on, that applies to anyone on the network too."
-        ) {
-          // The setting is written inside the binding (not `.onChange`) so the
-          // defaults value is current before SwiftUI recomputes the body --
-          // otherwise the server-command preview renders one toggle behind.
-          // The setter posts the settings-change notification, which restarts
-          // the server with/without `--agent`.
-          Toggle(
-            "",
-            isOn: Binding(
-              get: { agentMode },
-              set: { newValue in
-                UserSettings.agentMode = newValue
-                agentMode = newValue
-              })
-          )
-          .labelsHidden()
-        }
-      }
-
-      // Global-input shortcut section. It belongs here rather than in General:
-      // the panel it opens only hands the prompt off to the web UI, so the
-      // setting is meaningless to someone who uses the server through the API
-      // or a third-party app.
-      Section {
-        SettingRow(
-          title: "Quick prompt",
-          description: "A keyboard shortcut that opens a prompt window from any app."
-        ) {
-          HStack(spacing: 6) {
-            // Resetting means clearing: no shortcut is the default.
-            if globalShortcut != nil {
-              RestoreDefaultButton {
-                UserSettings.globalInputShortcut = nil
-                globalShortcut = nil
-              }
-            }
-
-            ShortcutRecorder(
-              combo: Binding(
-                get: { globalShortcut },
-                set: { newValue in
-                  // The setter posts the change notification that makes the
-                  // controller re-register the hotkey immediately.
-                  UserSettings.globalInputShortcut = newValue
-                  globalShortcut = newValue
-                })
-            )
-          }
-          .font(.callout)
-        }
-      }
-    }
-    .formStyle(.grouped)
-  }
-
-  /// The Advanced tab -- power-user surfaces that aren't settings to change.
-  private var advancedForm: some View {
-    Form {
-      // Server command section -- exposes the actual `llama serve` invocation
-      // behind the GUI. It's read-only, but reflects the other tabs' settings:
-      // change the port, idle timeout, or model directory and it updates.
-      // Shown expanded: this tab exists to be read, so hiding its one item
-      // behind a disclosure would just add a click.
-      Section {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Server command")
-
-          Text("The command that starts the server, reflecting your settings.")
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-        }
+        Text("The command that starts the server, reflecting your settings.")
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
 
         // The command itself: monospaced, wrapping, and selectable so a user
         // can read or grab any part of it. Lightly syntax-highlighted to make
@@ -572,86 +334,12 @@ struct SettingsView: View {
     .formStyle(.grouped)
   }
 
-  /// This Mac's Tailscale address, re-read on every render rather than
-  /// captured: signing in, signing out, or switching tailnets while this
-  /// window is open all change the answer, and a stale one makes the row
-  /// describe a state the server isn't in.
-  private var tailscaleAddress: String? {
-    TailscaleInterface.address()
-  }
-
-  /// The control for network access: a three-way picker when Tailscale is
-  /// available, otherwise the plain on/off it would collapse to anyway. A
-  /// hand-set address gets neither -- it was configured outside the app, so
-  /// the app reports it rather than offering to overwrite it.
-  @ViewBuilder private var networkAccessControl: some View {
-    if case .custom(let address) = networkAccess {
-      Text(address)
-        .font(.callout)
-        .foregroundStyle(.secondary)
-    } else if tailscaleAddress != nil || networkAccess == .tailscale {
-      PillPicker(
-        options: [
-          (UserSettings.NetworkAccess.off, "Off"),
-          (.tailscale, "Tailscale"),
-          (.localNetwork, "This network"),
-        ],
-        selection: networkAccessBinding
-      )
-      .help(tailscaleAddress.map { "Tailscale: \($0)" } ?? "Tailscale is not available")
-    } else {
-      Toggle(
-        "",
-        isOn: Binding(
-          get: { networkAccess == .localNetwork },
-          set: { networkAccessBinding.wrappedValue = $0 ? .localNetwork : .off })
-      )
-      .labelsHidden()
-    }
-  }
-
-  /// Writes through to defaults before updating the mirror, so the
-  /// server-command preview on the Advanced tab doesn't render one change
-  /// behind. The setter posts the change notification, which restarts the
-  /// server on the new host.
-  private var networkAccessBinding: Binding<UserSettings.NetworkAccess> {
-    Binding(
-      get: { networkAccess },
-      set: { newValue in
-        UserSettings.setNetworkAccess(newValue)
-        networkAccess = UserSettings.networkAccess
-      })
-  }
-
-  /// Says what the current choice actually means. Worth varying: the warning
-  /// that matters for `.localNetwork` (no password, anyone on this wifi) is
-  /// simply untrue of Tailscale, which authenticates every device itself.
-  private var networkAccessDescription: String {
-    switch networkAccess {
-    case .off:
-      return "Only this Mac can reach the server."
-    case .tailscale where tailscaleAddress == nil:
-      // Selected, but there's no address to bind: the server has fallen back
-      // to loopback on its own. Say so rather than describing what the setting
-      // would do if Tailscale were running.
-      return "Tailscale isn't running, so only this Mac can reach the server for now."
-    case .tailscale:
-      return "Reachable from your Tailscale devices, anywhere. Stays invisible on the network you're on."
-    case .localNetwork:
-      return "Anyone on your current network can reach the server. It has no password -- only turn this on for a network you trust."
-    case .custom:
-      return "Bound to an address set outside the app."
-    }
-  }
-
   /// The shell command that starts the server, built from the current
-  /// settings. Reads the `@State` mirrors of the relevant settings (port, idle
-  /// timeout, model directory) so SwiftUI recomputes this whenever one of them
-  /// changes -- the actual spec is sourced from `LlamaServer` so it stays in
-  /// lockstep with what `start()` runs.
+  /// settings. Sourced from `LlamaServer` so it stays in lockstep with what
+  /// `start()` actually runs. Read once per presentation: the popover is built
+  /// when it opens, and settings can't change while it's up.
   private var serverCommand: String {
-    _ = (serverPort, sleepIdleTime, hfCacheDir, agentMode, networkAccess)  // establish SwiftUI dependencies
-    return LlamaServer.buildLaunchSpec()?.displayCommand ?? "llama not installed"
+    LlamaServer.buildLaunchSpec()?.displayCommand ?? "llama not installed"
   }
 
 
@@ -796,6 +484,389 @@ struct SettingsView: View {
     let allDigits = !token.isEmpty && token.allSatisfy { $0.isNumber }
     return allDigits ? CommandColors.int : CommandColors.string
   }
+
+}
+
+/// The detail pane -- shows the selected section's form.
+struct SettingsDetail: View {
+  var tabSelection: SettingsTabSelection
+
+  var body: some View {
+    SettingsView(tab: tabSelection.tab)
+      // Pull the grouped form up under the transparent titlebar, so its first
+      // card sits just below the title rather than a band of empty space.
+      .padding(.top, -20)
+  }
+}
+
+/// SwiftUI view for settings content.
+struct SettingsView: View {
+  /// The section to render.
+  var tab: SettingsTab = .general
+
+  @State private var launchAtLogin = LaunchAtLogin.isEnabled
+  @State private var sleepIdleTime = UserSettings.sleepIdleTime
+  @State private var agentMode = UserSettings.agentMode
+  @State private var hfCacheDir = UserSettings.hfCacheDirectory
+  @State private var globalShortcut = UserSettings.globalInputShortcut
+  @State private var hfToken = UserSettings.hfToken ?? ""
+  @State private var showingHFTokenSheet = false
+  // Effective server port; re-read after the edit sheet saves so the row updates.
+  @State private var serverPort = LlamaServer.port
+  @State private var showingServerPortSheet = false
+  @State private var networkAccess = UserSettings.networkAccess
+
+  var body: some View {
+    switch tab {
+    case .general: generalForm
+    case .network: networkForm
+    case .downloads: downloadsForm
+    case .webUI: webUIForm
+    case .command: ServerCommandView()
+    }
+  }
+
+  /// The General tab -- how the app itself behaves, as distinct from the
+  /// server it runs or the models it stores.
+  private var generalForm: some View {
+    Form {
+      // Launch at login section
+      Section {
+        SettingRow(
+          title: "Launch at login",
+          description: "Sits idle in the menu bar, using minimal memory."
+        ) {
+          Toggle("", isOn: $launchAtLogin)
+            .labelsHidden()
+            .onChange(of: launchAtLogin) { _, newValue in
+              _ = LaunchAtLogin.setEnabled(newValue)
+            }
+        }
+      }
+
+      // Sleep idle time section
+      Section {
+        SettingRow(
+          title: "Unload when idle",
+          description: "Auto-unloads model when not in use."
+        ) {
+          // The setting is written inside the binding (not `.onChange`) so the
+          // defaults value is current before SwiftUI recomputes the body --
+          // otherwise the server-command preview renders one change behind.
+          PillPicker(
+            options: UserSettings.SleepIdleTime.allCases.map { ($0, $0.displayName) },
+            selection: Binding(
+              get: { sleepIdleTime },
+              set: { newValue in
+                UserSettings.sleepIdleTime = newValue
+                sleepIdleTime = newValue
+              })
+          )
+        }
+      }
+
+    }
+    .formStyle(.grouped)
+  }
+
+  /// The Network tab -- how the server is reached: which port, and who's
+  /// allowed to connect. Named for the concern rather than for the component,
+  /// because that's what decides who can skip the tab: someone who only ever
+  /// uses the server from this Mac needs neither setting.
+  private var networkForm: some View {
+    Form {
+      // Server port section
+      Section {
+        SettingRow(
+          title: "Server port",
+          description: "The port the server listens on. Default \(String(LlamaServer.defaultPort))."
+        ) {
+          HStack(spacing: 6) {
+            // Only offer a reset when a custom port is set.
+            if UserSettings.serverPort != nil {
+              RestoreDefaultButton {
+                // nil resets to the default; the setter restarts the server once.
+                UserSettings.serverPort = nil
+                serverPort = LlamaServer.port
+              }
+            }
+
+            Button {
+              showingServerPortSheet = true
+            } label: {
+              Text(String(serverPort))
+            }
+            .controlSize(.small)
+          }
+          .font(.callout)
+        }
+      }
+      .sheet(isPresented: $showingServerPortSheet) {
+        ServerPortSheet(currentPort: serverPort) { newPort in
+          // nil resets to the default; the setter restarts the server once.
+          UserSettings.serverPort = newPort
+          serverPort = LlamaServer.port
+        }
+      }
+
+      // Network access section
+      Section {
+        networkAccessControl
+      }
+
+    }
+    .formStyle(.grouped)
+  }
+
+  /// The Downloads tab -- where downloaded models land, and what authenticates
+  /// the download. Named for the activity rather than for models: these two
+  /// settings don't configure a model, they configure fetching and storing
+  /// one, which is also the only thing the token is ever used for.
+  private var downloadsForm: some View {
+    Form {
+      // HF cache directory section
+      Section {
+        SettingRow(
+          title: "Model directory",
+          description: "Where downloaded models are stored."
+        ) {
+          HStack(spacing: 6) {
+            // Only offer a reset when a custom directory is set.
+            if UserSettings.hasCustomHFCacheDirectory {
+              RestoreDefaultButton {
+                UserSettings.hfCacheDirectory = UserSettings.defaultHFCacheDirectory
+                hfCacheDir = UserSettings.hfCacheDirectory
+                ModelManager.shared.refreshDownloadedModels()
+              }
+            }
+
+            // One button opens the picker; it shows the current path (already
+            // middle-truncated by `abbreviatedPath`) next to a folder icon.
+            Button {
+              chooseCacheFolder()
+            } label: {
+              HStack(spacing: 6) {
+                Text(abbreviatedPath(hfCacheDir))
+                  .lineLimit(1)
+
+                Image(systemName: "folder")
+              }
+            }
+            .controlSize(.small)
+          }
+          .font(.callout)
+        }
+      }
+      // Optional HF access token section
+      Section {
+        SettingRow(
+          title: "Hugging Face Token",
+          description: "Required to download gated or private models."
+        ) {
+          Button {
+            showingHFTokenSheet = true
+          } label: {
+            if hfToken.isEmpty {
+              Text("Set")
+            } else {
+              Text(truncatedToken(hfToken))
+            }
+          }
+          .font(.callout)
+          .controlSize(.small)
+        }
+      }
+      .sheet(isPresented: $showingHFTokenSheet) {
+        HFTokenSheet(currentToken: hfToken) { newToken in
+          hfToken = newToken
+          UserSettings.hfToken = newToken.isEmpty ? nil : newToken
+        }
+      }
+    }
+    .formStyle(.grouped)
+  }
+
+  /// The Web UI tab -- settings that shape the chat interface the server
+  /// serves: what models are allowed to do in it, and how to summon it.
+  private var webUIForm: some View {
+    Form {
+      // Agent mode section
+      Section {
+        SettingRow(
+          title: "Agent mode",
+          description:
+            "Lets models read and edit files and run commands on this Mac. With network access on, that applies to anyone on the network too."
+        ) {
+          // The setting is written inside the binding (not `.onChange`) so the
+          // defaults value is current before SwiftUI recomputes the body --
+          // otherwise the server-command preview renders one toggle behind.
+          // The setter posts the settings-change notification, which restarts
+          // the server with/without `--agent`.
+          Toggle(
+            "",
+            isOn: Binding(
+              get: { agentMode },
+              set: { newValue in
+                UserSettings.agentMode = newValue
+                agentMode = newValue
+              })
+          )
+          .labelsHidden()
+        }
+      }
+
+      // Global-input shortcut section. It belongs here rather than in General:
+      // the panel it opens only hands the prompt off to the web UI, so the
+      // setting is meaningless to someone who uses the server through the API
+      // or a third-party app.
+      Section {
+        SettingRow(
+          title: "Quick prompt",
+          description: "A keyboard shortcut that opens a prompt window from any app."
+        ) {
+          HStack(spacing: 6) {
+            // Resetting means clearing: no shortcut is the default.
+            if globalShortcut != nil {
+              RestoreDefaultButton {
+                UserSettings.globalInputShortcut = nil
+                globalShortcut = nil
+              }
+            }
+
+            ShortcutRecorder(
+              combo: Binding(
+                get: { globalShortcut },
+                set: { newValue in
+                  // The setter posts the change notification that makes the
+                  // controller re-register the hotkey immediately.
+                  UserSettings.globalInputShortcut = newValue
+                  globalShortcut = newValue
+                })
+            )
+          }
+          .font(.callout)
+        }
+      }
+    }
+    .formStyle(.grouped)
+  }
+
+  /// This Mac's Tailscale address, re-read on every render rather than
+  /// captured: signing in, signing out, or switching tailnets while this
+  /// window is open all change the answer, and a stale one makes the row
+  /// describe a state the server isn't in.
+  private var tailscaleAddress: String? {
+    TailscaleInterface.address()
+  }
+
+  /// The control for network access: every option listed with what it means,
+  /// rather than a compact picker whose consequences only appear once you've
+  /// already picked. The warning that matters here -- the server has no
+  /// password, so "This network" hands it to whoever else is on the wifi --
+  /// is only useful *before* the click, which rules out describing the
+  /// selected state alone.
+  ///
+  /// A hand-set address gets a label instead: it was configured outside the
+  /// app, so we report it rather than offering to overwrite it.
+  @ViewBuilder private var networkAccessControl: some View {
+    if case .custom(let address) = networkAccess {
+      SettingRow(
+        title: "Allow network access", description: "Bound to an address set outside the app."
+      ) {
+        Text(address)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+      }
+    } else {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Allow network access")
+
+        VStack(alignment: .leading, spacing: 2) {
+          networkAccessOption(.off, title: "Off")
+          networkAccessOption(.tailscale, title: "Tailscale")
+          networkAccessOption(.localNetwork, title: "This network")
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+  }
+
+  /// One radio option: a native-looking radio dot, its title, and the line
+  /// saying what choosing it would do. Tailscale is disabled -- shown, but
+  /// unpickable -- when this Mac has no Tailscale address, so the control
+  /// keeps the same shape whether or not Tailscale is installed. It stays
+  /// pickable while *selected* without an address, since deselecting is how
+  /// you'd leave that state.
+  @ViewBuilder private func networkAccessOption(
+    _ option: UserSettings.NetworkAccess, title: String
+  ) -> some View {
+    let selected = networkAccess == option
+    let disabled = option == .tailscale && tailscaleAddress == nil && !selected
+
+    Button {
+      networkAccessBinding.wrappedValue = option
+    } label: {
+      HStack(alignment: .top, spacing: 6) {
+        Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+          .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+          // Nudge the dot onto the title's optical center
+          .padding(.top, 1)
+
+        VStack(alignment: .leading, spacing: 1) {
+          Text(title)
+
+          Text(networkAccessDescription(option))
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+
+        Spacer(minLength: 0)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .disabled(disabled)
+    .opacity(disabled ? 0.5 : 1)
+  }
+
+  /// What choosing `option` would do -- written for someone deciding, not for
+  /// someone reading back their own setting. Worth varying: the warning that
+  /// matters for `.localNetwork` (no password, anyone on this wifi) is simply
+  /// untrue of Tailscale, which authenticates every device itself.
+  private func networkAccessDescription(_ option: UserSettings.NetworkAccess) -> String {
+    switch option {
+    case .off:
+      return "Only this Mac can reach the server."
+    case .tailscale where tailscaleAddress == nil && networkAccess == .tailscale:
+      // Selected, but there's no address to bind: the server has fallen back
+      // to loopback on its own. Say so rather than describing what the setting
+      // would do if Tailscale were running.
+      return "Tailscale isn't running, so only this Mac can reach the server for now."
+    case .tailscale where tailscaleAddress == nil:
+      return "Requires Tailscale, which isn't running on this Mac."
+    case .tailscale:
+      return "Reachable from your Tailscale devices, anywhere. Stays invisible on the network you're on."
+    case .localNetwork:
+      return "Anyone on your current network can reach the server. It has no password -- only turn this on for a network you trust."
+    case .custom:
+      return "Bound to an address set outside the app."
+    }
+  }
+
+  /// Writes through to defaults before updating the mirror, so the
+  /// server-command preview on the Advanced tab doesn't render one change
+  /// behind. The setter posts the change notification, which restarts the
+  /// server on the new host.
+  private var networkAccessBinding: Binding<UserSettings.NetworkAccess> {
+    Binding(
+      get: { networkAccess },
+      set: { newValue in
+        UserSettings.setNetworkAccess(newValue)
+        networkAccess = UserSettings.networkAccess
+      })
+  }
+
 
   /// Opens a folder picker and updates the HF cache directory
   private func chooseCacheFolder() {
