@@ -816,7 +816,33 @@ struct SettingsView: View {
           .padding(.top, 1)
 
         VStack(alignment: .leading, spacing: 1) {
-          Text(title)
+          // Baseline-aligned, not centered: the address is a smaller font, so
+          // centering would float it above the title's baseline.
+          HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(title)
+
+            // The address this option binds -- a fixed property of the choice,
+            // not the URL another device would use (that changes with the
+            // network, and the menu shows it for the live state). Monospaced
+            // and dim so it reads as an annotation: someone who knows what
+            // `0.0.0.0` means gets the whole control at a glance, and someone
+            // who doesn't reads the sentence below instead.
+            if let bind = networkAccessBindAddress(option) {
+              Text(bind)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                // No vertical padding: at 11pt with padding the chip stood
+                // taller than the label's line and stretched the row.
+                .padding(.horizontal, 4)
+                // A quiet fill rather than an outline: the port row above
+                // renders its value in a bordered control that *is* clickable,
+                // and an outlined chip here would borrow that affordance for
+                // something inert. A fill reads as a literal, like a code span.
+                .background(
+                  Color(nsColor: .quaternaryLabelColor).opacity(0.5),
+                  in: RoundedRectangle(cornerRadius: 4))
+            }
+          }
 
           Text(networkAccessDescription(option))
             .font(.system(size: 11))
@@ -831,6 +857,17 @@ struct SettingsView: View {
     .buttonStyle(.plain)
     .disabled(disabled)
     .opacity(disabled ? 0.5 : 1)
+  }
+
+  /// The address `option` binds, or nil when there's nothing true to print
+  /// (Tailscale with no address on this Mac).
+  private func networkAccessBindAddress(_ option: UserSettings.NetworkAccess) -> String? {
+    switch option {
+    case .off: return "127.0.0.1"
+    case .tailscale: return tailscaleAddress
+    case .localNetwork: return "0.0.0.0"
+    case .custom(let address): return address
+    }
   }
 
   /// What choosing `option` would do -- written for someone deciding, not for
