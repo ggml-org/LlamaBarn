@@ -315,7 +315,7 @@ struct ServerCommandView: View {
   var body: some View {
     Form {
       Section {
-        Text("The command that starts the server, reflecting your settings.")
+        Text("The command the app runs to start the server.")
           .font(.system(size: 11))
           .foregroundStyle(.secondary)
 
@@ -534,7 +534,7 @@ struct SettingsView: View {
       Section {
         SettingRow(
           title: "Launch at login",
-          description: "Sits idle in the menu bar, using minimal memory."
+          description: "Starts with your Mac and waits in the menu bar, using minimal memory."
         ) {
           Toggle("", isOn: $launchAtLogin)
             .labelsHidden()
@@ -548,7 +548,7 @@ struct SettingsView: View {
       Section {
         SettingRow(
           title: "Unload when idle",
-          description: "Auto-unloads model when not in use."
+          description: "Frees memory by unloading the model after this long without use."
         ) {
           // The setting is written inside the binding (not `.onChange`) so the
           // defaults value is current before SwiftUI recomputes the body --
@@ -660,7 +660,7 @@ struct SettingsView: View {
       // Optional HF access token section
       Section {
         SettingRow(
-          title: "Hugging Face Token",
+          title: "Hugging Face token",
           description: "Required to download gated or private models."
         ) {
           Button {
@@ -694,8 +694,7 @@ struct SettingsView: View {
       Section {
         SettingRow(
           title: "Agent mode",
-          description:
-            "Lets models read and edit files and run commands on this Mac. With network access on, that applies to anyone on the network too."
+          description: agentModeDescription
         ) {
           // The setting is written inside the binding (not `.onChange`) so the
           // defaults value is current before SwiftUI recomputes the body --
@@ -861,6 +860,26 @@ struct SettingsView: View {
     .opacity(disabled ? 0.5 : 1)
   }
 
+  /// Agent mode's description, which reports the network access setting
+  /// rather than stating a conditional the reader would have to go and
+  /// resolve on another tab. The two settings compound: agent mode decides
+  /// what a model may do on this Mac, network access decides who gets to ask.
+  /// Neither row owns that fact, so each says what's true given the other.
+  ///
+  /// Tailscale doesn't earn a warning -- it reaches your own devices, which
+  /// is who the capability was for.
+  private var agentModeDescription: String {
+    let base = "Lets models read and edit files and run commands on this Mac."
+    switch networkAccess {
+    case .localNetwork:
+      return base + " Anyone on your current network can reach the server, so agent mode applies to them too."
+    case .custom:
+      return base + " Agent mode applies to anything that can reach the server."
+    case .off, .tailscale:
+      return base
+    }
+  }
+
   /// The address `option` binds, or nil when there's nothing true to print
   /// (Tailscale with no address on this Mac).
   private func networkAccessBindAddress(_ option: UserSettings.NetworkAccess) -> String? {
@@ -886,9 +905,16 @@ struct SettingsView: View {
       // would do if Tailscale were running.
       return "Tailscale isn't running, so only this Mac can reach the server for now."
     case .tailscale where tailscaleAddress == nil:
-      return "Requires Tailscale, which isn't running on this Mac."
+      // Not "Requires Tailscale": detection is by address, so this also
+      // covers Tailscale installed but signed out -- and that user would
+      // read "requires Tailscale" as wrong rather than as an explanation.
+      return "Requires Tailscale to be running."
     case .tailscale:
       return "Reachable from your Tailscale devices, anywhere. Stays invisible on the network you're on."
+    case .localNetwork where agentMode:
+      // The exposure is the same; what it grants isn't. Say what agent mode
+      // makes it mean rather than leaving the reader to combine two tabs.
+      return "Anyone on your current network can reach the server. It has no password -- and with agent mode on, that means reading and editing files on this Mac."
     case .localNetwork:
       return "Anyone on your current network can reach the server. It has no password -- only turn this on for a network you trust."
     case .custom:
@@ -1037,10 +1063,10 @@ struct HFTokenSheet: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       VStack(alignment: .leading, spacing: 4) {
-        Text("Hugging Face Token")
+        Text("Hugging Face token")
           .font(.headline)
 
-        Text("Used to download gated and private models.")
+        Text("Required to download gated or private models.")
           .font(.caption)
           .foregroundStyle(.secondary)
       }
@@ -1121,7 +1147,7 @@ struct ServerPortSheet: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("Server Port")
+      Text("Server port")
         .font(.headline)
 
       TextField(String(LlamaServer.defaultPort), text: $portText)
