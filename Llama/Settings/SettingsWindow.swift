@@ -778,10 +778,13 @@ struct SettingsView: View {
           .foregroundStyle(.secondary)
       }
     } else {
-      VStack(alignment: .leading, spacing: 6) {
+      VStack(alignment: .leading, spacing: 10) {
         Text("Allow network access")
 
-        VStack(alignment: .leading, spacing: 2) {
+        // The gap between options has to beat the gap inside one, or a
+        // description reads as belonging to the option below it as much as to
+        // its own -- the pairing is what makes the list scannable.
+        VStack(alignment: .leading, spacing: 8) {
           networkAccessOption(.off, title: "Off")
           networkAccessOption(.tailscale, title: "Tailscale")
           networkAccessOption(.localNetwork, title: "This network")
