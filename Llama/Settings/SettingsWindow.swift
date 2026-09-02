@@ -155,6 +155,10 @@ private struct SettingRow<Control: View>: View {
 /// leaves the reader unsure whether they misremembered it. Something that
 /// appears and disappears is self-evidently conditional.
 ///
+/// Colored the way System Settings colors its own cautions: a yellow glyph
+/// carries the alarm, the text stays secondary. All-orange text competes with
+/// the setting label above it and reads as an error rather than a caveat.
+///
 /// The text always names the other setting first, which is what keeps the
 /// cause attached to the effect -- a caution that opens with the consequence
 /// reads as a fact about the app rather than about a switch you can flip.
@@ -165,12 +169,13 @@ private struct SettingCaution: View {
     HStack(alignment: .firstTextBaseline, spacing: 4) {
       Image(systemName: "exclamationmark.triangle.fill")
         .font(.system(size: 9))
+        .foregroundStyle(.yellow)
 
       Text(text)
         .font(.system(size: 11))
+        .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
     }
-    .foregroundStyle(.orange)
   }
 }
 
