@@ -16,7 +16,7 @@ struct LlamaApp: App {
     .commands {
       CommandGroup(replacing: .appSettings) {
         Button("Settings...") {
-          NotificationCenter.default.post(name: .LBShowSettings, object: nil)
+          SettingsWindowController.shared.showSettings()
         }
         .keyboardShortcut(",")
       }
@@ -28,7 +28,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   private var updaterController: SPUStandardUpdaterController?
   private let logger = Logger(subsystem: Logging.subsystem, category: "AppDelegate")
   private var menuController: MenuController?
-  private var settingsWindowController: SettingsWindowController?
   private var globalInputController: GlobalInputController?
   private var networkExposureGuard: NetworkExposureGuard?
   private var updatesObserver: NSObjectProtocol?
@@ -147,9 +146,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Create the AppKit-based status bar menu (installed models only for now)
     menuController = MenuController()
-
-    // Initialize settings window controller (listens for LBShowSettings notifications)
-    settingsWindowController = SettingsWindowController.shared
 
     // Scope network access to the network it was granted on, so the setting
     // doesn't follow the laptop onto someone else's wifi.

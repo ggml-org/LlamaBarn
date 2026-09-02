@@ -8,7 +8,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
   static let shared = SettingsWindowController()
 
   private var window: NSWindow?
-  private var observer: NSObjectProtocol?
 
   /// The selected sidebar section. Held here (rather than as SwiftUI state)
   /// because the window title tracks it.
@@ -17,18 +16,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
   /// Retained so the toolbar delegate can hand out a tracking separator for
   /// this split view.
   private var splitVC: NSSplitViewController?
-
-  private override init() {
-    super.init()
-    // Listen for settings show requests
-    observer = NotificationCenter.default.addObserver(
-      forName: .LBShowSettings, object: nil, queue: .main
-    ) { [weak self] _ in
-      MainActor.assumeIsolated {
-        self?.showSettings()
-      }
-    }
-  }
 
   func showSettings() {
     // Build the window on first show; afterwards it's reused (and just
@@ -45,7 +32,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
       sidebarItem.maximumThickness = 170
       sidebarItem.titlebarSeparatorStyle = .none
 
-      let detailHost = NSHostingController(rootView: SettingsDetail(tabSelection: tabSelection))
+      let detailHost = NSHostingController(rootView: SettingsView(tabSelection: tabSelection))
       let detailItem = NSSplitViewItem(viewController: detailHost)
       detailItem.titlebarSeparatorStyle = .none
 
@@ -351,7 +338,7 @@ struct ServerCommandView: View {
         // the structure (env vars, flags, values) easier to scan. Its own row
         // in the section (no panel of its own), so the form draws its native
         // separator between the header and the command.
-        Text(highlightedCommand)
+        Text(ServerCommandHighlighter.highlight(serverCommand))
           .font(.system(size: 11, design: .monospaced))
           .textSelection(.enabled)
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -363,173 +350,17 @@ struct ServerCommandView: View {
 
   /// The shell command that starts the server, built from the current
   /// settings. Sourced from `LlamaServer` so it stays in lockstep with what
-  /// `start()` actually runs. Read once per presentation: the popover is built
-  /// when it opens, and settings can't change while it's up.
+  /// `start()` actually runs.
   private var serverCommand: String {
     LlamaServer.buildLaunchSpec()?.displayCommand ?? "llama not installed"
   }
-
-
-  /// Appearance-adaptive palette for the server-command syntax highlighting.
-  /// Kept deliberately low-saturation and Xcode-flavored so the block reads as
-  /// "structured" rather than a rainbow. Each color carries a light and a dark
-  /// variant via `NSColor.dynamic`. Tuned in a standalone playground.
-  private enum CommandColors {
-    /// `--flags` and the `export` keyword.
-    static let flag = Color(nsColor: .dynamic(
-      light: NSColor(srgbRed: 45 / 255, green: 108 / 255, blue: 168 / 255, alpha: 1),
-      dark: NSColor(srgbRed: 111 / 255, green: 176 / 255, blue: 232 / 255, alpha: 1)))
-    /// Env-var names (`KEY` in `KEY=value`).
-    static let env = Color(nsColor: .dynamic(
-      light: NSColor(srgbRed: 58 / 255, green: 125 / 255, blue: 92 / 255, alpha: 1),
-      dark: NSColor(srgbRed: 143 / 255, green: 208 / 255, blue: 168 / 255, alpha: 1)))
-    /// The `serve` subcommand.
-    static let serve = Color(nsColor: .dynamic(
-      light: NSColor(srgbRed: 31 / 255, green: 45 / 255, blue: 92 / 255, alpha: 1),
-      dark: NSColor(srgbRed: 155 / 255, green: 180 / 255, blue: 255 / 255, alpha: 1)))
-    /// The leading binary path.
-    static let path = Color(nsColor: .dynamic(
-      light: NSColor(srgbRed: 43 / 255, green: 58 / 255, blue: 103 / 255, alpha: 1),
-      dark: NSColor(srgbRed: 155 / 255, green: 180 / 255, blue: 255 / 255, alpha: 1)))
-    /// Integer values (ports, counts, seconds).
-    static let int = Color(nsColor: .dynamic(
-      light: NSColor(srgbRed: 176 / 255, green: 105 / 255, blue: 31 / 255, alpha: 1),
-      dark: NSColor(srgbRed: 217 / 255, green: 165 / 255, blue: 102 / 255, alpha: 1)))
-    /// String / path values.
-    static let string = Color(nsColor: .dynamic(
-      light: NSColor(srgbRed: 160 / 255, green: 74 / 255, blue: 63 / 255, alpha: 1),
-      dark: NSColor(srgbRed: 224 / 255, green: 143 / 255, blue: 128 / 255, alpha: 1)))
-  }
-
-  /// `serverCommand` with light syntax highlighting applied per token, so the
-  /// command's structure is easy to scan. Purely cosmetic -- the underlying
-  /// text is identical to `serverCommand`. Coloring rules, by token shape:
-  /// `export` and `--flags` share the flag color; env-var names read as keys;
-  /// the `serve` subcommand and the leading binary path each get their own
-  /// tint; values (env-var RHS and flag arguments) color as integers or
-  /// strings; the trailing line-continuation `\` is dimmed.
-  private var highlightedCommand: AttributedString {
-    var result = AttributedString()
-
-    let lines = serverCommand.components(separatedBy: "\n")
-    for (lineIdx, line) in lines.enumerated() {
-      if lineIdx > 0 { result.append(AttributedString("\n")) }
-
-      // Preserve the leading indent verbatim, then tokenize the rest.
-      let indent = line.prefix { $0 == " " }
-      result.append(AttributedString(String(indent)))
-
-      let tokens = tokenize(String(line.dropFirst(indent.count)))
-      // `prevWasFlag` marks that the previous token was a `--flag`, so this
-      // token is its value and colors as a value rather than by its own shape.
-      // `inComment` latches at a `#` token: it and everything after it on the
-      // line (the "# custom arguments" tag) dims as a comment.
-      var prevWasFlag = false
-      var inComment = false
-      for (tokenIdx, token) in tokens.enumerated() {
-        if tokenIdx > 0 { result.append(AttributedString(" ")) }
-        if inComment || token.hasPrefix("#") {
-          inComment = true
-          var attr = AttributedString(token)
-          attr.foregroundColor = .secondary
-          result.append(attr)
-          continue
-        }
-        result.append(highlight(token, isFirstOnLine: tokenIdx == 0, isFlagValue: prevWasFlag))
-        prevWasFlag = token.hasPrefix("--")
-      }
-    }
-
-    return result
-  }
-
-  /// Splits a command line into space-delimited tokens, but keeps a
-  /// single-quoted span (which may contain spaces, e.g. the `models.ini` path)
-  /// as a single token so it can be colored as one string.
-  private func tokenize(_ line: String) -> [String] {
-    var tokens: [String] = []
-    var current = ""
-    var inQuotes = false
-    for char in line {
-      if char == "'" {
-        inQuotes.toggle()
-        current.append(char)
-      } else if char == " " && !inQuotes {
-        tokens.append(current)
-        current = ""
-      } else {
-        current.append(char)
-      }
-    }
-    tokens.append(current)
-    return tokens
-  }
-
-  /// Colors a single token according to its shape and position (see
-  /// `highlightedCommand`).
-  private func highlight(_ token: String, isFirstOnLine: Bool, isFlagValue: Bool) -> AttributedString {
-    var attr = AttributedString(token)
-
-    if token == "\\" {
-      // Trailing line-continuation backslash -- dim, it's just glue.
-      attr.foregroundColor = .secondary
-    } else if token == "export" {
-      // The `export` keyword -- same tint as flags.
-      attr.foregroundColor = CommandColors.flag
-    } else if token == "serve" {
-      // The subcommand.
-      attr.foregroundColor = CommandColors.serve
-    } else if token.hasPrefix("--") {
-      // A flag.
-      attr.foregroundColor = CommandColors.flag
-    } else if isFlagValue {
-      // A flag's argument -- color by its value shape.
-      attr.foregroundColor = valueColor(for: token)
-    } else if let eq = token.firstIndex(of: "="),
-      token[..<eq].allSatisfy({ $0.isUppercase || $0 == "_" }), !token.isEmpty
-    {
-      // An env-var assignment `KEY=value`: tint the key, color the value by its
-      // shape, and leave the `=` default. Built by concatenation so there's no
-      // index math or empty-value edge case.
-      let value = String(token[token.index(after: eq)...])
-      var key = AttributedString(token[..<eq])
-      key.foregroundColor = CommandColors.env
-      var val = AttributedString(value)
-      val.foregroundColor = valueColor(for: value)
-      return key + AttributedString("=") + val
-    } else if isFirstOnLine && token.contains("/") {
-      // The leading binary path on the `llama serve` line.
-      attr.foregroundColor = CommandColors.path
-    }
-
-    return attr
-  }
-
-  /// The color for a value token -- integer tint for all-digit values,
-  /// string tint otherwise (paths, quoted strings).
-  private func valueColor(for token: String) -> Color {
-    let allDigits = !token.isEmpty && token.allSatisfy { $0.isNumber }
-    return allDigits ? CommandColors.int : CommandColors.string
-  }
-
 }
 
-/// The detail pane -- shows the selected section's form.
-struct SettingsDetail: View {
+/// The detail pane -- the selected section's form.
+struct SettingsView: View {
   var tabSelection: SettingsTabSelection
 
-  var body: some View {
-    SettingsView(tab: tabSelection.tab)
-      // Pull the grouped form up under the transparent titlebar, so its first
-      // card sits just below the title rather than a band of empty space.
-      .padding(.top, -20)
-  }
-}
-
-/// SwiftUI view for settings content.
-struct SettingsView: View {
-  /// The section to render.
-  var tab: SettingsTab = .general
+  private var tab: SettingsTab { tabSelection.tab }
 
   @State private var launchAtLogin = LaunchAtLogin.isEnabled
   @State private var sleepIdleTime = UserSettings.sleepIdleTime
@@ -543,7 +374,7 @@ struct SettingsView: View {
   @State private var showingServerPortSheet = false
   @State private var networkAccess = UserSettings.networkAccess
 
-  var body: some View {
+  @ViewBuilder private var form: some View {
     switch tab {
     case .general: generalForm
     case .network: networkForm
@@ -551,6 +382,13 @@ struct SettingsView: View {
     case .webUI: webUIForm
     case .command: ServerCommandView()
     }
+  }
+
+  var body: some View {
+    form
+      // Pull the grouped form up under the transparent titlebar, so its first
+      // card sits just below the title rather than a band of empty space.
+      .padding(.top, -20)
   }
 
   /// The General tab -- how the app itself behaves, as distinct from the
@@ -842,7 +680,7 @@ struct SettingsView: View {
     let disabled = option == .tailscale && tailscaleAddress == nil && !selected
 
     Button {
-      networkAccessBinding.wrappedValue = option
+      setNetworkAccess(option)
     } label: {
       HStack(alignment: .top, spacing: 6) {
         Image(systemName: selected ? "largecircle.fill.circle" : "circle")
@@ -979,16 +817,12 @@ struct SettingsView: View {
   }
 
   /// Writes through to defaults before updating the mirror, so the
-  /// server-command preview on the Advanced tab doesn't render one change
+  /// server-command preview on the Command tab doesn't render one change
   /// behind. The setter posts the change notification, which restarts the
   /// server on the new host.
-  private var networkAccessBinding: Binding<UserSettings.NetworkAccess> {
-    Binding(
-      get: { networkAccess },
-      set: { newValue in
-        UserSettings.setNetworkAccess(newValue)
-        networkAccess = UserSettings.networkAccess
-      })
+  private func setNetworkAccess(_ option: UserSettings.NetworkAccess) {
+    UserSettings.setNetworkAccess(option)
+    networkAccess = UserSettings.networkAccess
   }
 
 
@@ -1267,8 +1101,4 @@ struct ServerPortSheet: View {
     onSave(port)
     dismiss()
   }
-}
-
-#Preview {
-  SettingsView()
 }

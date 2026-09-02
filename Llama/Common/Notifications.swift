@@ -6,7 +6,6 @@ extension Notification.Name {
   static let LBModelDownloadedListDidChange = Notification.Name("LBModelDownloadedListDidChange")
   static let LBUserSettingsDidChange = Notification.Name("LBUserSettingsDidChange")
   static let LBCheckForUpdates = Notification.Name("LBCheckForUpdates")
-  static let LBShowSettings = Notification.Name("LBShowSettings")
   static let LBModelDownloadDidFail = Notification.Name("LBModelDownloadDidFail")
   // Posted when a model's downloads all finish (weights verified + promoted into
   // the HF cache), so the menu bar can flag a not-yet-seen completion on its icon.

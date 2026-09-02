@@ -775,7 +775,7 @@ final class MenuController: NSObject, NSMenuDelegate {
   private func openSettings() {
     // Close the menu first, then open settings window
     statusItem.menu?.cancelTracking()
-    NotificationCenter.default.post(name: .LBShowSettings, object: nil)
+    SettingsWindowController.shared.showSettings()
   }
 
   // MARK: - Folder Warning
