@@ -561,7 +561,7 @@ struct SettingsView: View {
       Section {
         SettingRow(
           title: "Launch at login",
-          description: "Starts with your Mac and waits in the menu bar, using minimal memory."
+          description: "Starts with your Mac and waits in the menu bar."
         ) {
           Toggle("", isOn: $launchAtLogin)
             .labelsHidden()
@@ -688,7 +688,7 @@ struct SettingsView: View {
       Section {
         SettingRow(
           title: "Hugging Face token",
-          description: "Required to download gated or private models."
+          description: "Only needed for gated or private models."
         ) {
           Button {
             showingHFTokenSheet = true
@@ -1122,7 +1122,7 @@ struct HFTokenSheet: View {
         Text("Hugging Face token")
           .font(.headline)
 
-        Text("Required to download gated or private models.")
+        Text("Only needed for gated or private models.")
           .font(.caption)
           .foregroundStyle(.secondary)
       }
