@@ -53,9 +53,11 @@ struct LlamaServerAPI {
 
   // MARK: - Private Helpers
 
-  // Always the current effective port -- read live so a runtime port change
-  // is picked up without recreating the client.
-  private var baseUrl: String { "http://localhost:\(LlamaServer.port)" }
+  // Always the current effective host and port -- read live so a runtime change
+  // (port, or a new network bind address) is picked up without recreating the
+  // client. The host matters: with a specific bind address the server isn't on
+  // loopback at all, so localhost would silently fail every request.
+  private var baseUrl: String { "http://\(LlamaServer.localHost):\(LlamaServer.port)" }
 
   /// A session that never caches.
   ///

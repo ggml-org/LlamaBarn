@@ -98,6 +98,18 @@ class LlamaServer {
     return "localhost"
   }
 
+  /// The host the app itself should use to reach the server.
+  ///
+  /// Unlike `resolvedHost` (which produces a URL for *other* devices), this is
+  /// about reachability from this machine: `llama serve` binds only the address
+  /// it's given, so once a specific one is configured, loopback is dead and the
+  /// app has to talk to that address. `0.0.0.0` already includes loopback, so
+  /// localhost stays the cheapest way in.
+  nonisolated static var localHost: String {
+    guard let bindAddr = effectiveBindAddress, bindAddr != "0.0.0.0" else { return "localhost" }
+    return bindAddr
+  }
+
   /// Webui URL with the given model preselected via the `?model=` query param
   /// the webui reads. Uses the resolved host so a custom network bind address
   /// (incl. 0.0.0.0 -> local IP) still works.
